@@ -6,6 +6,7 @@ Usage :
   python train_logistic.py
   python train_logistic.py -i .\\out\\dataset_bnpl_tunisien_cleanV3.csv
   python train_logistic.py --seuil 0.3
+  python train_logistic.py --class-weight none
 """
 
 from __future__ import annotations
@@ -19,6 +20,7 @@ import numpy as np
 import pandas as pd
 from sklearn.compose import ColumnTransformer
 from sklearn.linear_model import LogisticRegression
+from typing import Any
 from sklearn.metrics import (
     classification_report,
     precision_recall_curve,
@@ -59,7 +61,18 @@ NUMERIC_FEATURES = [
 ]
 
 
-def build_pipeline() -> Pipeline:
+def build_pipeline(class_weight: str | dict[int, float] | None = "balanced") -> Pipeline:
+    """
+    class_weight:
+      - \"balanced\" : pondère comme n_samples / (n_classes * count) — forte pénalité sur les défauts.
+      - None (via CLI \"none\") : pas de pondération ; probas souvent plus \"basse\" pour la classe rare ;
+        compenser avec la recherche de seuil (--seuil, F1, métier).
+      - dict ex. {0: 1.0, 1: 3.0} : pont intermédiaire (--weight-defaut).
+    """
+    cw: Any = class_weight
+    if cw == "none":
+        cw = None
+
     preprocessor = ColumnTransformer(
         transformers=[
             ("num", StandardScaler(), NUMERIC_FEATURES),
@@ -76,7 +89,7 @@ def build_pipeline() -> Pipeline:
     )
 
     clf = LogisticRegression(
-        class_weight="balanced",
+        class_weight=cw,
         max_iter=2000,
         solver="lbfgs",
         random_state=42,
@@ -276,6 +289,27 @@ def main() -> int:
         default=None,
         help="Seuil fixe sauvegardé (ex: 0.3). Si absent → seuil F1-max.",
     )
+    parser.add_argument(
+        "--class-weight",
+        type=str,
+        choices=("balanced", "none"),
+        default="balanced",
+        help=(
+            "balanced pondère les défauts (probas souvent hautes). "
+            'none LogisticRegression sans class_weight — probas relatives plus compatibles seuil fixe '
+            '(retuner seuil obligatoirement).'
+        ),
+    )
+    parser.add_argument(
+        "--weight-defaut",
+        type=float,
+        default=None,
+        metavar="W",
+        help=(
+            "Si défini, utilise class_weight={{0:1, 1:W}} au lieu de balanced/none "
+            "(ex: 5 = défaut pesé ×5 pour le coût, sans aller jusqu'à balanced automatique)."
+        ),
+    )
     args = parser.parse_args()
 
     csv_path = Path(args.input)
@@ -320,7 +354,19 @@ def main() -> int:
     )
     print(f"Train : {len(X_train):,} | Test : {len(X_test):,}")
 
-    model = build_pipeline()
+    if args.weight_defaut is not None:
+        if args.weight_defaut <= 0:
+            print("--weight-defaut doit être > 0", file=sys.stderr)
+            return 1
+        cw_mode: str | dict[int, float] | None = {0: 1.0, 1: float(args.weight_defaut)}
+        print(f"\nclass_weight explicite : {{0: 1, 1: {args.weight_defaut}}}")
+    elif args.class_weight == "none":
+        cw_mode = "none"
+        print("\nclass_weight=None (pas balanced) — compenser avec seuil F1 / métier / --seuil.")
+    else:
+        cw_mode = "balanced"
+
+    model = build_pipeline(class_weight=cw_mode)
     print("\nEntraînement...")
     model.fit(X_train, y_train)
 
@@ -379,6 +425,7 @@ def main() -> int:
         "seuil_final": seuil_final,
         "auc_test": roc_auc_score(y_test, proba),
         "zones": {"faible": 0.25, "moyen": 0.45},
+        "class_weight_setting": cw_mode if args.weight_defaut is None else {"0": 1.0, "1": args.weight_defaut},
     }
     joblib.dump(payload, out_path)
     print(f"\nModèle + seuils sauvegardés : {out_path.resolve()}")
