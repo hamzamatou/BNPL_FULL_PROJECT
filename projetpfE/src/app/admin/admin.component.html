@@ -1,0 +1,124 @@
+<div class="admin-portal">
+  <div class="admin-header">
+    <h1>Admin Portail</h1>
+    <p class="welcome">Bienvenue, administrateur</p>
+  </div>
+
+  <div class="admin-tabs">
+    <span class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Vue d'ensemble</span>
+    <span class="tab" [class.active]="activeTab === 'requests'" (click)="setTab('requests')">Demandes</span>
+    <span class="tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">Utilisateurs</span>
+  </div>
+
+  <div *ngIf="activeTab === 'overview'">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Demandes en attente</div>
+        <div class="kpi-value">12</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Volume total (TND)</div>
+        <div class="kpi-value">45.8K</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Tendance mensuelle des demandes</h3>
+        <div class="chart-line-container">
+          <div class="chart-line-bars">
+            <div class="line-bar-wrap" *ngFor="let m of ['Jan', 'Feb', 'Mar', 'Apr', 'May']">
+              <div class="line-bar" [style.height.%]="60 + (m.length * 5)"></div>
+              <span class="line-label">{{ m }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <div class="chart-card">
+        <h3>Statut des dossiers</h3>
+        <div class="chart-bars">
+          <div class="bar-row">
+            <span class="bar-label">Approuvées</span>
+            <div class="bar-track"><div class="bar-fill" style="width: 75%"></div></div>
+            <span class="bar-value">75%</span>
+          </div>
+          <div class="bar-row">
+            <span class="bar-label">En cours</span>
+            <div class="bar-track"><div class="bar-fill" style="width: 40%; background: #666;"></div></div>
+            <span class="bar-value">40%</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <div *ngIf="activeTab === 'users'">
+    <div class="section-header modern">
+      <div>
+        <h2>Gestion des utilisateurs</h2>
+        <p>Gérez les comptes du système facilement</p>
+      </div>
+
+      <button class="btn-add-user" (click)="openAddUser()">
+        <span>＋</span> Ajouter utilisateur
+      </button>
+    </div>
+
+    <app-add-user *ngIf="showAddUser" (close)="closeAddUser()" (refresh)="onUserAdded()"> </app-add-user>
+
+    <div class="table-container">
+      <table class="user-table">
+        <thead>
+          <tr>
+            <th>Utilisateur</th>
+            <th>Rôle</th>
+            <th>Statut</th>
+            <th class="actions-cell">Actions</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of users">
+            <td>
+              <div class="user-info">
+                <span class="user-name">{{ user.nom }}</span>
+                <span class="user-email">{{ user.email }}</span>
+              </div>
+            </td>
+            <td><span class="role-tag">{{ user.role }}</span></td>
+            <td>
+              <span
+                class="badge"
+                [ngClass]="{
+                  created: user.status === 'CREATED',
+                  active: user.status === 'ACTIVE',
+                  blocked: user.status === 'BLOCKED',
+                }"
+              >
+                {{ user.status === 'CREATED' ? 'Non activé' : user.status === 'ACTIVE' ? 'Actif' : 'Bloqué' }}
+              </span>
+            </td>
+            <td class="actions-cell">
+              <div class="action-group">
+                <button class="btn btn-block" (click)="toggleBlockUser(user)">
+                  <span class="icon">⛔</span>
+                  {{ user.status === 'BLOCKED' ? 'Débloquer' : 'Bloquer' }}
+                </button>
+
+                <button class="btn btn-delete" (click)="deleteUser(user)">
+                  <span class="icon">🗑</span>
+                  Supprimer
+                </button>
+
+                <button class="btn btn-view" (click)="viewUser(user)">
+                  <span class="icon">👁</span>
+                  Consulter
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+</div>

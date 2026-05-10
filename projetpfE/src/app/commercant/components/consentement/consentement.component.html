@@ -1,0 +1,58 @@
+<div class="card" [class.completed]="status === 'completed'">
+  <div class="card-head">
+    <div class="head-left" style="display: flex; align-items: center; gap: 12px;">
+      <div class="snum" [class.completed]="status === 'completed'">
+        @if (status !== 'completed') {
+          <span>4</span>
+        } @else {
+          <span>✔</span>
+        }
+      </div>
+      <div class="title-block">
+        <h3>Consentement</h3>
+        <div class="ssub" [ngClass]="status">
+          {{ status === 'completed' ? 'Demande creee' : 'En cours' }}
+        </div>
+      </div>
+    </div>
+
+    @if (success) {
+      <div class="status-badge">
+        <span class="check-box">✔</span> Demande creee
+      </div>
+    }
+  </div>
+
+  @if (submitting) {
+    <div class="card-body">
+      <div class="info-box loading">Creation de la demande en cours...</div>
+    </div>
+  } @else if (success) {
+    <div class="card-body">
+      <div class="info-box success">
+        Votre demande est creee. Le lien de consentement est prepare et sera envoye au client par e-mail.
+        Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
+      </div>
+
+      <div class="info-box warning">
+        Si le service de notification e-mail n'est pas actif, l'e-mail sera transmis des son activation.
+        Pour accelerer le processus, veuillez contacter le staff technique.
+        Merci pour votre comprehension.
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-red" (click)="restartFlow()">Nouvelle demande</button>
+      </div>
+    </div>
+  } @else {
+    <div class="card-body">
+      <div class="info-box error">
+        Creation echouee : {{ errorMessage || 'verifier les champs, le JWT et le backend 8081/8080.' }}
+      </div>
+
+      <div class="actions">
+        <button type="button" class="btn btn-outline" (click)="goBack()">Retour aux documents</button>
+      </div>
+    </div>
+  }
+</div>

@@ -1,0 +1,31 @@
+Pour generer des JPG de demo (texte lisible OCR) :
+  python generate_test_docs.py
+
+Les pay1/pay2/pay3.jpg sont des bulletins de paie type tunisien (tableau Code / Libellé / Gains / Retenues, 3 decimales, Net a Payer).
+
+loyer.jpg : quittance bilingue — paragraphes en arabe (RTL) + tableau structure (FR), loyer 600 TND.
+
+Placez ici vos images de test (JPG). Noms EXACTS attendus par test_micro.mjs :
+
+  cin.jpg              -> piece CIN
+  pay1.jpg             -> fiche de paie mois 1
+  pay2.jpg             -> fiche de paie mois 2
+  pay3.jpg             -> fiche de paie mois 3
+  attestation.jpg      -> attestation de travail
+  loyer.jpg            -> justificatif de loyer (si vous repondez oui au loyer en mode interactif, ou scenario ok / missing-doc)
+  devis.jpg            -> devis (si montant > 10000 et devis oui, ou scenario ok / missing-doc)
+
+Si vous aviez deja des fichiers ailleurs (ex. C:\tmp\docs), copiez-les ici en les renommant comme ci-dessus.
+
+Lancer le test depuis le dossier du service :
+  node test_micro.mjs
+  (saisie interactive : nom, prenom, cin, etc.)
+
+Presets :
+  node test_micro.mjs ok
+
+Autre dossier d'images :
+  node test_micro.mjs --docs-dir "D:\mes-scans"
+
+Sous Windows :
+  run_test.cmd

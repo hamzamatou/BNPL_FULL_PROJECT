@@ -1,0 +1,82 @@
+<section class="page">
+  <h2 class="title">Demandes banque à traiter</h2>
+
+  @if (loading) {
+    <div class="state-card">Chargement...</div>
+  } @else if (errorMessage) {
+    <div class="state-card error">{{ errorMessage }}</div>
+  } @else if (demandes.length === 0) {
+    <div class="state-card">Aucune demande disponible.</div>
+  } @else {
+    <div class="table">
+      <div class="thead">
+        <div>Reference</div>
+        <div>Client</div>
+        <div>Montant</div>
+        <div>Statut</div>
+        <div>Date</div>
+        <div>Action</div>
+      </div>
+
+      @for (d of demandes; track d.id) {
+        <div class="tr">
+          <div><strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong></div>
+          <div>{{ clientLabel(d) }}</div>
+          <div>{{ montantLabel(d.montant) }}</div>
+          <div>
+            <span
+              class="badge"
+              [class.wait]="statusBadgeClass(d.statut) === 'wait'"
+              [class.analysis]="statusBadgeClass(d.statut) === 'analysis'"
+              [class.sent]="statusBadgeClass(d.statut) === 'sent'"
+            >
+              {{ d.statut }}
+            </span>
+          </div>
+          <div>{{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date: 'dd/MM/yyyy') : '-' }}</div>
+          <div>
+            <button
+              class="recap-btn"
+              type="button"
+              (click)="openRecap(d)"
+            >
+              Récap
+            </button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+
+  @if (recapOpen && recapDemande) {
+    <div class="modal-overlay" (click)="closeRecap()">
+      <div class="modal" (click)="$event.stopPropagation()">
+        <div class="modal-head">
+          <div class="modal-title">Récapitulatif</div>
+          <button class="modal-close" type="button" (click)="closeRecap()">✕</button>
+        </div>
+
+        <div class="modal-body">
+          <div class="recap-line">
+            Référence : <strong>{{ recapDemande.referenceDemande || ('DEM-' + recapDemande.id) }}</strong>
+          </div>
+          <div class="recap-line">Client : <strong>{{ clientLabel(recapDemande) }}</strong></div>
+          <div class="recap-line">Montant : <strong>{{ montantLabel(recapDemande.montant) }}</strong></div>
+          <div class="recap-line">Statut : <strong>{{ recapDemande.statut }}</strong></div>
+
+          <div class="modal-actions">
+            <button
+              type="button"
+              class="validate-btn"
+              [disabled]="actionLoadingId === recapDemande.id"
+              (click)="seSaisirDepuisRecap()"
+            >
+              {{ actionLoadingId === recapDemande.id ? '...' : 'Se saisir' }}
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  }
+</section>
+

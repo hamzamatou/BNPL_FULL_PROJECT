@@ -1,0 +1,51 @@
+<div class="stepper">
+  <div class="step" [class.active]="step >= 1">
+    <div class="sc" [class.done]="step > 1" [class.curr]="step === 1">
+      <span *ngIf="step <= 1">1</span>
+      <span *ngIf="step > 1">✔</span>
+    </div>
+    <div class="sinfo">
+      <div class="stitle">Infos client</div>
+      <div class="ssub">{{ step > 1 ? 'Complété' : 'En cours' }}</div>
+    </div>
+  </div>
+
+  <div class="sline" [class.done]="step > 1"></div>
+
+  <div class="step" [class.active]="step >= 2">
+    <div class="sc" [class.done]="step > 2" [class.curr]="step === 2" [class.wait]="step < 2">
+      <span *ngIf="step <= 2">2</span>
+      <span *ngIf="step > 2">✔</span>
+    </div>
+    <div class="sinfo">
+      <div class="stitle">Données financières</div>
+      <div class="ssub">{{ step > 2 ? 'Complété' : (step === 2 ? 'En cours' : 'En attente') }}</div>
+    </div>
+  </div>
+
+  <div class="sline" [class.done]="step > 2"></div>
+
+  <div class="step" [class.active]="step >= 3">
+    <div class="sc" [class.done]="step > 3" [class.curr]="step === 3" [class.wait]="step < 3">
+      <span *ngIf="step <= 3">3</span>
+      <span *ngIf="step > 3">✔</span>
+    </div>
+    <div class="sinfo">
+      <div class="stitle">Documents</div>
+      <div class="ssub">{{ step > 3 ? 'Complété' : (step === 3 ? 'En cours' : 'En attente') }}</div>
+    </div>
+  </div>
+
+  <div class="sline" [class.done]="step > 3"></div>
+
+  <div class="step" [class.active]="step >= 4">
+    <div class="sc" [class.done]="step > 4" [class.curr]="step === 4" [class.wait]="step < 4">
+      <span *ngIf="step <= 4">4</span>
+      <span *ngIf="step > 4">✔</span>
+    </div>
+    <div class="sinfo">
+      <div class="stitle">Consentement</div>
+      <div class="ssub">{{ step > 4 ? 'Complété' : (step === 4 ? 'En cours' : 'En attente') }}</div>
+    </div>
+  </div>
+</div>

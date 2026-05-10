@@ -1,0 +1,109 @@
+.upload-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 16px;
+  margin-top: 10px;
+}
+
+.doc-hint {
+  margin-bottom: 8px;
+  padding: 10px 12px;
+  border: 1px solid #f2c6ce;
+  background: #fff4f6;
+  border-radius: 8px;
+  color: #7a1b2b;
+  font-size: 12px;
+}
+
+.doc-hint span {
+  color: #c8102e;
+  font-weight: 700;
+}
+
+.upload-section label {
+  display: block;
+  font-size: 10px;
+  color: #7f8a97;
+  margin-bottom: 4px;
+  font-weight: 600;
+}
+
+.req {
+  color: #d3121f;
+  font-weight: 700;
+}
+
+.drop-zone {
+  border: 2px dashed #d6dee8;
+  border-radius: 10px;
+  min-height: 120px;
+  text-align: center;
+  background: #f7f9fc;
+  cursor: pointer;
+  transition: background-color 0.2s ease, border-color 0.2s ease, transform 0.15s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  gap: 4px;
+}
+
+.drop-zone .icon-doc,
+.drop-zone .icon-money {
+  display: block;
+  font-size: 20px;
+}
+
+.drop-zone p {
+  font-size: 12px;
+  color: #6b7787;
+}
+
+.drop-zone span {
+  color: #c8102e;
+  font-weight: 700;
+  text-decoration: underline;
+}
+
+.drop-zone:not(.disabled):hover {
+  background: #fff0f3;
+  border-color: #c8102e;
+  transform: translateY(-1px);
+}
+
+.drop-zone.disabled {
+  cursor: not-allowed;
+  background: #f5f5f5;
+  border-style: solid;
+  opacity: 0.75;
+}
+
+.file-list {
+  margin-top: 8px;
+}
+
+.file-item {
+  margin-top: 5px;
+  display: flex;
+  align-items: center;
+  background: #fafafa;
+  border: 1px solid #e5e7eb;
+  padding: 6px 8px;
+  border-radius: 2px;
+}
+
+.file-name {
+  flex: 1;
+  margin-left: 8px;
+  font-size: 11px;
+  color: #374151;
+}
+
+.check-box {
+  color: #11803a;
+  background: transparent;
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  font-size: 12px;
+}

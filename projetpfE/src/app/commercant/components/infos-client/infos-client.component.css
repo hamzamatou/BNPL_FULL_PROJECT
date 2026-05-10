@@ -1,0 +1,126 @@
+.card .title-block h3 {
+  font-size: 16px;
+  font-weight: 700;
+  color: #0d1b2a;
+}
+
+.card .ssub {
+  font-size: 12px;
+  color: #7d8796;
+}
+
+.grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 14px 16px;
+}
+
+.span-row {
+  grid-column: 1 / -1;
+}
+
+.section-title {
+  margin-top: 4px;
+  padding-top: 4px;
+  font-size: 13px;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #0d1b2a;
+  border-left: 3px solid #c8102e;
+  padding-left: 10px;
+}
+
+.sit-badge {
+  display: inline-flex;
+  align-items: center;
+  margin-top: 10px;
+  padding: 5px 12px;
+  border-radius: 20px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.sit-badge--celib {
+  background: #e6f4ed;
+  color: #1a7a4a;
+}
+.sit-badge--marie {
+  background: #e0edff;
+  color: #0057a8;
+}
+.sit-badge--pacse {
+  background: #f9e4e7;
+  color: #c8102e;
+}
+.sit-badge--divorce {
+  background: #fff3d6;
+  color: #8a5f00;
+}
+.sit-badge--veuf {
+  background: #e7edf4;
+  color: #0d1b2a;
+}
+.sit-badge--concubinage {
+  background: #e8f4fc;
+  color: #0369a1;
+}
+
+.field-hint {
+  margin-top: 8px;
+  font-size: 12px;
+  color: #667385;
+  line-height: 1.45;
+  max-width: 520px;
+}
+
+.field label {
+  font-size: 11px;
+  color: #6f7b8a;
+  margin-bottom: 6px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  height: 40px;
+  border: 1px solid #d6dde7;
+  border-radius: 10px;
+  padding: 0 12px;
+  font-size: 14px;
+  background: #fff;
+}
+
+.field input:focus,
+.field select:focus {
+  outline: none;
+  border-color: #c8102e;
+  box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.12);
+}
+
+.actions {
+  margin-top: 18px;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.form-error {
+  margin-bottom: 14px;
+  color: #c8102e;
+  font-size: 13px;
+  font-weight: 700;
+  background: #fff2f4;
+  border: 1px solid #f4c7cf;
+  border-radius: 8px;
+  padding: 10px 12px;
+}
+
+.field-error {
+  margin-top: 6px;
+  color: #c8102e;
+  font-size: 12px;
+  font-weight: 600;
+}

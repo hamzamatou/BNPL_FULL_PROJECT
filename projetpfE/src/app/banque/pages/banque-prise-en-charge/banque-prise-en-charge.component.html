@@ -1,0 +1,36 @@
+<section class="page">
+  <h2 class="title">Demandes banque prises en charge</h2>
+
+  @if (loading) {
+    <div class="state-card">Chargement...</div>
+  } @else if (errorMessage) {
+    <div class="state-card error">{{ errorMessage }}</div>
+  } @else if (demandes.length === 0) {
+    <div class="state-card">Aucune demande en prise en charge.</div>
+  } @else {
+    <div class="table">
+      <div class="thead">
+        <div>Reference</div>
+        <div>Client</div>
+        <div>Montant</div>
+        <div>Statut</div>
+        <div>Date</div>
+        <div>Action</div>
+      </div>
+
+      @for (d of demandes; track d.id) {
+        <div class="tr">
+          <div><strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong></div>
+          <div>{{ clientLabel(d) }}</div>
+          <div>{{ montantLabel(d.montant) }}</div>
+          <div><span class="badge">{{ d.statut }}</span></div>
+          <div>{{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date:'dd/MM/yyyy') : '-' }}</div>
+          <div>
+            <button type="button" class="detail-btn" (click)="goToDetail(d.id)">Détail</button>
+          </div>
+        </div>
+      }
+    </div>
+  }
+</section>
+

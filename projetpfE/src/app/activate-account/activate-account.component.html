@@ -1,0 +1,25 @@
+<div class="activation-card">
+
+  <h2>Activation du compte</h2>
+
+
+
+  <!-- Mot de passe -->
+  <div class="field">
+    <label>MOT DE PASSE</label>
+    <input type="password"
+           [(ngModel)]="form.password">
+  </div>
+
+  <!-- Confirmation -->
+  <div class="field">
+    <label>CONFIRMER MOT DE PASSE</label>
+    <input type="password"
+           [(ngModel)]="form.confirmPassword">
+  </div>
+
+  <button (click)="activate()">
+    Activer mon compte
+  </button>
+
+</div>

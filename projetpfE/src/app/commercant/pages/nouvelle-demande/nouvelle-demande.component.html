@@ -1,0 +1,40 @@
+<div class="page">
+  <h2>Creer une demande BNPL</h2>
+
+  <app-stepper [step]="currentStep"></app-stepper>
+
+  <app-infos-client
+    [status]="currentStep > 1 ? 'completed' : 'active'"
+    (nextStep)="setInfosClient($event)">
+  </app-infos-client>
+
+  <app-donnees-financieres
+    *ngIf="currentStep >= 2"
+    [status]="currentStep > 2 ? 'completed' : (currentStep === 2 ? 'active' : 'pending')"
+    [prefill]="donneesFinancieresPrefill"
+    [situationFamiliale]="infosClientData.situationFamiliale ?? ''"
+    [nombreEnfantsClient]="infosClientData.nombreEnfants ?? 0"
+    [ancienneteEmploiMoisClient]="infosClientData.ancienneteEmploiMois ?? 0"
+    (nextStep)="setDonneesFinancieres($event)"
+    (prevStep)="prevStep()">
+  </app-donnees-financieres>
+
+  <app-documents
+    *ngIf="currentStep >= 3"
+    [status]="currentStep > 3 ? 'completed' : (currentStep === 3 ? 'active' : 'pending')"
+    [aUnLoyer]="donneesFinancieresData.aUnLoyer ?? false"
+    [montant]="donneesFinancieresData.montant ?? 0"
+    (nextStep)="setDocuments($event.documents, $event.typeProduit)"
+    (prevStep)="prevStep()">
+  </app-documents>
+
+  <app-consentement
+    *ngIf="currentStep >= 4"
+    [status]="submitSuccess ? 'completed' : 'active'"
+    [submitting]="isSubmitting"
+    [success]="submitSuccess"
+    [errorMessage]="submitErrorMessage"
+    (prevStep)="prevStep()"
+    (restart)="restartFlow()">
+  </app-consentement>
+</div>

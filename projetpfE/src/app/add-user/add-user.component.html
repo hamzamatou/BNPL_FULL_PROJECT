@@ -1,0 +1,202 @@
+<div class="add-user-card">
+<!-- À mettre EN DEHORS de .add-user-card, idéalement dans app.component.html -->
+<div class="toast-container">
+  <div *ngIf="toast" [ngClass]="'toast toast-' + toast.type">
+    <div class="toast-icon">
+      {{ toast.type === 'success' ? '✔' : '✖' }}
+    </div>
+    <div class="toast-body">
+      <div class="toast-title">
+        {{ toast.type === 'success' ? 'Opération réussie' : 'Erreur détectée' }}
+      </div>
+      <div class="toast-message">{{ toast.message }}</div>
+    </div>
+    <div class="toast-progress"></div>
+  </div>
+</div>
+  <!-- HEADER -->
+  <div class="card-header">
+    <h2> Ajouter un utilisateur</h2>
+    <p>Créer un nouveau compte dans le système</p>
+  </div>
+
+  <!-- ROLE SELECT -->
+  <div class="form-group">
+    <label>Type utilisateur</label>
+    <select [(ngModel)]="selectedRole" (change)="onRoleChange()">
+      <option value="">Sélectionner un rôle</option>
+      <option value="COMMERCANT">🛒 Commerçant</option>
+      <option value="ANALYSTE">🏦 Analyste bancaire</option>
+    </select>
+  </div>
+
+  <!-- ================= COMMERCANT ================= -->
+  <div *ngIf="selectedRole === 'COMMERCANT'" class="form-section">
+
+    <div class="section-title">Informations du commerçant</div>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label>Nom du magasin</label>
+        <input type="text" [(ngModel)]="commercant.nomMagasin">
+      </div>
+
+      <div class="form-group">
+        <label>Identifiant ICE</label>
+        <input type="text" [(ngModel)]="commercant.ice">
+      </div>
+
+      <div class="form-group">
+  <label>Téléphone</label>
+  <div class="phone-input-wrapper">
+    <span class="phone-prefix">
+       <img 
+  src="https://flagcdn.com/w20/tn.png" 
+  srcset="https://flagcdn.com/w40/tn.png 2x"
+  alt="TN"
+  class="flag-img"
+>
+      <span class="code">+216</span>
+    </span>
+    <input type="text" [(ngModel)]="commercant.telephone" placeholder="XX XXX XXX">
+  </div>
+</div>
+
+      <div class="form-group">
+        <label>Adresse</label>
+        <input type="text" [(ngModel)]="commercant.adresse">
+      </div>
+
+      <div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="commercant.email">
+      </div>
+
+      <div class="form-group">
+        <label>Mot de passe initial</label>
+        <input type="password" [(ngModel)]="commercant.password">
+      </div>
+
+    </div>
+  </div>
+
+  <!-- ================= ANALYSTE ================= -->
+  <div *ngIf="selectedRole === 'ANALYSTE'" class="form-section">
+
+    <div class="section-title">Informations analyste bancaire</div>
+
+    <div class="form-grid">
+
+      <div class="form-group">
+        <label>Nom</label>
+        <input type="text" [(ngModel)]="analyste.nom">
+      </div>
+
+      <div class="form-group">
+        <label>Prénom</label>
+        <input type="text" [(ngModel)]="analyste.prenom">
+      </div>
+
+      <div class="form-group">
+        <label>Poste</label>
+        <input type="text" [(ngModel)]="analyste.poste">
+      </div>
+
+      
+
+      <div class="form-group">
+  <label>Téléphone</label>
+  <div class="phone-input-wrapper">
+    <span class="phone-prefix">
+      <img 
+  src="https://flagcdn.com/w20/tn.png" 
+  srcset="https://flagcdn.com/w40/tn.png 2x"
+  alt="TN"
+  class="flag-img"
+>
+      <span class="code">+216</span>
+    </span>
+    <input type="text" [(ngModel)]="analyste.telephone" placeholder="XX XXX XXX">
+  </div>
+</div>
+<div class="form-group">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="analyste.email">
+      </div>
+
+      <div class="form-group">
+        <label>Mot de passe initial</label>
+        <input type="password" [(ngModel)]="analyste.password">
+      </div>
+
+      <div class="form-group full-width">
+  <label>Banque</label>
+
+  <div class="bank-select-row">
+    <select [(ngModel)]="analyste.banqueId">
+      <option value="">Sélectionner une banque</option>
+      <option *ngFor="let b of banques" [value]="b.id">
+        {{ b.nomBanque }}
+      </option>
+    </select>
+
+    <!-- BOUTON + -->
+    <button class="btn-add-bank" (click)="toggleAddBank()">
+      +
+    </button>
+  </div>
+</div>
+<div *ngIf="showAddBank" class="add-bank-form">
+
+  <div class="section-title">Nouvelle Banque</div>
+
+  <div class="form-grid">
+
+    <div class="form-group">
+      <label>Nom Banque</label>
+      <input type="text" [(ngModel)]="newBank.nomBanque">
+    </div>
+
+    <div class="form-group">
+      <label>Code Banque</label>
+      <input type="text" [(ngModel)]="newBank.codeBanque">
+    </div>
+
+    <div class="form-group">
+      <label>Email</label>
+      <input type="email" [(ngModel)]="newBank.email">
+    </div>
+
+    <div class="form-group">
+      <label>Téléphone</label>
+      <input type="text" [(ngModel)]="newBank.telephone">
+    </div>
+
+    <div class="form-group full-width">
+      <label>Adresse</label>
+      <input type="text" [(ngModel)]="newBank.adresse">
+    </div>
+
+  </div>
+
+  <button class="btn btn-primary" (click)="addBank()">
+    ✔ Ajouter Banque
+  </button>
+
+</div>
+    </div>
+  </div>
+
+  <!-- ACTIONS -->
+  <div class="card-actions">
+    <button class="btn btn-primary" (click)="submit()">
+      ✔ Créer utilisateur
+    </button>
+
+    <button class="btn btn-secondary" (click)="close.emit()">
+      Annuler
+    </button>
+  </div>
+
+</div>

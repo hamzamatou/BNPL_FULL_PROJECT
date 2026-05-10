@@ -1,0 +1,74 @@
+.stepper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: white;
+  padding: 20px 30px;
+  border-radius: 8px;
+  border: 1px solid #eee;
+  width: 100%; /* Prend toute la largeur */
+}
+
+.step {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  white-space: nowrap; /* Empêche le texte de revenir à la ligne */
+}
+
+.sc {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  font-weight: bold;
+  transition: all 0.3s ease;
+}
+
+/* Couleurs selon l'état */
+.sc.curr, .sc.done {
+  background: #CC0000;
+  color: white;
+}
+
+.sc.wait {
+  background: #f0f0f0;
+  color: #bbb;
+}
+
+/* Textes */
+.sinfo {
+  display: flex;
+  flex-direction: column;
+}
+
+.stitle {
+  font-size: 13px;
+  font-weight: 700;
+  color: #333;
+}
+
+.step.active .stitle {
+  color: #CC0000;
+}
+
+.ssub {
+  font-size: 11px;
+  color: #aaa;
+}
+
+/* La ligne entre les cercles */
+.sline {
+  flex: 1; /* La ligne s'étire pour remplir l'espace */
+  height: 2px;
+  background: #f0f0f0;
+  margin: 0 15px;
+  min-width: 30px; /* Largeur minimum pour ne pas que ça colle */
+}
+
+.sline.done {
+  background: #CC0000;
+}

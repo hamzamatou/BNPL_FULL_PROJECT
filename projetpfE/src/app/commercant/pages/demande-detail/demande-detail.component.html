@@ -1,0 +1,241 @@
+<section class="detail-page">
+  @if (loading) {
+    <div class="state-card">Chargement de la demande...</div>
+  } @else if (errorMessage) {
+    <div class="state-card error">{{ errorMessage }}</div>
+  } @else if (demande) {
+    <div class="detail-head">
+      <div class="detail-crumb">
+        <button class="crumb-back" (click)="back()">← Retour à mes demandes</button>
+        <div class="crumb-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</div>
+      </div>
+    </div>
+
+    <div class="detail-title">
+      <h1 class="h1">
+        Demande <span class="h1-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</span>
+      </h1>
+      <div class="title-meta">
+        <span class="status-pill">{{ statusLabel }}</span>
+        <span class="meta-dot">•</span>
+        <span>Créée le {{ formatDateShort(demande.dateCreation) }}</span>
+        <span class="meta-dot">•</span>
+        <span>Dernière mise à jour le {{ formatDateShort(demande.dateDerniereMiseAJour) }}</span>
+      </div>
+    </div>
+
+    <div class="timeline-card">
+      <div class="timeline">
+        <div class="t-step">
+          <div class="t-circle" [class.done]="isStepDone(0)" [class.active]="activeStepIndex === 0">
+            {{ isStepDone(0) && activeStepIndex !== 0 ? '✓' : '1' }}
+          </div>
+          <div class="t-name">En attente consentement</div>
+          <div class="t-sub">{{ stepDates[0] }}</div>
+        </div>
+
+        <div class="t-line" [class.done]="isStepDone(1)"></div>
+
+        <div class="t-step">
+          <div class="t-circle" [class.done]="isStepDone(1)" [class.active]="activeStepIndex === 1">
+            {{ isStepDone(1) && activeStepIndex !== 1 ? '✓' : '2' }}
+          </div>
+          <div class="t-name">Soumise</div>
+          <div class="t-sub">{{ stepDates[1] }}</div>
+        </div>
+
+        <div class="t-line" [class.done]="isStepDone(2)"></div>
+
+        <div class="t-step">
+          <div class="t-circle" [class.done]="isStepDone(2)" [class.active]="activeStepIndex === 2">
+            {{ isStepDone(2) && activeStepIndex !== 2 ? '✓' : '3' }}
+          </div>
+          <div class="t-name">En analyse</div>
+          <div class="t-sub">{{ stepDates[2] }}</div>
+        </div>
+
+        <div class="t-line" [class.done]="isStepDone(3)"></div>
+
+        <div class="t-step">
+          <div class="t-circle" [class.done]="isStepDone(3)" [class.active]="activeStepIndex === 3">
+            {{ isStepDone(3) && activeStepIndex !== 3 ? '✓' : '4' }}
+          </div>
+          <div class="t-name">Décision</div>
+          <div class="t-sub">{{ stepDates[3] }}</div>
+        </div>
+
+        <div class="t-line" [class.done]="isStepDone(4)"></div>
+
+        <div class="t-step">
+          <div class="t-circle" [class.done]="isStepDone(4)" [class.active]="activeStepIndex === 4">
+            {{ isStepDone(4) && activeStepIndex !== 4 ? '✓' : '5' }}
+          </div>
+          <div class="t-name">Financement</div>
+          <div class="t-sub">{{ stepDates[4] }}</div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="col-left">
+        <div class="card section-card">
+          <div class="section-title">INFORMATIONS DU CLIENT</div>
+          <div class="info-grid">
+            <div class="mini-field">
+              <div class="mini-label">NOM</div>
+              <div class="mini-value">{{ demande.client?.nom || '-' }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">PRÉNOM</div>
+              <div class="mini-value">{{ demande.client?.prenom || '-' }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">EMAIL</div>
+              <div class="mini-value">{{ demande.client?.email || '-' }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">TÉLÉPHONE</div>
+              <div class="mini-value">{{ demande.client?.telephone || '-' }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">SITUATION FAMILIALE</div>
+              <div class="mini-value">{{ situationFamilialeDisplay }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">NOMBRE D’ENFANTS</div>
+              <div class="mini-value">{{ nombreEnfantsDisplay }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="section-title">DONNÉES FINANCIÈRES</div>
+          <div class="info-grid">
+            <div class="mini-field">
+              <div class="mini-label">MONTANT DEMANDÉ</div>
+              <div class="mini-value">{{ formatMoney(demande.montant) }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">DURÉE REMBOURSEMENT</div>
+              <div class="mini-value">{{ demande.dureeMois || '-' }} mois</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">REVENU MENSUEL NET</div>
+              <div class="mini-value">{{ formatMoney(demande.dossierClient?.revenuMensuelNet) }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">CHARGES MENSUELLES</div>
+              <div class="mini-value">{{ formatMoney(demande.dossierClient?.chargesMensuelles) }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">CRÉDITS EN COURS</div>
+              <div class="mini-value">{{ formatMoney(demande.dossierClient?.encoursCredits) }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">OBJET DU FINANCEMENT</div>
+              <div class="mini-value">{{ demande.typeProduit || '-' }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="section-title">PIÈCES JUSTIFICATIVES</div>
+          @if (!(demande.dossierClient?.documents?.length)) {
+            <div class="empty-state">Aucun document.</div>
+          } @else {
+            <div class="docs-list">
+              @for (doc of (demande.dossierClient?.documents ?? []); track doc.id) {
+                <div class="doc-row">
+                  <div class="doc-left">
+                    <div class="doc-icon">📄</div>
+                    <div>
+                      <div class="doc-name">{{ doc.nomFichier || doc.typeDocument }}</div>
+                      <div class="doc-sub">{{ doc.typeDocument }} • {{ formatFileSize(doc.tailleOctets) }}</div>
+                    </div>
+                  </div>
+                  <div class="doc-right">
+                    <div class="doc-valid">✓ Validé</div>
+                    <button class="btn-view" type="button" (click)="openDoc(doc)">Voir</button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="col-right">
+        <div class="card section-card">
+          <div class="section-title">RÉCAPITULATIF</div>
+          <div class="recap-list">
+            <div class="recap-row">
+              <div class="recap-k">Montant</div>
+              <div class="recap-v">{{ formatMoney(demande.montant) }}</div>
+            </div>
+            <div class="recap-row">
+              <div class="recap-k">Durée</div>
+              <div class="recap-v">{{ demande.dureeMois || '-' }} mois</div>
+            </div>
+            <div class="recap-row">
+              <div class="recap-k">Mensualité estimée</div>
+              <div class="recap-v">{{ mensualiteEstimee ? (mensualiteEstimee).toFixed(0) : '-' }} TND / mois</div>
+            </div>
+            <div class="recap-row">
+              <div class="recap-k">Taux d’endettement</div>
+              <div class="recap-v">{{ tauxEndettementPercent.toFixed(1) }} %</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="section-title">HISTORIQUE</div>
+          <div class="history">
+            @for (item of historyItems; track $index) {
+              <div class="history-item">
+                <div class="history-dot"></div>
+                <div class="history-body">
+                  <div class="history-title">{{ item.title }}</div>
+                  <div class="history-sub">{{ item.detail }}</div>
+                  <div class="history-date">{{ item.date }}</div>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    </div>
+
+    @if (docDockOpen && dockDoc) {
+      <div class="doc-dock-overlay" (click)="closeDocDock()">
+        <div class="doc-dock" (click)="$event.stopPropagation()">
+          <div class="dock-head">
+            <div class="dock-title">{{ dockDoc.nomFichier || dockDoc.typeDocument }}</div>
+            <button class="dock-close" type="button" (click)="closeDocDock()">✕</button>
+          </div>
+
+          <div class="dock-body">
+            @if (dockLoading) {
+              <div class="dock-loading">Chargement du document...</div>
+            } @else if (dockErrorMessage) {
+              <div class="dock-loading">{{ dockErrorMessage }}</div>
+            } @else if (dockSafeResourceUrl || dockSafeUrl) {
+              @if (dockContentTypeLc.includes('pdf')) {
+                <iframe class="dock-frame" [src]="dockSafeResourceUrl"></iframe>
+              } @else if (dockContentTypeLc.startsWith('image/')) {
+                <img class="dock-image" [src]="dockSafeUrl" alt="document" />
+              } @else {
+                <a class="dock-link" [href]="dockSafeUrl" target="_blank" rel="noreferrer">Ouvrir le document</a>
+              }
+            } @else {
+              <div class="dock-loading">Impossible de charger l'aperçu.</div>
+            }
+
+            <div class="dock-meta">
+              {{ dockDoc.typeDocument }} • {{ formatFileSize(dockDoc.tailleOctets) }}
+            </div>
+          </div>
+        </div>
+      </div>
+    }
+  }
+</section>

@@ -1,0 +1,125 @@
+<div class="card" [class.completed]="status === 'completed'">
+  <div class="card-head">
+    <div class="head-left" style="display: flex; align-items: center; gap: 12px;">
+      <div class="snum" [class.done]="status === 'completed'">
+        {{ status === 'completed' ? '✔' : '1' }}
+      </div>
+      <div class="title-block">
+        <h3>Informations du client</h3>
+        <div class="ssub">{{ status === 'completed' ? 'Complété' : 'En cours' }}</div>
+      </div>
+    </div>
+    <div class="status-badge" *ngIf="status === 'completed'">
+      <span class="check-box">✔</span> Complété
+    </div>
+  </div>
+
+  <div class="card-body">
+    <div class="form-error" *ngIf="formError">{{ formError }}</div>
+    <div class="grid">
+      <div class="section-title span-row">Profil social</div>
+      <div class="field">
+        <label>Nom</label>
+        <input type="text" [(ngModel)]="nom" placeholder="Ex: Dupont" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field">
+        <label>Prénom</label>
+        <input type="text" [(ngModel)]="prenom" placeholder="Ex: Jean" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field">
+        <label>Date de naissance</label>
+        <input type="date" [(ngModel)]="dateNaissance" [disabled]="status === 'completed'" />
+        <div class="field-error" *ngIf="dateNaissanceError">{{ dateNaissanceError }}</div>
+      </div>
+      <div class="field">
+        <label>N° CIN</label>
+        <input
+          type="text"
+          inputmode="numeric"
+          maxlength="8"
+          pattern="[0-9]{8}"
+          [(ngModel)]="cin"
+          placeholder="Ex: 12345678"
+          [disabled]="status === 'completed'"
+        />
+        <div class="field-error" *ngIf="cinError">{{ cinError }}</div>
+      </div>
+      <div class="field">
+        <label>Email</label>
+        <input type="email" [(ngModel)]="email" placeholder="exemple@mail.com" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field span-row">
+        <label>Situation familiale</label>
+        <select [(ngModel)]="situationFamiliale" [disabled]="status === 'completed'">
+          <option value="">Sélectionner</option>
+          <option value="CELIBATAIRE">Célibataire</option>
+          <option value="MARIE">Marié(e)</option>
+          <option value="PACSE">Pacsé(e)</option>
+          <option value="DIVORCE">Divorcé(e)</option>
+          <option value="VEUF">Veuf / veuve</option>
+          <option value="CONCUBINAGE">Concubinage</option>
+        </select>
+        <span *ngIf="situationFamiliale" [class]="situationBadgeClass()">{{ libelleSituation() }}</span>
+        <p class="field-hint" *ngIf="shouldShowNombreEnfants">
+          Le nombre d’enfants est requis pour ce statut familial.
+        </p>
+      </div>
+      <div class="field" *ngIf="shouldShowNombreEnfants">
+        <label>Nombre d’enfants</label>
+        <input type="number" min="0" step="1" [(ngModel)]="nombreEnfants" [disabled]="status === 'completed'" />
+      </div>
+
+      <div class="section-title span-row">Profil professionnel</div>
+      <div class="field">
+        <label>Téléphone</label>
+        <input
+          type="tel"
+          inputmode="numeric"
+          maxlength="8"
+          pattern="[0-9]{8}"
+          [(ngModel)]="telephone"
+          placeholder="Ex: 21234567"
+          [disabled]="status === 'completed'"
+        />
+        <div class="field-error" *ngIf="telephoneError">{{ telephoneError }}</div>
+      </div>
+      <div class="field">
+        <label>Adresse</label>
+        <input type="text" [(ngModel)]="adresse" placeholder="Ex: 123 Rue Principale" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field">
+        <label>Sexe</label>
+        <select [(ngModel)]="sexe" [disabled]="status === 'completed'">
+          <option value="">Sélectionner</option>
+          <option value="HOMME">Homme</option>
+          <option value="FEMME">Femme</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Profession</label>
+        <input type="text" [(ngModel)]="profession" placeholder="Ex: Ingénieur" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field">
+        <label>Employeur</label>
+        <input type="text" [(ngModel)]="employeur" placeholder="Ex: Société XYZ" [disabled]="status === 'completed'" />
+      </div>
+      <div class="field">
+        <label>Type de contrat</label>
+        <select [(ngModel)]="typeContrat" [disabled]="status === 'completed'">
+          <option value="">Sélectionner</option>
+          <option value="CDI">CDI</option>
+          <option value="CDD">CDD</option>
+        </select>
+      </div>
+      <div class="field">
+        <label>Ancienneté dans l'emploi (mois)</label>
+        <input type="number" min="0" step="1" [(ngModel)]="ancienneteEmploiMois" [disabled]="status === 'completed'" />
+        <div class="field-error" *ngIf="ancienneteError">{{ ancienneteError }}</div>
+      </div>
+    </div>
+
+    <div class="actions" *ngIf="status === 'active'">
+      <button class="btn btn-red" (click)="next()">Suivant →</button>
+    </div>
+  </div>
+</div>

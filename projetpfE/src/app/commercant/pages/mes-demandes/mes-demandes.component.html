@@ -1,0 +1,89 @@
+<section class="page">
+  <h2 class="title">Mes demandes BNPL</h2>
+
+  <div class="stat-grid" *ngIf="!loading && !errorMessage">
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue">📋</div>
+      <div>
+        <div class="stat-val">{{ totalCount }}</div>
+        <div class="stat-lbl">Total demandes</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-amber">⏳</div>
+      <div>
+        <div class="stat-val">{{ waitingCount }}</div>
+        <div class="stat-lbl">Consentement</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-blue2">🔍</div>
+      <div>
+        <div class="stat-val">{{ analysisCount }}</div>
+        <div class="stat-lbl">En analyse</div>
+      </div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-icon stat-icon-green">✅</div>
+      <div>
+        <div class="stat-val">{{ acceptedCount }}</div>
+        <div class="stat-lbl">Acceptées</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="toolbar">
+    <div class="search-box">
+      <span>🔍</span>
+      <input type="text" placeholder="Rechercher (client, reference, statut)..." [(ngModel)]="searchTerm" />
+    </div>
+    <select class="filter-select" [(ngModel)]="sortBy">
+      <option value="date_desc">Date (recentes)</option>
+      <option value="date_asc">Date (anciennes)</option>
+      <option value="montant_desc">Montant (desc)</option>
+      <option value="montant_asc">Montant (asc)</option>
+      <option value="client_asc">Client (A-Z)</option>
+    </select>
+    <a routerLink="/commercant" class="new-btn">+ Nouvelle demande</a>
+  </div>
+
+  <div class="table">
+    <div class="thead">
+      <div>Reference</div>
+      <div>Client</div>
+      <div>Montant</div>
+      <div>Statut</div>
+      <div>Date</div>
+      <div>Action</div>
+    </div>
+
+    @if (loading) {
+      <div class="tr">
+        <div class="empty-row">Chargement des demandes...</div>
+      </div>
+    } @else if (errorMessage) {
+      <div class="tr">
+        <div class="empty-row">Erreur: {{ errorMessage }}</div>
+      </div>
+    } @else if (displayedDemandes.length === 0) {
+      <div class="tr">
+        <div class="empty-row">Aucune demande trouvee (verifie recherche/tri).</div>
+      </div>
+    } @else {
+    @for (demande of displayedDemandes; track demande.id) {
+      <div class="tr">
+        <div><strong>{{ demande.reference }}</strong></div>
+        <div>{{ demande.client }}</div>
+        <div>{{ demande.montant }}</div>
+        <div>
+          <span class="badge" [class.wait]="demande.statut === 'EN_ATTENTE_CONSENTEMENT'" [class.analysis]="demande.statut === 'EN_ANALYSE'" [class.sent]="demande.statut === 'SOUMISE'">
+            {{ demande.statut === 'EN_ATTENTE_CONSENTEMENT' ? 'Consentement' : (demande.statut === 'EN_ANALYSE' ? 'En analyse' : 'Soumise') }}
+          </span>
+        </div>
+        <div>{{ demande.date }}</div>
+        <div><button class="details" (click)="openDetails(demande)">Details</button></div>
+      </div>
+    }
+    }
+  </div>
+</section>

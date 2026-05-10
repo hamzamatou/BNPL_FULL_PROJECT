@@ -1,0 +1,210 @@
+<div class="container">
+  <h2>Consentement client</h2>
+  <p class="hint">Lien securise valide 2h.</p>
+
+  @if (errorMessage) {
+    <div class="alert error">{{ errorMessage }}</div>
+  }
+  @if (successMessage) {
+    <div class="alert success">{{ successMessage }}</div>
+  }
+
+  @if (!token) {
+    <div class="card">Token absent dans l'URL.</div>
+  } @else if (step === 'identity') {
+    <div class="card">
+      <h3>Vérification identité</h3>
+      @if (referenceDemande) {
+        <p class="ref-line">
+          Référence de la demande :
+          <span class="ref-value">{{ referenceDemande }}</span>
+        </p>
+        <p class="ref-hint">Ce code figure dans l’e-mail que vous avez reçu, pour lier l’OTP à la bonne demande.</p>
+      }
+      <label>Nom</label>
+      <input [(ngModel)]="nom" type="text" />
+      <label>Prenom</label>
+      <input [(ngModel)]="prenom" type="text" />
+      <label>CIN</label>
+      <input [(ngModel)]="cin" type="text" />
+
+      <button [disabled]="loading" (click)="sendOtp(false)">
+        {{ loading ? 'Envoi...' : 'Envoyer OTP' }}
+      </button>
+    </div>
+  } @else if (step === 'otp') {
+    <div class="otp-page-shell">
+      <div class="otp-wrap">
+        <div class="logo-row">
+          <div class="brand-logo">
+            <svg viewBox="0 0 24 24" aria-hidden="true">
+              <path d="M12 2L2 7l10 5 10-5-10-5z" />
+              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" />
+            </svg>
+          </div>
+          <div>
+            <div class="brand-name">UIB BNPL</div>
+            <div class="brand-sub">Vérification sécurisée</div>
+          </div>
+        </div>
+
+        <div class="step-indicator" aria-hidden="true">
+          <div class="step-dot-sm done"></div>
+          <div class="step-dot-sm done"></div>
+          <div class="step-dot-sm active"></div>
+          <div class="step-dot-sm"></div>
+        </div>
+
+        <div class="shield-wrap" aria-hidden="true">🔐</div>
+
+        <div class="otp-title">Vérification en deux étapes</div>
+        @if (referenceDemande) {
+          <div class="ref-chip">Demande <span>{{ referenceDemande }}</span></div>
+        }
+        <div class="otp-sub">
+          Un code à 6 chiffres a été envoyé par <strong>e-mail</strong>
+          @if (maskedEmailLabel) {
+            à l’adresse <span class="otp-email">{{ maskedEmailLabel }}</span>
+          } @else {
+            (l’adresse associée à votre dossier).
+          }
+        </div>
+
+        <div
+          class="otp-fields"
+          (paste)="onOtpPaste($event)"
+          role="group"
+          aria-label="Code à 6 chiffres"
+        >
+          @for (i of otpIndices; track i) {
+            @if (i === 3) {
+              <div class="otp-sep" aria-hidden="true">—</div>
+            }
+            <input
+              #otpCell
+              class="otp-input"
+              [class.filled]="otpDigits[i]"
+              type="text"
+              maxlength="1"
+              inputmode="numeric"
+              autocomplete="one-time-code"
+              [attr.pattern]="'[0-9]'"
+              [value]="otpDigits[i]"
+              (input)="onOtpDigitInput(i, $any($event.target).value)"
+              (keydown)="onOtpKeydown(i, $event)"
+            />
+          }
+        </div>
+
+        <div class="otp-timer">
+          @if (otpSecondsLeft > 0) {
+            Code valide pendant <strong>{{ otpTimerLabel }}</strong>
+          } @else {
+            Délai affiché écoulé — vous pouvez <strong>renvoyer</strong> le code.
+          }
+        </div>
+
+        <div class="error-msg" [class.visible]="!!otpInlineError">{{ otpInlineError }}</div>
+
+        <button
+          type="button"
+          class="btn-verify"
+          [disabled]="loading || !otpAllFilled"
+          (click)="verifyOtp()"
+        >
+          {{ loading ? 'Vérification…' : 'Vérifier le code' }}
+        </button>
+
+        <div class="resend-row">
+          Vous n’avez pas reçu le code ?&nbsp;
+          <button
+            type="button"
+            class="resend-link"
+            [disabled]="!canResendOtp"
+            (click)="resendOtp()"
+          >
+            {{ resendCooldown ? 'Code renvoyé ✓' : 'Renvoyer' }}
+          </button>
+        </div>
+
+        <button type="button" class="back-link" (click)="backToIdentity()">
+          ← Retour à la saisie d’identité
+        </button>
+      </div>
+    </div>
+  } @else if (step === 'confirm') {
+    <div class="card consent-card">
+      <h3>Confirmation consentement</h3>
+      <p class="hint">OTP valide. Merci de lire et accepter les conditions ci-dessous.</p>
+
+      @if (consentError) {
+        <div class="alert error">{{ consentError }}</div>
+      }
+
+      <div class="conditions">
+        <div class="conditions-title">CONDITIONS GENERALES DE FINANCEMENT</div>
+        <div class="conditions-text">
+          Conformement a la loi n° 2004-63 sur la protection des donnees personnelles, les informations collectees sont
+          traitees avec le plus grand soin et utilisees uniquement dans le cadre du present financement. L'emprunteur
+          dispose notamment de ses droits de rectification, d'acces et de suppression.
+          <br />
+          Ces donnees peuvent egalement etre communiquees aux banques partenaires participant au traitement de la
+          demande, afin de permettre l'evaluation, la decision et la mise en oeuvre du financement.
+        </div>
+
+        <div class="conditions-article">
+          <div class="article-h">Article 5 – Conditions de resilisation</div>
+          <div class="article-body">
+            En cas de defaut de paiement de deux mensualites consecutives, l'UIB se reserve le droit de declencher
+            la resilisation du contrat et d'exiger le remboursement immediat du capital restant du, sans prejudice
+            du paiement des penalites prevues au contrat.
+          </div>
+        </div>
+      </div>
+
+      <div class="doc-link">
+        <input type="checkbox" [checked]="true" disabled /> <span>Document lu entierement</span>
+      </div>
+
+      <div class="checks">
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="acceptCGF" />
+          <span>J'ai lu et j'accepte les conditions generales de financement UIB BNPL dans leur integrite.</span>
+          <span class="required">OBLIGATOIRE</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="acceptCentraleRisques" />
+          <span>
+            J'autorise UIB a consulter ma situation bancaire aupres de la Centrale des Risques de la BCT
+            afin d'evaluer ma solvabilite.
+          </span>
+          <span class="required">OBLIGATOIRE</span>
+        </label>
+
+        <label class="check">
+          <input type="checkbox" [(ngModel)]="acceptDataProcessing" />
+          <span>
+            J'accepte que mes donnees personnelles soient traitees conformement a la politique de confidentialite de l'UIB.
+          </span>
+          <span class="required">OBLIGATOIRE</span>
+        </label>
+
+        <label class="check optional">
+          <input type="checkbox" [(ngModel)]="acceptMarketingOptional" />
+          <span>J'accepte de recevoir des communications commerciales de l'UIB.</span>
+          <span class="opt">(Optionnel)</span>
+        </label>
+      </div>
+
+      <button class="btn-confirm" [disabled]="loading" (click)="confirmConsent()">
+        {{ loading ? 'Confirmation...' : 'Confirmer consentement' }}
+      </button>
+    </div>
+  } @else {
+    <div class="card">
+      <h3>Merci</h3>
+      <p>Votre consentement est confirme.</p>
+    </div>
+  }
+</div>

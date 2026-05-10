@@ -1,0 +1,180 @@
+<section class="detail-page">
+  @if (loading) {
+    <div class="state-card">Chargement...</div>
+  } @else if (errorMessage) {
+    <div class="state-card error">{{ errorMessage }}</div>
+  } @else if (demande) {
+    <div class="detail-head">
+      <button class="crumb-back" type="button" (click)="back()">← Retour</button>
+      <div class="crumb-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</div>
+    </div>
+
+    <div class="detail-title">
+      <h1 class="h1">
+        Analyse banque <span class="h1-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</span>
+      </h1>
+      <div class="title-meta">
+        <span class="status-pill">{{ demande.statut }}</span>
+        <span class="meta-dot">•</span>
+        <span>Créée le {{ formatDateShort(demande.dateCreation) }}</span>
+        <span class="meta-dot">•</span>
+        <span>Dernière mise à jour le {{ formatDateShort(demande.dateDerniereMiseAJour) }}</span>
+      </div>
+    </div>
+
+    <div class="detail-grid">
+      <div class="col-left">
+        <div class="card section-card">
+          <div class="section-title">INFORMATIONS DU CLIENT</div>
+          <div class="info-grid">
+            <div class="mini-field">
+              <div class="mini-label">CLIENT</div>
+              <div class="mini-value">{{ clientFullName }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">MONTANT DEMANDÉ</div>
+              <div class="mini-value">{{ montantLabel(demande.montant) }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">OBJET</div>
+              <div class="mini-value">{{ demande.typeProduit || '-' }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">SITUATION FAMILIALE</div>
+              <div class="mini-value">{{ situationFamilialeLibelle() }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">NOMBRE D’ENFANTS</div>
+              <div class="mini-value">{{ nombreEnfantsLibelle() }}</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="section-title">INFORMATIONS FINANCIÈRES</div>
+          <div class="info-grid">
+            <div class="mini-field">
+              <div class="mini-label">REVENU MENSUEL NET</div>
+              <div class="mini-value">{{ montantLabel(demande.dossierClient?.revenuMensuelNet) }}</div>
+            </div>
+            <div class="mini-field">
+              <div class="mini-label">CHARGES MENSUELLES</div>
+              <div class="mini-value">{{ montantLabel(demande.dossierClient?.chargesMensuelles) }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">TAUX D’ENDETTEMENT</div>
+              <div class="mini-value">{{ tauxEndettementPercent().toFixed(1) }} %</div>
+            </div>
+          </div>
+        </div>
+
+        <div class="card section-card">
+          <div class="section-title">PIÈCES JUSTIFICATIVES</div>
+          @if (!(demande.dossierClient?.documents?.length)) {
+            <div class="empty-state">Aucun document.</div>
+          } @else {
+            <div class="docs-list">
+              @for (doc of (demande.dossierClient?.documents ?? []); track doc.id) {
+                <div class="doc-row">
+                  <div class="doc-left">
+                    <div class="doc-name">{{ doc.nomFichier || doc.typeDocument }}</div>
+                    <div class="doc-sub">{{ doc.typeDocument }} • {{ doc.tailleOctets }} o</div>
+                  </div>
+                  <div class="doc-right">
+                    <button class="btn-view" type="button" (click)="openDoc(doc)">Voir</button>
+                  </div>
+                </div>
+              }
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="col-right">
+        <div class="card decision-card">
+          <div class="section-title">DÉCISION ANALYSTE (US15)</div>
+
+          <div class="decision-grid">
+            <button
+              type="button"
+              class="decision-btn accept"
+              [class.active]="decision === 'ACCEPTER'"
+              (click)="setDecision('ACCEPTER')"
+            >
+              ✓ Accepter la demande
+            </button>
+
+            <button
+              type="button"
+              class="decision-btn refuse"
+              [class.active]="decision === 'REFUSER'"
+              (click)="setDecision('REFUSER')"
+            >
+              ✕ Refuser la demande
+            </button>
+
+            <button
+              type="button"
+              class="decision-btn complement"
+              [class.active]="decision === 'COMPLEMENTS'"
+              (click)="setDecision('COMPLEMENTS')"
+            >
+              Demander des compléments
+            </button>
+          </div>
+
+          <label class="field-label">COMMENTAIRE</label>
+          <textarea
+            class="textarea"
+            [(ngModel)]="commentaire"
+            rows="4"
+            placeholder="Saisir un commentaire..."
+          ></textarea>
+
+          @if (actionError) {
+            <div class="action-error">{{ actionError }}</div>
+          }
+
+          <button
+            type="button"
+            class="validate-btn"
+            [disabled]="actionLoading"
+            (click)="validateDecision()"
+          >
+            {{ actionLoading ? 'Validation...' : 'Valider la décision →' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
+    @if (dockOpen && dockDoc) {
+      <div class="doc-dock-overlay" (click)="closeDocDock()">
+        <div class="doc-dock" (click)="$event.stopPropagation()">
+          <div class="dock-head">
+            <div class="dock-title">{{ dockDoc.nomFichier || dockDoc.typeDocument }}</div>
+            <button class="dock-close" type="button" (click)="closeDocDock()">✕</button>
+          </div>
+
+          <div class="dock-body">
+            @if (dockLoading) {
+              <div class="dock-loading">Chargement...</div>
+            } @else if (dockErrorMessage) {
+              <div class="dock-loading">{{ dockErrorMessage }}</div>
+            } @else if (dockSafeResourceUrl || dockSafeUrl) {
+              @if (dockContentTypeLc.includes('pdf')) {
+                <iframe class="dock-frame" [src]="dockSafeResourceUrl"></iframe>
+              } @else if (dockContentTypeLc.startsWith('image/')) {
+                <img class="dock-image" [src]="dockSafeUrl" alt="document" />
+              } @else {
+                <a class="dock-link" [href]="dockSafeUrl" target="_blank" rel="noreferrer">Ouvrir le document</a>
+              }
+            } @else {
+              <div class="dock-loading">Impossible de charger l'aperçu.</div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</section>
+
