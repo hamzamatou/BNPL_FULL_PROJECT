@@ -1,0 +1,157 @@
+{
+  "info": {
+    "name": "UIB BNPL — gestion-utilisateur (+ liens demande)",
+    "description": "Tests locaux : admin bootstrap, login JWT, CRUD users, client BNPL, API interne.\n\n1. Importer l'environnement **UIB-BNPL-local**.\n2. Sélectionner cet environnement dans Postman.\n3. Lancer **Login admin** — le script enregistre `token`.\n4. Les requêtes authentifiées utilisent `{{token}}`.",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    { "key": "base_url_utilisateur", "value": "http://localhost:8080" },
+    { "key": "base_url_demande", "value": "http://localhost:8081" }
+  ],
+  "item": [
+    {
+      "name": "1 — Auth",
+      "item": [
+        {
+          "name": "Login admin (après bootstrap)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var j = pm.response.json();",
+                  "  if (j.token) pm.environment.set('token', j.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"admin@uib.bnpl\",\n  \"password\": \"ChangeMeAdmin2026!\"\n}"
+            },
+            "url": "{{base_url_utilisateur}}/api/users/login",
+            "description": "Identifiants par défaut si `app.admin.bootstrap.*` inchangés dans application.properties."
+          }
+        },
+        {
+          "name": "Login commerçant (exemple)",
+          "event": [
+            {
+              "listen": "test",
+              "script": {
+                "exec": [
+                  "if (pm.response.code === 200) {",
+                  "  var j = pm.response.json();",
+                  "  if (j.token) pm.environment.set('token', j.token);",
+                  "}"
+                ],
+                "type": "text/javascript"
+              }
+            }
+          ],
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"email\": \"marchand@example.com\",\n  \"password\": \"VotreMotDePasse\"\n}"
+            },
+            "url": "{{base_url_utilisateur}}/api/users/login",
+            "description": "Adapter email/mot de passe après inscription commerçant (register)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "2 — Admin (Bearer)",
+      "item": [
+        {
+          "name": "Liste des utilisateurs",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" }
+            ],
+            "url": "{{base_url_utilisateur}}/api/users",
+            "description": "Nécessite rôle ADMIN dans le JWT."
+          }
+        },
+        {
+          "name": "Register — nouveau commerçant (public)",
+          "request": {
+            "method": "POST",
+            "header": [{ "key": "Content-Type", "value": "application/json" }],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom_magasin\": \"Magasin Test\",\n  \"ice\": \"ICE-POSTMAN-001\",\n  \"adresse\": \"Tunis\",\n  \"email\": \"marchand@example.com\",\n  \"password\": \"SecretMarchand123!\",\n  \"role\": \"COMMERCANT\"\n}\n"
+            },
+            "url": "{{base_url_utilisateur}}/api/users/register",
+            "description": "Champs selon entité User (JSON camelCase ou snake selon config Jackson)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "3 — Commerçant — créer client BNPL",
+      "item": [
+        {
+          "name": "POST /api/clients",
+          "request": {
+            "method": "POST",
+            "header": [
+              { "key": "Authorization", "value": "Bearer {{token}}" },
+              { "key": "Content-Type", "value": "application/json" }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"nom\": \"Ben\",\n  \"prenom\": \"Ali\",\n  \"email\": \"client.postman@example.com\",\n  \"telephone\": \"21600000000\",\n  \"cin\": \"CIN-PM-001\",\n  \"adresse\": \"Tunis\",\n  \"sexe\": \"M\",\n  \"profession\": \"Salarié\",\n  \"employeur\": \"UIB\"\n}"
+            },
+            "url": "{{base_url_utilisateur}}/api/clients",
+            "description": "Token doit être **COMMERCANT**. Après succès, copier l'id client dans `client_id` (environnement)."
+          }
+        }
+      ]
+    },
+    {
+      "name": "4 — Inter-service (clé interne)",
+      "item": [
+        {
+          "name": "GET identité client (internal)",
+          "request": {
+            "method": "GET",
+            "header": [
+              { "key": "X-Internal-Api-Key", "value": "{{internal_api_key}}" }
+            ],
+            "url": "{{base_url_utilisateur}}/api/internal/clients/{{client_id}}/identity",
+            "description": "Pas de Bearer. Même valeur que `internal.api.key` côté serveur."
+          }
+        }
+      ]
+    },
+    {
+      "name": "5 — gestion-demande (8081)",
+      "item": [
+        {
+          "name": "GET demandes par client",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{base_url_demande}}/api/demandes/par-client?clientId=1",
+              "host": ["{{base_url_demande}}"],
+              "path": ["api", "demandes", "par-client"],
+              "query": [{ "key": "clientId", "value": "{{client_id}}" }]
+            },
+            "description": "Exemple lecture côté demande ; adapter si sécurisé plus tard."
+          }
+        }
+      ]
+    }
+  ]
+}

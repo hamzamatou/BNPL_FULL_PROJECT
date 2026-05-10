@@ -1,0 +1,654 @@
+{
+  "_type": "Project",
+  "_id": "AAAAAAFF+h6SjaM2Hec=",
+  "name": "DemandeFinancement",
+  "ownedElements": [
+    {
+      "_type": "UMLModel",
+      "_id": "AAAAAAFF+qBWK6M3ZMc=",
+      "_parent": {
+        "$ref": "AAAAAAFF+h6SjaM2Hec="
+      },
+      "name": "BNPL",
+      "ownedElements": [
+        {
+          "_type": "UMLStateMachine",
+          "_id": "AAAAAAFxySMQJ3K9abc=",
+          "_parent": {
+            "$ref": "AAAAAAFF+qBWK6M3ZMc="
+          },
+          "name": "DemandeFinancement",
+          "ownedElements": [
+            {
+              "_type": "UMLRegion",
+              "_id": "AAAAAAFxySMQJ3K9reg=",
+              "_parent": {
+                "$ref": "AAAAAAFxySMQJ3K9abc="
+              },
+              "name": "Region1",
+              "vertices": [
+                {
+                  "_type": "UMLPseudostate",
+                  "_id": "AAAAAAFxySMQJ3K9ini=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "",
+                  "kind": "initial",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s01=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "EN_ATTENTE_CONSENTEMENT",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s02=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "SOUMISE",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s03=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "EN_ANALYSE",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s04=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "ACCEPTEE",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s05=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "REFUSEE",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLState",
+                  "_id": "AAAAAAFxySMQJ3K9s06=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "EN_ATTENTE_COMPLEMENTS",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLFinalState",
+                  "_id": "AAAAAAFxySMQJ3K9fin=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "name": "",
+                  "visibility": "public"
+                }
+              ],
+              "transitions": [
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t01=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9ini="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s01="
+                  },
+                  "name": "Création dossier",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t02=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s01="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s02="
+                  },
+                  "name": "Consentement OK",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t03=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s02="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s03="
+                  },
+                  "name": "Prise en charge banque",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t04=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s03="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s04="
+                  },
+                  "name": "Acceptée",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t05=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s03="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s05="
+                  },
+                  "name": "Refusée",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t06=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s03="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s06="
+                  },
+                  "name": "Compléments demandés",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t07=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s06="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9s03="
+                  },
+                  "name": "Compléments reçus",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t08=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s04="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9fin="
+                  },
+                  "name": "",
+                  "visibility": "public"
+                },
+                {
+                  "_type": "UMLTransition",
+                  "_id": "AAAAAAFxySMQJ3K9t09=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "source": {
+                    "$ref": "AAAAAAFxySMQJ3K9s05="
+                  },
+                  "target": {
+                    "$ref": "AAAAAAFxySMQJ3K9fin="
+                  },
+                  "name": "",
+                  "visibility": "public"
+                }
+              ]
+            },
+            {
+          "_type": "UMLStatechartDiagram",
+          "_id": "AAAAAAFxySMQJ3K9dia=",
+          "_parent": {
+            "$ref": "AAAAAAFxySMQJ3K9abc="
+          },
+          "name": "DemandeFinancementStates",
+          "defaultDiagram": false,
+          "ownedViews": [
+            {
+              "_type": "UMLStateMachineView",
+              "_id": "AAAAAAFxySMQJ3K9vsm=",
+              "_parent": {
+                "$ref": "AAAAAAFxySMQJ3K9dia="
+              },
+              "model": {
+                "$ref": "AAAAAAFxySMQJ3K9abc="
+              },
+              "subViews": [
+                {
+                  "_type": "UMLRegionView",
+                  "_id": "AAAAAAFxySMQJ3K9vrg=",
+                  "_parent": {
+                    "$ref": "AAAAAAFxySMQJ3K9vsm="
+                  },
+                  "model": {
+                    "$ref": "AAAAAAFxySMQJ3K9reg="
+                  },
+                  "subViews": [
+                    {
+                      "_type": "UMLPseudostateView",
+                      "_id": "AAAAAAFxySMQJ3K9vpi=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9ini="
+                      },
+                      "left": 388,
+                      "top": 40,
+                      "width": 20,
+                      "height": 20
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs1=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s01="
+                      },
+                      "left": 320,
+                      "top": 100,
+                      "width": 156,
+                      "height": 56
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs2=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s02="
+                      },
+                      "left": 340,
+                      "top": 200,
+                      "width": 116,
+                      "height": 50
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs3=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s03="
+                      },
+                      "left": 340,
+                      "top": 290,
+                      "width": 116,
+                      "height": 50
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs4=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s04="
+                      },
+                      "left": 120,
+                      "top": 400,
+                      "width": 100,
+                      "height": 50
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs5=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s05="
+                      },
+                      "left": 348,
+                      "top": 400,
+                      "width": 100,
+                      "height": 50
+                    },
+                    {
+                      "_type": "UMLStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vs6=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9s06="
+                      },
+                      "left": 520,
+                      "top": 360,
+                      "width": 180,
+                      "height": 56
+                    },
+                    {
+                      "_type": "UMLFinalStateView",
+                      "_id": "AAAAAAFxySMQJ3K9vfn=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9fin="
+                      },
+                      "left": 368,
+                      "top": 500,
+                      "width": 26,
+                      "height": 26
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt1=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t01="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl1=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt1="
+                          },
+                          "left": 360,
+                          "top": 68,
+                          "width": 89,
+                          "height": 13,
+                          "text": "Création dossier"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vpi="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs1="
+                      },
+                      "points": "398:50;398:100"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt2=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t02="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl2=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt2="
+                          },
+                          "left": 360,
+                          "top": 168,
+                          "width": 76,
+                          "height": 13,
+                          "text": "Consentement OK"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs1="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs2="
+                      },
+                      "points": "398:156;398:200"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt3=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t03="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl3=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt3="
+                          },
+                          "left": 330,
+                          "top": 258,
+                          "width": 101,
+                          "height": 13,
+                          "text": "Prise en charge banque"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs2="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs3="
+                      },
+                      "points": "398:250;398:290"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt4=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t04="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl4=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt4="
+                          },
+                          "left": 220,
+                          "top": 350,
+                          "width": 45,
+                          "height": 13,
+                          "text": "Acceptée"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs3="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs4="
+                      },
+                      "points": "340:315;170:400"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt5=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t05="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl5=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt5="
+                          },
+                          "left": 360,
+                          "top": 350,
+                          "width": 40,
+                          "height": 13,
+                          "text": "Refusée"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs3="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs5="
+                      },
+                      "points": "398:340;398:400"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt6=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t06="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl6=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt6="
+                          },
+                          "left": 480,
+                          "top": 320,
+                          "width": 120,
+                          "height": 13,
+                          "text": "Compléments demandés"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs3="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs6="
+                      },
+                      "points": "456:315;520:360"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt7=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t07="
+                      },
+                      "subViews": [
+                        {
+                          "_type": "EdgeLabelView",
+                          "_id": "AAAAAAFxySMQJ3K9vl7=",
+                          "_parent": {
+                            "$ref": "AAAAAAFxySMQJ3K9vt7="
+                          },
+                          "left": 520,
+                          "top": 300,
+                          "width": 100,
+                          "height": 13,
+                          "text": "Compléments reçus"
+                        }
+                      ],
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs6="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs3="
+                      },
+                      "points": "610:360;456:315"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt8=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t08="
+                      },
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs4="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vfn="
+                      },
+                      "points": "170:450;381:513"
+                    },
+                    {
+                      "_type": "UMLTransitionView",
+                      "_id": "AAAAAAFxySMQJ3K9vt9=",
+                      "_parent": {
+                        "$ref": "AAAAAAFxySMQJ3K9vrg="
+                      },
+                      "model": {
+                        "$ref": "AAAAAAFxySMQJ3K9t09="
+                      },
+                      "tail": {
+                        "$ref": "AAAAAAFxySMQJ3K9vs5="
+                      },
+                      "head": {
+                        "$ref": "AAAAAAFxySMQJ3K9vfn="
+                      },
+                      "points": "398:450;381:513"
+                    }
+                  ],
+                  "left": 280,
+                  "top": 20,
+                  "width": 460,
+                  "height": 540
+                }
+              ],
+              "left": 40,
+              "top": 40,
+              "width": 520,
+              "height": 600
+            }
+          ]
+        }
+          ]
+        }
+      ]
+    }
+  ],
+  "documentation": "Diagramme d'états — DemandeFinancement (StarUML). Ouvrir via File > Open."
+}

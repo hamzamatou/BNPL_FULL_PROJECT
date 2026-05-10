@@ -1,0 +1,73 @@
+
+services:
+  postgres:
+    image: postgres:16
+    container_name: uib-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: uib_user
+      POSTGRES_PASSWORD: uib_password
+      POSTGRES_DB: uib_bnpl
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - uib-network
+
+  pgadmin:
+    image: dpage/pgadmin4:8
+    container_name: uib-pgadmin
+    restart: unless-stopped
+    environment:
+      PGADMIN_DEFAULT_EMAIL: hamzamaatougui06@gmail.com
+      PGADMIN_DEFAULT_PASSWORD: admin123
+    ports:
+      - "5050:80"
+    depends_on:
+      - postgres
+    volumes:
+      - pgadmin_data:/var/lib/pgadmin
+    networks:
+      - uib-network
+
+  minio:
+    image: minio/minio:latest
+    container_name: uib-minio
+    restart: unless-stopped
+    environment:
+      MINIO_ROOT_USER: minioadmin
+      MINIO_ROOT_PASSWORD: minioadmin123
+    command: server /data --console-address ":9001"
+    ports:
+      - "9000:9000"  # API S3
+      - "9001:9001"  # Console web MinIO
+    volumes:
+      - minio_data:/data
+    networks:
+      - uib-network
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: uib-rabbitmq
+    restart: unless-stopped
+    environment:
+      RABBITMQ_DEFAULT_USER: bnpl
+      RABBITMQ_DEFAULT_PASS: bnpl123
+    ports:
+      - "5672:5672"    # AMQP
+      - "15672:15672"  # Management UI
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+    networks:
+      - uib-network
+
+networks:
+  uib-network:
+    driver: bridge
+
+volumes:
+  postgres_data:
+  pgadmin_data:
+  minio_data:
+  rabbitmq_data:

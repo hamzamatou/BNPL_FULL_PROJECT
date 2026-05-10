@@ -1,0 +1,213 @@
+---
+title: Diagramme de classes – domaine BNPL (conceptuel, sans couche service)
+config:
+  theme: base
+  look: classic
+  layout: elk
+  flowchart:
+    curve: stepAfter
+    padding: 24
+    nodeSpacing: 50
+    rankSpacing: 70
+  class:
+    hideEmptyMembersBox: false
+  themeVariables:
+    fontFamily: '"Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    fontSize: 14px
+    primaryTextColor: '#111111'
+    primaryBorderColor: '#000000'
+    secondaryBorderColor: '#000000'
+    lineColor: '#000000'
+    textColor: '#111111'
+    primaryBorderRadius: '0'
+    secondaryBorderRadius: '0'
+    tertiaryBorderRadius: '0'
+  themeCSS: ".classDiagram .nodeLabel p:first-of-type{font-weight:700!important;font-size:19px!important;} .classDiagram .nodeLabel p:first-child{font-weight:700!important;font-size:19px!important;} .classDiagram g.classGroup>text{font-weight:700!important;font-size:18px!important;} .classDiagram .edgeLabel,.classDiagram .edgeLabel text,.classDiagram g.edgeLabel text,.classDiagram .edgeText,.classDiagram .edgeLabels text{font-size:22px!important;font-weight:700!important;fill:#000000!important;} .classDiagram .classText{font-size:15px!important;}"
+---
+classDiagram
+  direction TB
+
+  class Utilisateur {
+    <<abstract>>
+    - id : Long
+    - email : String
+    - telephone : String
+    - adresse : String
+    - actif : Boolean
+    - dateCreation : DateTime
+    - dateModification : DateTime
+    + inverserStatutActif(idUtilisateur Long) void
+    + mettreAJourEmail(idUtilisateur Long, nouvelEmail String) void
+    + mettreAJourTelephone(idUtilisateur Long, nouveauTelephone String) void
+  }
+
+  class Client {
+    - nom : String
+    - prenom : String
+    - cin : String
+    - sexe : String
+    - profession : String
+    - employeur : String
+    + mettreAJourProfil(adresse String, profession String, employeur String, telephone String) void
+  }
+
+  class Commercant {
+    - passwordHash : String
+    - nomMagasin : String
+    - ice : String
+    + definirMotDePasseHash(nouveauHash String) void
+  }
+
+  class Banque {
+    - nomBanque : String
+    - codeBanque : String
+  }
+
+  class Analyste {
+    - passwordHash : String
+    - nom : String
+    - prenom : String
+    - poste : String
+    + definirMotDePasseHash(nouveauHash String) void
+  }
+
+  class PriseEnCharge {
+    <<association>>
+    - id : Long
+    - scoreInterne : Integer
+    - statutPriseEnCharge : StatutPriseEnCharge
+    - decision : DecisionBanque
+    - commentaire : String
+    - motifRefus : String
+    - dateDebut : DateTime
+    - dateVerrouillage : DateTime
+    - dateExpiration : DateTime
+    - dateDecision : DateTime
+    + seSaisirEtDemarrerAnalyse(demandeId Long) void
+    + accepter(demandeId Long, commentaire String) void
+    + refuser(demandeId Long, motifRefus String, commentaire String) void
+    + demanderComplements(demandeId Long, commentaire String) void
+  }
+
+  class DossierClient {
+    - id : Long
+    - clientId : Long
+    - referenceDossier : String
+    - dateCreation : DateTime
+    - dateDerniereMiseAJour : DateTime
+    - situationFamiliale : SituationFamiliale
+    - nombreEnfants : Integer
+    - ancienneteEmploiMois : Integer
+    - revenuMensuelNet : Decimal
+    - autresRevenusMensuels : Decimal
+    - loyerMensuel : Decimal
+    - mensualitesCredits : Decimal
+    - autresChargesFixes : Decimal
+    - chargesMensuelles : Decimal
+    - encoursCredits : Decimal
+    - tauxEndettement : Decimal
+    + calculerChargesMensuelles(loyerMensuel Decimal, mensualitesCredits Decimal, autresChargesFixes Decimal) Decimal
+    + calculerTauxEndettement(chargesMensuelles Decimal, revenuMensuelNet Decimal, autresRevenusMensuels Decimal) Decimal
+    + mettreAJourFinances(revenuMensuelNet Decimal, autresRevenusMensuels Decimal, loyerMensuel Decimal, mensualitesCredits Decimal, autresChargesFixes Decimal, encoursCredits Decimal, ancienneteEmploiMois Integer) void
+    + enregistrerSituationFamiliale(situation SituationFamiliale, nombreEnfants Integer) void
+  }
+
+  class DocumentDossier {
+    - id : Long
+    - typeDocument : String
+    - objectKey : String
+    - nomFichier : String
+    - contentType : String
+    - tailleOctets : Long
+    + estPdf(contentType String, nomFichier String) boolean
+    + estImage(contentType String, nomFichier String) boolean
+  }
+
+  class DemandeFinancement {
+    - id : Long
+    - commercantUserId : Long
+    - referenceDemande : String
+    - montant : Decimal
+    - dureeMois : Integer
+    - statut : StatutDemande
+    - dateCreation : DateTime
+    - dateDerniereMiseAJour : DateTime
+    - typeProduit : String
+    + validerConsentementEtSoumettre(tokenConsentement String) void
+    + passerEnCoursAnalyse() void
+    + marquerAcceptee() void
+    + marquerRefuseeOuRemettreSoumise() void
+  }
+
+  class SituationFamiliale {
+    <<enumeration>>
+    CELIBATAIRE
+    MARIE
+    PACSE
+    DIVORCE
+    VEUF
+    CONCUBINAGE
+  }
+
+  class StatutDemande {
+    <<enumeration>>
+    EN_ATTENTE_CONSENTEMENT
+    SOUMISE
+    EN_COURS_ANALYSE
+    ACCEPTEE
+    REFUSEE
+  }
+
+  class StatutPriseEnCharge {
+    <<enumeration>>
+    ROUTE
+    VERROUILLEE
+    DEVERROUILLEE
+    EXPIRE
+  }
+
+  class DecisionBanque {
+    <<enumeration>>
+    EN_COURS
+    ACCEPTEE
+    REFUSEE
+  }
+
+  Utilisateur <|-- Client
+  Utilisateur <|-- Commercant
+  Utilisateur <|-- Analyste
+
+  note for Utilisateur "MS gestion-utilisateur : toggleBlockUser(id), updateUser(user), saveUser(user). Pas d ip ni date dans les signatures Java ; date_modification mise a jour dans le service."
+
+  note for Client "Herite de Utilisateur : pas de passwordHash (Commercant et Analyste). Blocage via inverserStatutActif cote admin (toggleBlockUser dans le code)."
+
+  note for Analyste "Dans le code JPA : role BANQUE sur users (gestion-utilisateur) ; TraitementDemande.utilisateurBanqueId et AffectationDemandeBanque.banqueUserId = id JWT banque."
+
+  note for DemandeFinancement "Aligne DemandeServiceImpl / TraitementServiceImpl : consentement par token ; statuts String dans le code. commercantUserId et banqueUserId viennent du JWT (SecurityUtils), pas des parametres des services. marquerRefuseeOuRemettreSoumise : si une banque refuse mais d autres ROUTE restent, le code repasse la demande en SOUMISE."
+
+  note for PriseEnCharge "Memes signatures que TraitementService (gestion-demande) : seuls demandeId et eventuellement commentaire / motifRefus. banqueUserId = utilisateur role BANQUE via JWT, non passe en parametre. Deverrouillage affectation inclus dans accepter / refuser. Lignes ROUTE : hors TraitementService (donnees initiales). Remplace AffectationDemandeBanque + TraitementDemande en conception."
+
+  Analyste "0..*" --> "1" Banque : est rattache a
+
+  Client "1" --> "0..*" DossierClient : possede
+  Commercant "1" --> "0..*" DemandeFinancement : initie
+  DossierClient "1" --> "0..*" DemandeFinancement : inclut
+  DossierClient "1" *-- "0..*" DocumentDossier : compose
+
+  DossierClient --> SituationFamiliale : a pour situation
+  DemandeFinancement --> StatutDemande : a pour statut
+  PriseEnCharge --> StatutPriseEnCharge : a pour statut PEC
+  PriseEnCharge --> DecisionBanque : a pour decision
+
+  Banque "0..*" -- "0..*" DemandeFinancement : assure le suivi de
+  PriseEnCharge .. Banque : reifie le lien banque
+  PriseEnCharge .. DemandeFinancement : reifie le lien demande
+  Analyste "1" --> "0..*" PriseEnCharge : effectue
+
+  classDef stereotypeEnum fill:#EEEEEE,stroke:#000000,stroke-width:2px,color:#000000
+  classDef stereotypeClasse fill:#FFFFFF,stroke:#000000,stroke-width:2px,color:#000000
+  classDef stereotypeAssociation fill:#FFFDE7,stroke:#000000,stroke-width:2px,color:#000000
+
+  class SituationFamiliale,StatutDemande,StatutPriseEnCharge,DecisionBanque stereotypeEnum
+  class Utilisateur,Client,Commercant,Banque,Analyste,DossierClient,DocumentDossier,DemandeFinancement stereotypeClasse
+  class PriseEnCharge stereotypeAssociation

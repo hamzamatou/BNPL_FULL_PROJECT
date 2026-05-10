@@ -1,0 +1,42 @@
+{
+  "theme": "base",
+  "look": "classic",
+  "layout": "elk",
+  "securityLevel": "loose",
+  "flowchart": {
+    "curve": "stepAfter",
+    "padding": 24,
+    "nodeSpacing": 50,
+    "rankSpacing": 70,
+    "htmlLabels": true,
+    "useMaxWidth": true
+  },
+  "state": {
+    "nodeSpacing": 50,
+    "rankSpacing": 50
+  },
+  "class": {
+    "hideEmptyMembersBox": false
+  },
+  "themeVariables": {
+    "fontFamily": "\"Segoe UI\", \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "fontSize": "14px",
+    "primaryColor": "#ffffff",
+    "primaryTextColor": "#111111",
+    "primaryBorderColor": "#000000",
+    "secondaryColor": "#f0f0f0",
+    "secondaryTextColor": "#111111",
+    "secondaryBorderColor": "#000000",
+    "tertiaryColor": "#ffffff",
+    "tertiaryTextColor": "#111111",
+    "tertiaryBorderColor": "#000000",
+    "lineColor": "#000000",
+    "textColor": "#111111",
+    "mainBkg": "#ffffff",
+    "secondBkg": "#f5f5f5",
+    "primaryBorderRadius": "0",
+    "secondaryBorderRadius": "0",
+    "tertiaryBorderRadius": "0"
+  },
+  "themeCSS": ".classDiagram .nodeLabel p:first-of-type{font-weight:700!important;font-size:19px!important;} .classDiagram .nodeLabel p:first-child{font-weight:700!important;font-size:19px!important;} .classDiagram g.classGroup>text{font-weight:700!important;font-size:18px!important;} .classDiagram .edgeLabel,.classDiagram .edgeLabel text,.classDiagram g.edgeLabel text,.classDiagram .edgeText,.classDiagram .edgeLabels text{font-size:22px!important;font-weight:700!important;fill:#000000!important;} .classDiagram .classText{font-size:15px!important;}"
+}

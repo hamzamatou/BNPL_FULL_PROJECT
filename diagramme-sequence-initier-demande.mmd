@@ -1,0 +1,123 @@
+---
+title: Séquence de conception – CU « Initier une demande » (alignée sur le code)
+config:
+  theme: base
+  look: classic
+  sequence:
+    actorMargin: 60
+    boxMargin: 8
+    messageMargin: 24
+  themeVariables:
+    fontFamily: '"Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    fontSize: 14px
+    primaryTextColor: '#111111'
+    primaryBorderColor: '#000000'
+    lineColor: '#000000'
+    textColor: '#111111'
+  themeCSS: ".actor text,.messageText{font-size:14px!important;fill:#111!important;} .messageText{font-weight:500!important;} .loopText,.noteText{font-size:13px!important;}"
+---
+sequenceDiagram
+  autonumber
+
+  actor Commercant as Commerçant
+  participant IU as IU_Angular
+  participant GW as API_Gateway
+  participant DC as DemandeController
+  participant SD as ServiceDemande
+  participant FF as ClientUtilisateurFeign
+  participant AC as ApiController
+  participant US as UserService
+  participant BD_U as PostgreSQL_Utilisateur
+  participant MIN as MinIO
+  participant BD_D as PostgreSQL_Demande
+
+  Note over DC: MS gestion-demande — routes sous /api/demandes (port 8081 côté front)
+  Note over AC: MS gestion-utilisateur — tn...ApiController @RequestMapping /api (port 8080)
+
+  Commercant ->> IU: Renseigner infos client (étape 1) puis Valider
+  Note over IU: Composant infos-client : saisie locale, pas d appel identité utilisateur ici
+
+  IU ->> GW: GET /api/demandes/dossiers/dernier?cin=... JWT Bearer
+  opt Si API Gateway déployée
+    GW ->> DC: Routage vers gestion-demande
+  end
+  activate DC
+  DC ->> SD: getDernierDossierFinancierParCin(cin)
+  activate SD
+  SD ->> BD_D: SELECT dernier dossier financier pour ce CIN
+  BD_D -->> SD: ligne ou aucune
+
+  alt Dernier dossier trouvé (HTTP 200)
+    SD -->> DC: DernierDossierFinancierDto
+    DC -->> IU: 200 JSON (revenu, charges, encours, …)
+    IU ->> IU: Préremplir DonneesFinancieresComponent (donneesFinancieresPrefill)
+    IU -->> Commercant: Champs financiers remplis automatiquement
+  else Aucun dossier (404 / erreur)
+    SD -->> DC: échec ou vide
+    DC -->> IU: 404 ou erreur
+    IU ->> IU: donneesFinancieresPrefill = null
+    IU -->> Commercant: Formulaire financier vide (saisie manuelle)
+  end
+  deactivate SD
+  deactivate DC
+
+  Commercant ->> IU: Compléter étapes 2–3 (finances, documents, consentement)
+  Commercant ->> IU: Soumission finale (creation-complete)
+
+  IU ->> GW: POST /api/demandes/creation-complete multipart JWT Bearer
+  opt Si API Gateway déployée
+    GW ->> DC: Routage
+  end
+  activate DC
+  DC ->> SD: creerDemandeComplete(formData)
+  activate SD
+
+  Note over SD: Extraire commercantId depuis JWT, rôle COMMERCANT
+
+  SD ->> FF: Résoudre ou créer le client (appels internes)
+  activate FF
+
+  alt Client déjà connu par CIN (scénario typique côté orchestration)
+    FF ->> AC: GET /api/internal/clients/by-cin?cin=... X-Internal-Api-Key
+    activate AC
+    AC ->> US: getClientIdByCin(cin)
+    activate US
+    US ->> BD_U: findByCin + rôle CLIENT
+    BD_U -->> US: User
+    US -->> AC: id client
+    deactivate US
+    AC -->> FF: 200 { id }
+    deactivate AC
+    Note over SD,FF: Réutiliser clientId — pas de POST si déjà présent
+  else Client inconnu pour ce CIN
+    FF ->> AC: POST /api/internal/clients body CreateClientRequest X-Internal-Api-Key
+    activate AC
+    AC ->> US: createClientForBnpl(request)
+    activate US
+    Note over US: Vérif email unique ; construit User rôle CLIENT
+    US ->> BD_U: INSERT users
+    BD_U -->> US: id client
+    US -->> AC: CreatedClientResponse
+    deactivate US
+    AC -->> FF: 200 { id_user, email }
+    deactivate AC
+  end
+  deactivate FF
+
+  SD ->> BD_D: INSERT dossier_client, demande_financement, …
+  BD_D -->> SD: ids, referenceDemande
+
+  loop Pour chaque pièce (multipart)
+    SD ->> MIN: putObject (bucket, objectKey, fichier)
+    MIN -->> SD: OK
+    SD ->> BD_D: INSERT document_dossier
+    BD_D -->> SD: OK
+  end
+
+  SD -->> DC: DTO / résultat création
+  deactivate SD
+  DC -->> IU: 201 Created
+  deactivate DC
+  IU -->> Commercant: Confirmation (succès / erreur affichée)
+
+  Note over AC: Hors flux direct CU : POST /api/clients (JWT), GET /internal/clients/{id}/identity, login, admin — non détaillés ici.

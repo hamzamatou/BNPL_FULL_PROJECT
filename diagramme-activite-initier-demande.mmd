@@ -1,0 +1,155 @@
+---
+title: Diagramme d'activité – CU « Initier une demande » (conforme au cours UML n°11 – diagramme d'activités)
+config:
+  theme: base
+  look: classic
+  flowchart:
+    curve: stepAfter
+    padding: 22
+    nodeSpacing: 44
+    rankSpacing: 50
+  themeVariables:
+    fontFamily: '"Segoe UI", "Helvetica Neue", Helvetica, Arial, sans-serif'
+    fontSize: 14px
+    primaryTextColor: '#111111'
+    primaryBorderColor: '#000000'
+    lineColor: '#000000'
+    textColor: '#111111'
+  themeCSS: ".nodeLabel{font-size:11px!important;} .edgeLabel{font-size:11px!important;font-weight:600!important;}"
+---
+flowchart TB
+  %% Conforme cours UML 11 : nœuds d'action (coins arrondis), décision/fusion (losange),
+  %% gardes [ ] sur transitions, [else] pour modèle bien formé, bifurcation (trait),
+  %% partitions = travées (une unité par nœud).
+  %% Limite OTP : aligne ActionClientServiceImpl MAX_ATTEMPTS = 5 — representee par une
+  %% decision [tentatives < 5] / [else] (nœud de decision + garde booleenne, cours §7.3).
+
+  subgraph t_com["Travée : Commerçant (acteur)"]
+    direction TB
+    START((Debut))
+    c_saisir["Saisir les informations de l emprunteur"]
+    c_validerE1["Valider l etape informations client"]
+    c_completer["Completer finances et pieces justificatives"]
+    br_pieces{?}
+    c_integrerCorrections["Mettre a jour la saisie selon les corrections proposees par l IA"]
+    c_soumettre["Soumettre la demande pour consentement client"]
+    c_voirConf["Consulter l accuse de reception en attente de consentement"]
+  end
+
+  subgraph t_ia["Travée : Moteur IA (service d analyse)"]
+    direction TB
+    s_ia_coherence["Verifier la coherence entre donnees saisies et contenu des documents puis proposer des corrections"]
+    br_corr{?}
+    s_ia_identite["Verifier que toutes les pieces justificatives concernent la meme personne"]
+    br_ident{?}
+  end
+
+  subgraph t_app["Travée : Application BNPL (service / responsable implementation)"]
+    direction TB
+    s_dernierDossier["Rechercher le dernier dossier financier"]
+    br_dossier{?}
+    s_proposerDonnees["Proposer un pre-remplissage financier"]
+    s_laisserVide["Initialiser une saisie financiere vide"]
+    fus_dossier{fusion}
+    s_resoudreClient["Identifier ou creer la fiche client"]
+    br_client{?}
+    s_reutiliser["Charger l identite client existante"]
+    s_creer["Creer l identite client"]
+    fus_client{fusion}
+    s_calculer["Calculer charges et taux d endettement"]
+    s_persister["Enregistrer dossier et demande en attente de consentement"]
+    br_pj{?}
+    s_stockerPiece["Archiver une piece justificative"]
+    s_inviter["Emettre le lien securise de consentement"]
+    bar_fork["Bifurcation : flots paralleles"]
+    s_preparerEnvoiOtp["Verifier identite client et envoyer le OTP par email"]
+    br_nbTentatives{?}
+    s_verifierOtp["Verifier le code OTP saisi (format 6 chiffres et hachage)"]
+    br_otpCorrect{?}
+    s_incrementerTentativesEchouees["Incrementer le compteur de tentatives echouees"]
+    s_validerToken["Valider le jeton de consentement apres OTP verifie"]
+    br_token{?}
+    s_passerSoumise["Enregistrer le consentement et passer la demande en soumise"]
+  end
+
+  subgraph t_cli["Travée : Client (acteur)"]
+    direction TB
+    cl_recevoir["Recevoir l invitation au consentement"]
+    cl_consulter["Consulter la demande et les documents"]
+    br_consent{?}
+    cl_refuse["Refuser ou ne pas repondre"]
+    cl_accord["Accorder le consentement"]
+    cl_saisirOtp["Saisir le code OTP"]
+    cl_confirmerConsentement["Declencher la confirmation finale avec le jeton du lien"]
+  end
+
+  END_ACTIVITY((Fin d activite))
+  FLOW_END_KO((Fin de flot))
+  FLOW_END_ERR((Fin de flot))
+  FLOW_END_IDENT((Fin de flot : identite des pieces))
+  FLOW_END_IA((Fin de flot : IA bloquante))
+  FLOW_END_OTP_MAX((Fin de flot : OTP max 5 tentatives))
+
+  START --> c_saisir
+  c_saisir --> c_validerE1
+  c_validerE1 --> s_dernierDossier
+  s_dernierDossier --> br_dossier
+  br_dossier -->|[dossier financier connu]| s_proposerDonnees
+  br_dossier -->|[else]| s_laisserVide
+  s_proposerDonnees --> fus_dossier
+  s_laisserVide --> fus_dossier
+  fus_dossier --> c_completer
+  c_completer --> br_pieces
+  br_pieces -->|[au moins une piece justificative fournie]| s_ia_coherence
+  br_pieces -->|[else]| c_soumettre
+  s_ia_coherence --> br_corr
+  br_corr -->|[corrections integrables par le commercant]| c_integrerCorrections
+  c_integrerCorrections --> s_ia_coherence
+  br_corr -->|[incoherence bloquante irreconciliable]| FLOW_END_IA
+  br_corr -->|[else]| s_ia_identite
+  s_ia_identite --> br_ident
+  br_ident -->|[else pieces non alignees sur une seule identite]| FLOW_END_IDENT
+  br_ident -->|[toutes les pieces concernent le meme titulaire]| c_soumettre
+  c_soumettre --> s_resoudreClient
+  s_resoudreClient --> br_client
+  br_client -->|[fiche client existante pour l identite]| s_reutiliser
+  br_client -->|[else]| s_creer
+  s_reutiliser --> fus_client
+  s_creer --> fus_client
+  fus_client --> s_calculer
+  s_calculer --> s_persister
+  s_persister --> br_pj
+  br_pj -->|[il reste une piece a archiver]| s_stockerPiece
+  s_stockerPiece --> br_pj
+  br_pj -->|[else]| s_inviter
+  s_inviter --> bar_fork
+  bar_fork --> c_voirConf
+  bar_fork --> cl_recevoir
+  cl_recevoir --> cl_consulter
+  cl_consulter --> br_consent
+  br_consent -->|[else]| cl_refuse
+  cl_refuse --> FLOW_END_KO
+  br_consent -->|[consentement accorde]| cl_accord
+  cl_accord --> s_preparerEnvoiOtp
+  s_preparerEnvoiOtp --> cl_saisirOtp
+  cl_saisirOtp --> br_nbTentatives
+  br_nbTentatives -->|[nb tentatives echouees < 5]| s_verifierOtp
+  br_nbTentatives -->|[else]| FLOW_END_OTP_MAX
+  s_verifierOtp --> br_otpCorrect
+  br_otpCorrect -->|[OTP correct]| cl_confirmerConsentement
+  br_otpCorrect -->|[else]| s_incrementerTentativesEchouees
+  s_incrementerTentativesEchouees --> cl_saisirOtp
+  cl_confirmerConsentement --> s_validerToken
+  s_validerToken --> br_token
+  br_token -->|[else]| FLOW_END_ERR
+  br_token -->|[jeton valide et non expire]| s_passerSoumise
+  s_passerSoumise --> END_ACTIVITY
+
+  style START fill:#000000,stroke:#000000,color:#FFFFFF
+  style END_ACTIVITY fill:#FFFFFF,stroke:#000000,stroke-width:3px
+  style FLOW_END_KO fill:#FFFFFF,stroke:#000000,stroke-width:2px
+  style FLOW_END_ERR fill:#FFFFFF,stroke:#000000,stroke-width:2px
+  style FLOW_END_IDENT fill:#FFFFFF,stroke:#000000,stroke-width:2px
+  style FLOW_END_IA fill:#FFFFFF,stroke:#000000,stroke-width:2px
+  style FLOW_END_OTP_MAX fill:#FFFFFF,stroke:#000000,stroke-width:2px
+  style bar_fork fill:#E0E0E0,stroke:#000000,stroke-width:2px

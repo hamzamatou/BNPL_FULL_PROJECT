@@ -1,0 +1,74 @@
+%%{init: {
+  "theme": "base",
+  "look": "classic",
+  "flowchart": { "curve": "stepAfter", "padding": 16, "nodeSpacing": 55, "rankSpacing": 45 },
+  "class": { "hideEmptyMembersBox": false },
+  "themeVariables": {
+    "fontFamily": "\"Segoe UI\", \"Helvetica Neue\", Helvetica, Arial, sans-serif",
+    "fontSize": "14px",
+    "primaryTextColor": "#111111",
+    "primaryBorderColor": "#000000",
+    "secondaryBorderColor": "#000000",
+    "lineColor": "#000000",
+    "textColor": "#111111",
+    "primaryBorderRadius": "0",
+    "secondaryBorderRadius": "0",
+    "tertiaryBorderRadius": "0"
+  }
+}}%%
+classDiagram
+  direction LR
+
+  class User {
+    <<entity>>
+    -Long id_user
+    -String nom
+    -String prenom
+    -String cin
+    -String email
+    -String telephone
+    -String role
+    -Boolean statut
+    -LocalDateTime date_creation
+  }
+
+  class DemandeFinancement {
+    <<entity>>
+    -Long id
+    -String referenceDemande
+    -BigDecimal montant
+    -Integer dureeMois
+    -String statut
+    -String typeProduit
+    -LocalDateTime dateCreation
+    -LocalDateTime dateDerniereMiseAJour
+  }
+
+  class DossierClient {
+    <<entity>>
+    -Long id
+    -Long clientId
+    -String referenceDossier
+    -Integer ancienneteEmploiMois
+    -BigDecimal revenuMensuelNet
+    -BigDecimal encoursCredits
+    -BigDecimal tauxEndettement
+    -LocalDateTime dateCreation
+  }
+
+  class DocumentDossier {
+    <<entity>>
+    -Long id
+    -String typeDocument
+    -String objectKey
+    -String nomFichier
+    -String contentType
+    -Long tailleOctets
+  }
+
+  User "1" --> "0..*" DemandeFinancement : client / emprunteur
+  DemandeFinancement "1" *-- "1" DossierClient : dossier financier
+  DossierClient "1" *-- "0..*" DocumentDossier : pièces jointes
+
+  note for DemandeFinancement "Cycle de vie : diagramme d'états séparé (consentement → soumise → analyse …)"
+  note for User "Profils BNPL : CLIENT, COMMERCANT, BANQUE, ADMIN (champs utilisés selon rôle)"
