@@ -7,6 +7,10 @@ Usage :
   python train_multimodel.py
   python train_multimodel.py -i .\\out\\dataset_bnpl_tunisien_cleanV3.csv
 
+Test manuel apres entrainement :
+  python predict_manual_multimodel.py --demo
+  python predict_manual_multimodel.py --revenu_mensuel_net 2200 ...
+
 Deux formats CSV acceptés :
   - bnpl_synthetic.csv : colonnes comme dans ton snippet (target minuscule, etc.)
   - sortie prepare_data.py : colonnes revenu_mensuel_net, TARGET, … (dérivés calculés auto)
@@ -37,7 +41,7 @@ from sklearn.preprocessing import OneHotEncoder, StandardScaler
 from xgboost import XGBClassifier
 
 PACKAGE_DIR = Path(__file__).resolve().parent
-DEFAULT_CSV = PACKAGE_DIR / "out" / "dataset_bnpl_tunisien_cleanV3.csv"
+DEFAULT_CSV = PACKAGE_DIR / "out" / "dataset_bnpl_tunisien_merged.csv"
 MODELS_DIR = PACKAGE_DIR / "out" / "models"
 
 NUM_COLS_SCHEMA = [
@@ -63,8 +67,25 @@ NUM_COLS_SCHEMA = [
     "log_montant",
     "client_banque",
     "premier_achat_bnpl",
+    # Signaux metier explicites (aide XGB / logistic sur CDD + court terme, etc.)
+    "flag_charges_ge_revenu",
+    "flag_cdd_anc_lt_12",
+    "flag_nb_mois_le_6",
+    "flag_effort_ge_50",
 ]
 CAT_COLS = ["type_contrat", "canal", "segment_marchand"]
+
+
+def _append_risk_flag_columns(out: pd.DataFrame) -> pd.DataFrame:
+    """Flags 0/1 alignes regles credit (meme logique que predict_manual cote BNPL)."""
+    o = out.copy()
+    tc = o["type_contrat"].astype(str).str.strip().str.upper().eq("CDD")
+    anc = o["anciennete_emploi"].astype(float)
+    o["flag_charges_ge_revenu"] = (o["debt_ratio"].astype(float) >= 1.0 - 1e-9).astype(np.float64)
+    o["flag_cdd_anc_lt_12"] = (tc & (anc < 12.0)).astype(np.float64)
+    o["flag_nb_mois_le_6"] = (o["nb_mois_remboursement"].astype(float) <= 6.0).astype(np.float64)
+    o["flag_effort_ge_50"] = (o["effort_rate"].astype(float) >= 0.5).astype(np.float64)
+    return o
 
 
 def make_preprocessor() -> ColumnTransformer:
@@ -141,7 +162,7 @@ def _build_from_pipeline_csv(df: pd.DataFrame) -> pd.DataFrame:
                 "target": df["target"].astype(int),
             }
         )
-        return out
+        return _append_risk_flag_columns(out)
 
     # Ancien CSV sans colonnes enrichies : proxies minimaux
     plafond_m = np.maximum(0.0, 0.40 * rm - 0.0)
@@ -179,7 +200,7 @@ def _build_from_pipeline_csv(df: pd.DataFrame) -> pd.DataFrame:
             "target": df["target"].astype(int),
         }
     )
-    return out
+    return _append_risk_flag_columns(out)
 
 
 def _enrich_synthetic_features(df: pd.DataFrame) -> pd.DataFrame:
@@ -238,7 +259,7 @@ def _enrich_synthetic_features(df: pd.DataFrame) -> pd.DataFrame:
     if "segment_marchand" not in df.columns:
         df["segment_marchand"] = "generaliste"
 
-    return df
+    return _append_risk_flag_columns(df)
 
 
 def load_bnpl_frame(csv_path: Path) -> pd.DataFrame:
@@ -288,6 +309,19 @@ def load_bnpl_frame(csv_path: Path) -> pd.DataFrame:
         f"  - bnpl_synthetic : {sorted(need_syn_base)}\n"
         f"  - prepare_data   : {sorted(pl_cols)}"
     )
+
+
+def prepare_features_from_prepare_row(df_row: pd.DataFrame) -> pd.DataFrame:
+    """
+    Une ou plusieurs lignes au format sortie prepare_data (revenu_mensuel_net, TARGET, …).
+    Retourne X avec le schéma NUM_COLS_SCHEMA + CAT_COLS (sans target), pour les pipelines
+    XGBoost / logistic / scaler+IsolationForest — même logique que load_bnpl_frame.
+    """
+    d = df_row.copy()
+    if "TARGET" not in d.columns:
+        d["TARGET"] = 0
+    built = _build_from_pipeline_csv(d)
+    return built.drop(columns=["target"])
 
 
 def trouver_seuil_optimal(y_true, proba, recall_min: float = 0.55) -> tuple[float, float]:

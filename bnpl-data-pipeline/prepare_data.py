@@ -11,6 +11,7 @@ import numpy as np
 import pandas as pd
 from scipy.stats import norm, rankdata
 import warnings
+from sklearn.utils import resample
 
 warnings.filterwarnings("ignore")
 
@@ -200,6 +201,22 @@ def prepare_bnpl_dataset(
     # ==============================================================
     # ETAPE 10 — TARGET conservé tel quel (Kaggle, après filtres)
     # ==============================================================
+    df_majority = df[df['TARGET'] == 0]
+    df_minority = df[df['TARGET'] == 1]
+
+    n_min_target = int(len(df_majority) * 0.15 / 0.85)
+
+    df_minority_up = resample(
+        df_minority,
+        replace=True,
+        n_samples=n_min_target,
+        random_state=seed
+    )
+
+    df = pd.concat([df_majority, df_minority_up])
+    df = df.sample(frac=1, random_state=seed).reset_index(drop=True)
+    print(f"[10] Taux défaut après rééchantillonnage : {df['TARGET'].mean():.2%}")
+# → doit afficher 15.00%
     print(f"[10] Taux défaut (TARGET inchangé, pas de rééchantillonnage) : {df['TARGET'].mean():.2%}")
 
     # ==============================================================
