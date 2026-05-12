@@ -1,1 +1,5 @@
 /.metadata/
+
+# Données Kaggle / CSV volumineux (limite GitHub 100 Mo — ne pas versionner)
+bnpl-data-pipeline/data/application_train.csv
+bnpl-data-pipeline/out/*.csv
