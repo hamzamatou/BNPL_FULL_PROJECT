@@ -11,11 +11,12 @@ import {
   standalone: true,
   imports: [CommonModule, FormsModule],
   templateUrl: './infos-client.component.html',
-  styleUrls: ['./infos-client.component.css'],
+  styleUrls: ['./infos-client.component.css']
 })
 export class InfosClientComponent {
   @Input() status: 'active' | 'completed' | 'pending' = 'active';
 
+  // Tous les champs obligatoires du client
   nom: string = '';
   prenom: string = '';
   email: string = '';
@@ -117,6 +118,7 @@ export class InfosClientComponent {
       return;
     }
 
+    // On émet toutes les données au parent
     this.nextStep.emit({
       nom: this.nom.trim(),
       prenom: this.prenom.trim(),
@@ -134,6 +136,7 @@ export class InfosClientComponent {
       nombreEnfants: this.shouldShowNombreEnfants ? ne : 0,
     });
 
+    // Marquer comme complété
     this.status = 'completed';
   }
 }

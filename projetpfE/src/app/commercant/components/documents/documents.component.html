@@ -23,61 +23,75 @@
     <div class="upload-container">
       <div class="upload-section">
         <label>CIN / PASSEPORT <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? cinInput.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? cinInput.click() : null">
           <div class="icon-doc">📄</div>
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #cinInput (change)="onFile($event, 'cin')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #cinInput (change)="onFile($event, 'cin')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section">
         <label>FICHE DE PAIE — MOIS 1 <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? pay1Input.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? pay1Input.click() : null">
           <div class="icon-money">💰</div>
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #pay1Input (change)="onFile($event, 'fiche_paie_m1')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #pay1Input (change)="onFile($event, 'fiche_paie_m1')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section">
         <label>FICHE DE PAIE — MOIS 2 <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? pay2Input.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? pay2Input.click() : null">
           <div class="icon-money">💰</div>
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #pay2Input (change)="onFile($event, 'fiche_paie_m2')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #pay2Input (change)="onFile($event, 'fiche_paie_m2')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section">
         <label>FICHE DE PAIE — MOIS 3 <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? pay3Input.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? pay3Input.click() : null">
           <div class="icon-money">💰</div>
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #pay3Input (change)="onFile($event, 'fiche_paie_m3')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #pay3Input (change)="onFile($event, 'fiche_paie_m3')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section">
         <label>ATTESTATION DE TRAVAIL <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? attInput.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? attInput.click() : null">
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #attInput (change)="onFile($event, 'attestation_travail')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #attInput (change)="onFile($event, 'attestation_travail')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section" *ngIf="aUnLoyer">
         <label>JUSTIFICATIF LOYER <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? loyerInput.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? loyerInput.click() : null">
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #loyerInput (change)="onFile($event, 'justificatif_loyer')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #loyerInput (change)="onFile($event, 'justificatif_loyer')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
 
       <div class="upload-section" *ngIf="requiresDevis">
         <label>DEVIS (&gt; 10 000 TND) <span class="req">*</span></label>
-        <div class="drop-zone" [class.disabled]="status === 'completed'" (click)="status !== 'completed' ? devisInput.click() : null">
+        <div class="drop-zone" 
+             [class.disabled]="status === 'completed'"
+             (click)="status !== 'completed' ? devisInput.click() : null">
           <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #devisInput (change)="onFile($event, 'devis')" hidden [disabled]="status === 'completed'" />
+          <input type="file" #devisInput (change)="onFile($event, 'devis')" hidden [disabled]="status === 'completed'">
         </div>
       </div>
     </div>

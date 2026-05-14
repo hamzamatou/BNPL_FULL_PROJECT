@@ -12,11 +12,18 @@ import { BanquePriseEnChargeComponent } from './banque/pages/banque-prise-en-cha
 import { BanquePriseEnChargeDetailComponent } from './banque/pages/banque-prise-en-charge-detail/banque-prise-en-charge-detail.component';
 import { ActivateAccountComponent } from './activate-account/activate-account.component';
 import { UserDetailComponent } from './admin/user-detail/user-detail.component';
+import { OtpVerifyComponent } from './otp-verify/otp-verify.component';
 
 export const routes: Routes = [
-  { path: '', redirectTo: '/login', pathMatch: 'full' },
-  { path: 'login', component: LoginComponent },
+
+  // ── Auth / pages publiques (sans navbar) ─────────────────────────
+  { path: '',                        redirectTo: '/login', pathMatch: 'full' },
+  { path: 'login',                   component: LoginComponent },
+  { path: 'verify-otp',              component: OtpVerifyComponent },
   { path: 'activate-account/:token', component: ActivateAccountComponent },
+  { path: 'action-client',           component: ActionClientComponent },
+
+  // ── Espace connecté (avec navbar via AppComponent) ────────────────
   {
     path: 'admin',
     component: AdminPortalComponent,
@@ -48,24 +55,19 @@ export const routes: Routes = [
     data: { role: 'COMMERCANT' },
   },
   {
-    path: 'action-client',
-    component: ActionClientComponent,
-  },
-  {
     path: 'banque',
     component: BanquePortalComponent,
     canActivate: [RoleGuard],
     canActivateChild: [RoleGuard],
-    data: { role: 'BANQUE' },
+    data: { role: 'ANALYSTE_BANCAIRE' },
     children: [
-      { path: 'demandes', component: BanqueDemandesComponent, data: { role: 'BANQUE' } },
-      { path: 'affectees', component: BanquePriseEnChargeComponent, data: { role: 'BANQUE' } },
-      { path: 'affectees/:id', component: BanquePriseEnChargeDetailComponent, data: { role: 'BANQUE' } },
-      { path: '', redirectTo: 'demandes', pathMatch: 'full' },
+      { path: '',              redirectTo: 'demandes', pathMatch: 'full' },
+      { path: 'demandes',      component: BanqueDemandesComponent,                data: { role: 'ANALYSTE_BANCAIRE' } },
+      { path: 'affectees',     component: BanquePriseEnChargeComponent,           data: { role: 'ANALYSTE_BANCAIRE' } },
+      { path: 'affectees/:id', component: BanquePriseEnChargeDetailComponent,     data: { role: 'ANALYSTE_BANCAIRE' } },
     ],
   },
-  {
-    path: '**',
-    redirectTo: 'login',
-  },
+
+  // ── 404 ──────────────────────────────────────────────────────────
+  { path: '**', redirectTo: 'login' },
 ];

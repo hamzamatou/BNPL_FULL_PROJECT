@@ -23,6 +23,7 @@ type DonneesFinancieresPrefill = {
 export class DonneesFinancieresComponent implements OnChanges {
   @Input() status: 'active' | 'completed' | 'pending' = 'pending';
 
+  /** Sert à afficher le bloc « nombre d’enfants » uniquement pour marié(e) / divorcé(e). */
   @Input() situationFamiliale: SituationFamilialeCode | '' = '';
   @Input() nombreEnfantsClient = 0;
   @Input() ancienneteEmploiMoisClient = 0;
@@ -96,32 +97,8 @@ export class DonneesFinancieresComponent implements OnChanges {
     );
   }
 
-  /** Mensualités des crédits déjà en cours (hors BNPL demandé). */
-  get mensualitesCreditsMensuelles(): number {
-    return this.aDesCredits ? (Number.isFinite(Number(this.mensualitesCredits)) ? Number(this.mensualitesCredits) : 0) : 0;
-  }
-
-  /** Mensualité du financement BNPL demandé (montant / durée). */
-  get mensualiteBnpl(): number {
-    const m = Number(this.montant);
-    const d = Number(this.dureeMois);
-    if (!Number.isFinite(m) || m <= 0 || !Number.isFinite(d) || d <= 0) return 0;
-    return m / d;
-  }
-
-  /**
-   * Taux d'endettement type BCT (indicatif) :
-   * (mensualités crédits existants + mensualité BNPL) / revenus nets mensuels totaux.
-   * Hors loyer/charges vie : ils ne sont pas dans le ratio réglementaire 40 %.
-   */
+  /** Part des revenus absorbée par les charges fixes mensuelles (indicatif). */
   get tauxEndettementPct(): number {
-    if (this.revenuTotal <= 0) return 0;
-    const totalMensualitesCredit = this.mensualitesCreditsMensuelles + this.mensualiteBnpl;
-    return Math.min(100, Math.round((totalMensualitesCredit / this.revenuTotal) * 100));
-  }
-
-  /** Charge globale vie + crédits (hors définition BCT) — pour info / cohérence interne. */
-  get tauxChargesGlobalesPct(): number {
     if (this.revenuTotal <= 0) return 0;
     return Math.min(100, Math.round((this.chargesMensuelles / this.revenuTotal) * 100));
   }
@@ -150,6 +127,11 @@ export class DonneesFinancieresComponent implements OnChanges {
       if (p.credits !== undefined) this.credits = p.credits;
     }
     this.recalculerRevenuAnnuel();
+  }
+
+  changeEnfants(delta: number): void {
+    if (this.status === 'completed') return;
+    this.nombreEnfants = Math.max(0, Math.min(10, this.nombreEnfants + delta));
   }
 
   next() {

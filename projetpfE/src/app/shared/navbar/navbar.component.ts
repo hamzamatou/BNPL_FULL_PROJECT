@@ -47,7 +47,7 @@ export class NavbarComponent {
     const r = role.toUpperCase();
     if (r === 'ADMIN') return 'Admin';
     if (r === 'COMMERCANT') return 'Commerçant';
-    if (r === 'BANQUE' || r === 'ANALYSTE_BANCAIRE') return 'Banque';
+    if (r === 'BANQUE') return 'Banque';
     if (r === 'CLIENT') return 'Client';
     return role;
   }

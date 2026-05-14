@@ -3,12 +3,7 @@ import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { DomSanitizer, SafeResourceUrl, SafeUrl } from '@angular/platform-browser';
 import { FormsModule } from '@angular/forms';
-import {
-  DemandeCompleteDto,
-  DemandeService,
-  DocumentDossierDto,
-  libelleSituationFamiliale,
-} from '../../../services/demande.service';
+import { DemandeCompleteDto, DemandeService, DocumentDossierDto } from '../../../services/demande.service';
 
 @Component({
   selector: 'app-banque-prise-en-charge-detail',
@@ -74,16 +69,6 @@ export class BanquePriseEnChargeDetailComponent implements OnInit {
     const prenom = this.demande?.client?.prenom || '';
     const full = `${nom} ${prenom}`.trim();
     return full || '-';
-  }
-
-  situationFamilialeLibelle(): string {
-    return libelleSituationFamiliale(this.demande?.dossierClient?.situationFamiliale);
-  }
-
-  nombreEnfantsLibelle(): string {
-    const n = this.demande?.dossierClient?.nombreEnfants;
-    if (n === undefined || n === null) return '-';
-    return String(n);
   }
 
   montantLabel(v?: number): string {

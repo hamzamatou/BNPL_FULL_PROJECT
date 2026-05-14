@@ -28,29 +28,24 @@ import {
 export class NouvelleDemandeComponent {
   currentStep = 1;
   maxStep = 4;
-
   infosClientData: any = {};
   donneesFinancieresData: any = {};
   donneesFinancieresPrefill: any = null;
   documentsData: DocumentMultipart[] = [];
   typeProduit = '';
-
   isSubmitting = false;
   submitSuccess = false;
   submitErrorMessage = '';
-
   constructor(private demandeService: DemandeService) {}
-
   nextStep() {
     if (this.currentStep < this.maxStep) this.currentStep++;
   }
-
   prevStep() {
     if (this.currentStep > 1 && !this.isSubmitting) this.currentStep--;
   }
-
   setInfosClient(clientData: any) {
     this.infosClientData = clientData;
+    // Préremplissage des champs financiers à partir du dernier dossier du client (si disponible)
     this.donneesFinancieresPrefill = null;
 
     this.demandeService.getDernierDossierFinancierParCin(clientData.cin).subscribe({
@@ -67,6 +62,7 @@ export class NouvelleDemandeComponent {
         this.nextStep();
       },
       error: () => {
+        // Si le dossier n'existe pas encore, on laisse le formulaire vide.
         this.donneesFinancieresPrefill = null;
         this.nextStep();
       },
@@ -82,7 +78,6 @@ export class NouvelleDemandeComponent {
       encoursCredits: data.credits,
       loyerMensuel: data.loyer || 0,
       aUnLoyer: !!data.aUnLoyer,
-      aDesCredits: !!data.aDesCredits,
       mensualitesCredits: data.mensualitesCredits || 0,
       autresChargesFixes: data.autresChargesFixes || 0,
       montant: data.montant,
@@ -102,7 +97,6 @@ export class NouvelleDemandeComponent {
     this.currentStep = 4;
     this.submitDemande();
   }
-
   submitDemande(): void {
     if (this.isSubmitting) return;
 
@@ -128,7 +122,6 @@ export class NouvelleDemandeComponent {
       },
     });
   }
-
   private resolveBackendError(err: any): string {
     const apiMessage =
       err?.error?.message ||

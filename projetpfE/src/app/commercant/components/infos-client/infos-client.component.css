@@ -41,30 +41,12 @@
   font-weight: 700;
 }
 
-.sit-badge--celib {
-  background: #e6f4ed;
-  color: #1a7a4a;
-}
-.sit-badge--marie {
-  background: #e0edff;
-  color: #0057a8;
-}
-.sit-badge--pacse {
-  background: #f9e4e7;
-  color: #c8102e;
-}
-.sit-badge--divorce {
-  background: #fff3d6;
-  color: #8a5f00;
-}
-.sit-badge--veuf {
-  background: #e7edf4;
-  color: #0d1b2a;
-}
-.sit-badge--concubinage {
-  background: #e8f4fc;
-  color: #0369a1;
-}
+.sit-badge--celib { background: #e6f4ed; color: #1a7a4a; }
+.sit-badge--marie { background: #e0edff; color: #0057a8; }
+.sit-badge--pacse { background: #f9e4e7; color: #c8102e; }
+.sit-badge--divorce { background: #fff3d6; color: #8a5f00; }
+.sit-badge--veuf { background: #e7edf4; color: #0d1b2a; }
+.sit-badge--concubinage { background: #e8f4fc; color: #0369a1; }
 
 .field-hint {
   margin-top: 8px;

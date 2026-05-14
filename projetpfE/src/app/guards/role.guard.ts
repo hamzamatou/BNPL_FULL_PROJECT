@@ -15,19 +15,11 @@ export class RoleGuard implements CanActivate, CanActivateChild {
     const requiredRole = (route.data?.['role'] as string | undefined)?.toUpperCase();
     if (!requiredRole) return true;
 
-    const role = this.normalizeRole(this.authService.getRole());
+    const role = this.authService.getRole()?.toUpperCase();
     if (!role) return this.router.parseUrl('/login');
 
     if (role === requiredRole) return true;
-    if (requiredRole === 'BANQUE' && (role === 'ANALYSTE_BANCAIRE' || role === 'BANQUE')) return true;
     return this.router.parseUrl('/login');
-  }
-
-  private normalizeRole(raw: string | null | undefined): string | null {
-    if (!raw) return null;
-    let r = raw.trim().toUpperCase();
-    if (r.startsWith('ROLE_')) r = r.slice('ROLE_'.length);
-    return r;
   }
 
   canActivateChild(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {

@@ -1,0 +1,291 @@
+/* Reset */
+* { box-sizing: border-box; }
+
+.login-container {
+  display: flex;
+  height: 100vh;
+  font-family: 'DM Sans', 'Segoe UI', Roboto, sans-serif;
+  overflow: hidden;
+}
+
+/* --- SECTION GAUCHE --- */
+.brand-section {
+  flex: 0 0 50%; /* Exactement la moitié */
+  background-color: #C8102E; /* Le rouge UIB officiel */
+  color: white;
+  display: flex;
+  padding: 60px;
+}
+
+.brand-content {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  width: 100%;
+}
+
+.login-stats {
+  display: flex;
+  gap: 20px;
+  margin-top: 36px;
+}
+
+.login-stat {
+  text-align: center;
+}
+
+.login-stat-val {
+  font-family: 'Syne', 'DM Sans', sans-serif;
+  font-size: 22px;
+  font-weight: 800;
+  color: #fff;
+  line-height: 1.2;
+}
+
+.login-stat-lbl {
+  font-size: 11px;
+  color: rgba(255, 255, 255, 0.55);
+  margin-top: 2px;
+  font-weight: 600;
+}
+
+.logo-main {
+  font-size: 3rem;
+  font-weight: 800;
+  margin: 0;
+  letter-spacing: -1px;
+}
+
+.logo-sub {
+  font-size: 0.85rem;
+  letter-spacing: 2px;
+  margin-top: 5px;
+  opacity: 0.9;
+}
+
+.platform-title {
+  font-size: 2rem;
+  font-weight: 600;
+  margin-bottom: 15px;
+}
+
+.platform-subtitle {
+  font-size: 1.1rem;
+  opacity: 0.8;
+  font-weight: 300;
+}
+
+
+/* ── SECTION DROITE (formulaire) ── */
+.form-section {
+  flex: 1;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+}
+
+.login-card {
+  width: 100%;
+  max-width: 400px;
+}
+
+.step-eyebrow {
+  font-size: 0.7rem;
+  letter-spacing: 2px;
+  font-weight: 700;
+  color: #C8102E;
+  text-transform: uppercase;
+  margin-bottom: 10px;
+}
+
+.form-title {
+  font-size: 1.7rem;
+  font-weight: 700;
+  color: #1a1a2e;
+  margin-bottom: 8px;
+}
+
+.form-hint {
+  font-size: 0.85rem;
+  color: #777;
+  margin-bottom: 32px;
+  line-height: 1.7;
+}
+
+.email-tag {
+  display: inline-block;
+  background: #FFF0F0;
+  color: #C8102E;
+  border: 0.5px solid #F5BEBE;
+  border-radius: 4px;
+  padding: 2px 8px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  font-family: 'Courier New', monospace;
+}
+
+/* ── 6 cases OTP ── */
+.otp-inputs {
+  display: grid;
+  grid-template-columns: repeat(6, 1fr); /* force 6 colonnes égales */
+  gap: 8px;
+  margin-bottom: 24px;
+  width: 100%;
+}
+
+.otp-inputs input {
+  width: 100%;       /* remplit la colonne grid */
+  aspect-ratio: 1;   /* carré parfait */
+  min-width: 0;      /* empêche le débordement */
+  text-align: center;
+  font-size: 1.4rem;
+  font-weight: 700;
+  border: 1.5px solid #e0e0e0;
+  border-radius: 10px;
+  color: #1a1a2e;
+  outline: none;
+  background: #fafafa;
+  transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
+  caret-color: #C8102E;
+  -moz-appearance: textfield;
+}
+
+.otp-inputs input::-webkit-outer-spin-button,
+.otp-inputs input::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+}
+
+.otp-inputs input:focus {
+  border-color: #C8102E;
+  background: #ffffff;
+  box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.1);
+}
+
+.otp-inputs input.filled {
+  border-color: #C8102E;
+  background: #FFF5F6;
+}
+
+/* ── Message d'erreur ── */
+.error-msg {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  background: #FFF0F0;
+  border: 0.5px solid #F5BEBE;
+  border-left: 3px solid #C8102E;
+  border-radius: 6px;
+  padding: 10px 14px;
+  font-size: 0.82rem;
+  color: #C8102E;
+  margin-bottom: 18px;
+}
+
+/* ── Ligne timer + renvoi ── */
+.timer-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 20px;
+  padding: 10px 14px;
+  background: #f9f9f9;
+  border-radius: 8px;
+  border: 0.5px solid #eee;
+}
+
+.timer-text {
+  font-size: 0.8rem;
+  color: #888;
+}
+
+.timer-count {
+  font-weight: 700;
+  color: #C8102E;
+  font-variant-numeric: tabular-nums;
+  font-size: 0.88rem;
+}
+
+.timer-text.expired {
+  color: #C8102E;
+  font-weight: 600;
+}
+
+.resend-link {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #ccc;
+  background: none;
+  border: none;
+  cursor: not-allowed;
+  padding: 0;
+}
+
+.resend-link.active {
+  color: #C8102E;
+  cursor: pointer;
+  text-decoration: underline;
+}
+
+.resend-link:not(:disabled):hover {
+  color: #A50D26;
+}
+
+/* ── Bouton principal ── */
+.btn-submit {
+  width: 100%;
+  padding: 14px;
+  background: #C8102E;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.15s, transform 0.1s;
+  margin-bottom: 4px;
+}
+
+.btn-submit:hover:not(:disabled) {
+  background: #A50D26;
+}
+
+.btn-submit:active:not(:disabled) {
+  transform: scale(0.98);
+}
+
+.btn-submit:disabled {
+  background: #e8e8e8;
+  color: #bbb;
+  cursor: default;
+}
+
+/* ── Note de sécurité ── */
+.security-note {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  font-size: 0.74rem;
+  color: #bbb;
+  margin-top: 18px;
+  padding-top: 16px;
+  border-top: 0.5px solid #f0f0f0;
+}
+
+.lock-icon { font-size: 12px; }
+
+/* ── Lien retour ── */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.78rem;
+  color: #bbb;
+  text-decoration: none;
+  margin-top: 12px;
+  transition: color 0.15s;
+}
+
+.back-link:hover { color: #555; }

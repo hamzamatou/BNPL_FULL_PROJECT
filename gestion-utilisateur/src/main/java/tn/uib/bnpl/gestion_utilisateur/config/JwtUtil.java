@@ -3,6 +3,8 @@ package tn.uib.bnpl.gestion_utilisateur.config;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import tn.uib.bnpl.gestion_utilisateur.classes.Role;
+
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -30,7 +32,7 @@ public class JwtUtil {
         this.key = Keys.hmacShaKeyFor(bytes);
     }
 
-    public String generateToken(Long userId, String email, String role) {
+    public String generateToken(Long userId, String email, Role role) {
         Map<String, Object> claims = new HashMap<>();
         claims.put("role", role);
         claims.put("id", userId);

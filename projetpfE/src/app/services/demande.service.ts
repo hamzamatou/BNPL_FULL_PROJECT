@@ -41,8 +41,6 @@ export interface CreationDemandeCompleteRequest {
   employeur: string;
   situationFamiliale: SituationFamilialeCode;
   nombreEnfants: number;
-  typeContrat: string;
-  dateNaissance: string;
   ancienneteEmploiMois: number;
   revenuMensuelNet: number;
   autresRevenusMensuels: number;
@@ -53,9 +51,6 @@ export interface CreationDemandeCompleteRequest {
   montant: number;
   dureeMois: number;
   typeProduit: string;
-  revenuAnnuel?: number;
-  aUnLoyer?: boolean;
-  aDesCredits?: boolean;
   documents: DocumentMultipart[];
 }
 
@@ -203,6 +198,7 @@ export class DemandeService {
     return this.http.get<DemandeCompleteDto>(`${this.baseUrl}/${id}/detail`, { headers });
   }
 
+  // Détail banque (prise en charge active)
   getDemandeDetailBanqueById(id: number): Observable<DemandeCompleteDto> {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -235,6 +231,7 @@ export class DemandeService {
     });
   }
 
+  // US11 (banque) : liste des demandes disponibles pour la banque
   getDemandesDisponiblesPourBanque(): Observable<DemandeFinancementDto[]> {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -253,6 +250,7 @@ export class DemandeService {
     );
   }
 
+  // US12 (banque) : banque clique "Se saisir" => verrouillage + création traitement
   seSaisir(demandeId: number): Observable<any> {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -263,11 +261,13 @@ export class DemandeService {
       Authorization: `Bearer ${token}`,
     });
 
+    // Endpoint ne nécessite pas de body
     return this.http.post(`${this.priseEnChargeBaseUrl}/demandes/${demandeId}/se-saisir`, {}, {
       headers,
     });
   }
 
+  // US12 bis (banque) : demandes déjà prises en charge (verrouillées non expirées)
   getDemandesAffecteesPourBanque(): Observable<DemandeFinancementDto[]> {
     const token = localStorage.getItem('token');
     if (!token) {
@@ -286,6 +286,7 @@ export class DemandeService {
     );
   }
 
+  // Pré-remplissage : dernier dossier financier du client par CIN
   getDernierDossierFinancierParCin(cin: string): Observable<DernierDossierFinancierDto> {
     const token = localStorage.getItem('token');
     if (!token) throw new Error('Token JWT manquant');
@@ -299,6 +300,7 @@ export class DemandeService {
     });
   }
 
+  // US15 : décision banque
   accepterDemande(
     demandeId: number,
     payload?: { commentaire?: string }

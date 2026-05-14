@@ -1,4 +1,4 @@
-<div class="card" [class.completed]="status === 'completed'">
+﻿<div class="card" [class.completed]="status === 'completed'">
   <div class="card-head">
     <div class="head-left" style="display: flex; align-items: center; gap: 12px;">
       <div class="snum" [class.completed]="status === 'completed'">
@@ -30,14 +30,8 @@
   } @else if (success) {
     <div class="card-body">
       <div class="info-box success">
-        Votre demande est creee. Le lien de consentement est prepare et sera envoye au client par e-mail.
+        Votre demande est creee. Un lien de consentement valide 2h a ete envoye au client par email.
         Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
-      </div>
-
-      <div class="info-box warning">
-        Si le service de notification e-mail n'est pas actif, l'e-mail sera transmis des son activation.
-        Pour accelerer le processus, veuillez contacter le staff technique.
-        Merci pour votre comprehension.
       </div>
 
       <div class="actions">

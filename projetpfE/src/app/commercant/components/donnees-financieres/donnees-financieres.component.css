@@ -78,15 +78,23 @@
   border-left: 3px solid #c8102e;
 }
 
-.fin-col-band--revenus,
-.fin-col-band--charges,
-.fin-col-band--projet {
+.fin-col-band--revenus {
+  background: transparent;
+  border-left: 3px solid #c8102e;
+}
+
+.fin-col-band--charges {
   background: transparent;
   border-left: 3px solid #c8102e;
 }
 
 .fin-col--projet {
   grid-column: auto;
+}
+
+.fin-col-band--projet {
+  background: transparent;
+  border-left: 3px solid #c8102e;
 }
 
 .fin-col-band--projet .fin-col-band__label {
@@ -100,7 +108,10 @@
   letter-spacing: 0.04em;
 }
 
-.fin-col-band--revenus .fin-col-band__label,
+.fin-col-band--revenus .fin-col-band__label {
+  color: #374151;
+}
+
 .fin-col-band--charges .fin-col-band__label {
   color: #374151;
 }

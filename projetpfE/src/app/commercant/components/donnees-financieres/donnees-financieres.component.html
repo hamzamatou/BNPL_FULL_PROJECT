@@ -143,6 +143,7 @@
             <div class="field-error" *ngIf="autresChargesFixesError">{{ autresChargesFixesError }}</div>
           </div>
         </div>
+
       </div>
 
       <!-- Projet de financement -->
@@ -172,7 +173,7 @@
           </div>
 
           <div class="debt-box debt-box--horizontal">
-            <div class="debt-box__title">Taux d’endettement crédits (type BCT, indicatif)</div>
+            <div class="debt-box__title">Taux d’endettement estimé</div>
             <div class="debt-box__row">
               <div class="debt-bar">
                 <div
@@ -188,12 +189,10 @@
             <div class="debt-foot" [class.debt-foot--ok]="sousSeuilEndettement" [class.debt-foot--warn]="!sousSeuilEndettement">
               {{
                 sousSeuilEndettement
-                  ? 'En dessous du seuil indicatif de 40 % (mensualités de crédit + BNPL demandé / revenus nets).'
-                  : 'Au-dessus du seuil indicatif de 40 % — allongez la durée ou réduisez le montant du financement.'
+                  ? 'En dessous du seuil indicatif de 40 % (charges / revenus).'
+                  : 'Au-dessus du seuil indicatif de 40 % — vérifiez la cohérence des montants.'
               }}
-              <span *ngIf="showEnfants" class="debt-foot__extra">
-                Charge enfants (profil {{ nombreEnfants }} × 250 TND) prise en compte dans vos charges vie, hors ratio BCT.
-              </span>
+              <span *ngIf="showEnfants"> Charge enfants incluse depuis profil client ({{ nombreEnfants }} x 250 TND).</span>
             </div>
           </div>
         </div>

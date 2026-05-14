@@ -1,14 +1,14 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap');
 
 :root {
-  --uib-red: #d3121f;
+  --uib-red:      #d3121f;
   --uib-red-dark: #ab0f19;
-  --bg: #f3f5f8;
-  --text: #1f2937;
-  --muted: #6b7280;
-  --line: #e5e7eb;
-  --card: #ffffff;
-  --radius: 14px;
+  --bg:           #f3f5f8;
+  --text:         #1f2937;
+  --muted:        #6b7280;
+  --line:         #e5e7eb;
+  --card:         #ffffff;
+  --radius:       14px;
 }
 
 * {
@@ -36,7 +36,6 @@ body {
 
 .main {
   flex: 1;
-  min-width: 0;
   display: flex;
   flex-direction: column;
 }

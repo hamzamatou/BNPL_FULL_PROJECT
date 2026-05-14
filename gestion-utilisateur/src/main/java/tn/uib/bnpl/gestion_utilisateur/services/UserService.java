@@ -17,22 +17,25 @@ public interface UserService {
     List<User> getAllUsers();
 
     void deleteUser(Long id);
+    User findByEmail(String email);
 
-	User updateUser(User user);
+    User updateUser(User user);
 
-	User toggleBlockUser(Long id);
+    User toggleBlockUser(Long id);
 
-	String login(String email, String password) throws Exception;
+    String login(String email, String password) throws Exception;
 
-	CreatedClientResponse createClientForBnpl(CreateClientRequest request);
+    User activateAccount(String token, String newPassword, String confirmPassword);
 
-	ClientIdentityResponse getClientIdentity(Long clientId);
+    CreatedClientResponse createClientForBnpl(CreateClientRequest request);
 
-	/**
-	 * Récupère l'id utilisateur (rôle CLIENT) à partir du CIN.
-	 * {@code null} si aucun utilisateur avec ce CIN (gestion-demande crée alors le client).
-	 * {@link IllegalStateException} si le CIN existe mais le compte n'est pas un CLIENT BNPL.
-	 */
-	Long getClientIdByCin(String cin);
+    ClientIdentityResponse getClientIdentity(Long clientId);
 
+    Long getClientIdByCin(String cin);
+
+    User findByToken(String token);
+
+    String encodePassword(String password);
+    void sendOtp(String email) throws Exception;
+    String verifyOtp(String email, String otpCode) throws Exception;
 }

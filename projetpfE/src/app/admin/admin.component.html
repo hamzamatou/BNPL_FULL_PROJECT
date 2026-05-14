@@ -10,6 +10,7 @@
     <span class="tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">Utilisateurs</span>
   </div>
 
+  <!-- Overview Tab -->
   <div *ngIf="activeTab === 'overview'">
     <div class="kpi-grid">
       <div class="kpi-card">
@@ -54,18 +55,26 @@
   </div>
 
   <div *ngIf="activeTab === 'users'">
-    <div class="section-header modern">
-      <div>
-        <h2>Gestion des utilisateurs</h2>
-        <p>Gérez les comptes du système facilement</p>
-      </div>
 
-      <button class="btn-add-user" (click)="openAddUser()">
-        <span>＋</span> Ajouter utilisateur
-      </button>
+  <!-- Header section -->
+  <div class="section-header modern">
+    <div>
+      <h2>Gestion des utilisateurs</h2>
+      <p>Gérez les comptes du système facilement</p>
     </div>
 
-    <app-add-user *ngIf="showAddUser" (close)="closeAddUser()" (refresh)="onUserAdded()"> </app-add-user>
+    <!-- Bouton Add -->
+    <button class="btn-add-user" (click)="openAddUser()">
+      <span>＋</span> Ajouter utilisateur
+    </button>
+  </div>
+
+  <!-- Affichage dynamique du composant -->
+  <app-add-user 
+    *ngIf="showAddUser" 
+    (close)="closeAddUser()" 
+    (refresh)="loadUsers()">
+  </app-add-user>
 
     <div class="table-container">
       <table class="user-table">
@@ -87,35 +96,35 @@
             </td>
             <td><span class="role-tag">{{ user.role }}</span></td>
             <td>
-              <span
-                class="badge"
-                [ngClass]="{
-                  created: user.status === 'CREATED',
-                  active: user.status === 'ACTIVE',
-                  blocked: user.status === 'BLOCKED',
-                }"
-              >
-                {{ user.status === 'CREATED' ? 'Non activé' : user.status === 'ACTIVE' ? 'Actif' : 'Bloqué' }}
-              </span>
-            </td>
+  <span class="badge" 
+        [ngClass]="{
+          'created': user.status === 'CREATED',
+          'active': user.status === 'ACTIVE',
+          'blocked': user.status === 'BLOCKED'
+        }">
+    {{ user.status === 'CREATED' ? 'Non activé' : (user.status === 'ACTIVE' ? 'Actif' : 'Bloqué') }}
+  </span>
+</td>
             <td class="actions-cell">
-              <div class="action-group">
-                <button class="btn btn-block" (click)="toggleBlockUser(user)">
-                  <span class="icon">⛔</span>
-                  {{ user.status === 'BLOCKED' ? 'Débloquer' : 'Bloquer' }}
-                </button>
+  <div class="action-group">
 
-                <button class="btn btn-delete" (click)="deleteUser(user)">
-                  <span class="icon">🗑</span>
-                  Supprimer
-                </button>
+    <button class="btn btn-block" (click)="toggleBlockUser(user)">
+      <span class="icon">⛔</span>
+      {{ user.status === 'BLOCKED' ? 'Débloquer' : 'Bloquer' }}
+    </button>
 
-                <button class="btn btn-view" (click)="viewUser(user)">
-                  <span class="icon">👁</span>
-                  Consulter
-                </button>
-              </div>
-            </td>
+    <button class="btn btn-delete" (click)="deleteUser(user)">
+      <span class="icon">🗑</span>
+      Supprimer
+    </button>
+
+    <button class="btn btn-view" (click)="viewUser(user)">
+      <span class="icon">👁</span>
+      Consulter
+    </button>
+
+  </div>
+</td>
           </tr>
         </tbody>
       </table>
