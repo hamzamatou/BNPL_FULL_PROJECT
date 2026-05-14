@@ -8,6 +8,9 @@ Microservice Python Flask pour:
 ## Endpoints
 
 - `GET /health`
+- **Prescoring BNPL** (LightGBM + IF optionnel + SHAP) : voir le rapport détaillé **[RAPPORT_PRESCORING.md](./RAPPORT_PRESCORING.md)**.
+  - `GET /prescoring/ready` — disponibilité du bundle modèle.
+  - `GET /prescoring/prescore?...` — paramètres financiers en query string, réponse JSON (PD %, score, zone, alertes, texte analyste).
 - `POST /coherence/check` (multipart/form-data)
   - `declared_data`: JSON string (ex: `{"nom":"...","cin":"...","montant":12000,"aUnLoyer":true}`)
   - Fichiers supportes: **images** (`jpg/jpeg/png/...`) et **PDF 1 page**.

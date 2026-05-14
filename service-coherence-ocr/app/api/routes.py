@@ -7,6 +7,7 @@ from app.services.service_recommendation import (
     DossierFinancier,
     generer_recommandations
 )
+from app.services.prescoring_service import get_prescoring_status, prescore_dossier
 
 api_bp = Blueprint("api", __name__)
 
@@ -100,3 +101,36 @@ def generate_recommendation():
             "message": "Erreur génération recommandation",
             "detail": str(ex)
         }), 500
+
+
+# =========================
+# PRESCORING (GBMlight + IF + SHAP)
+# =========================
+@api_bp.get("/prescoring/ready")
+def prescoring_ready():
+    st = get_prescoring_status()
+    code = 200 if st.get("ready") else 503
+    return jsonify(st), code
+
+
+@api_bp.get("/prescoring/prescore")
+def prescoring_prescore():
+    """Parametres query (alignes predict_manual) : revenu_mensuel_net, revenu_annuel, ... type_contrat."""
+    try:
+        body = {
+            "revenu_mensuel_net": request.args.get("revenu_mensuel_net"),
+            "revenu_annuel": request.args.get("revenu_annuel"),
+            "charges_mensuelles_totales": request.args.get("charges_mensuelles_totales"),
+            "montant_demande": request.args.get("montant_demande"),
+            "nbr_mois_remboursement": request.args.get("nbr_mois_remboursement"),
+            "anciennete_emploi_mois": request.args.get("anciennete_emploi_mois"),
+            "type_contrat": request.args.get("type_contrat"),
+        }
+        result = prescore_dossier(body)
+        return jsonify(result), 200
+    except FileNotFoundError as ex:
+        return jsonify({"message": "Modele prescoring indisponible", "detail": str(ex)}), 503
+    except ValueError as ex:
+        return jsonify({"message": "Requete prescoring invalide", "detail": str(ex)}), 400
+    except Exception as ex:
+        return jsonify({"message": "Erreur prescoring", "detail": str(ex)}), 500

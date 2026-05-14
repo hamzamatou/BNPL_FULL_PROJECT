@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 
 
 def _env_path(name: str, default: str = "") -> str:
@@ -25,6 +26,11 @@ def _env_bool(name: str, default: bool) -> bool:
     return str(raw).strip().lower() in {"1", "true", "yes", "y", "on"}
 
 
+# uib-bnpl/bnpl-data-pipeline (defaut : frere de service-coherence-ocr)
+_REPO_ROOT = Path(__file__).resolve().parent.parent.parent
+_DEFAULT_BNPL_PIPELINE = str(_REPO_ROOT / "bnpl-data-pipeline")
+
+
 class Settings:
     OLLAMA_URL = os.getenv("OLLAMA_URL", "http://localhost:11434/api/generate")
     # Defaut leger pour latence raisonnable sans GPU ; surchargez avec llama3.1:8b si besoin de precision.
@@ -47,3 +53,8 @@ class Settings:
     COHERENCE_REGEX_FIRST = _env_bool("COHERENCE_REGEX_FIRST", True)
     # Redimensionne avant Tesseract si le plus grand cote depasse (0 = desactive). Gain sur gros scans.
     OCR_IMAGE_MAX_EDGE = _env_int("OCR_IMAGE_MAX_EDGE", 2200)
+
+    # --- Prescoring (LightGBM + IF + SHAP, bundle train_GBMlight) ---
+    BNPL_PIPELINE_DIR = _env_path("BNPL_PIPELINE_DIR", _DEFAULT_BNPL_PIPELINE)
+    _BNPL_MODEL_ENV = _env_path("BNPL_MODEL_PATH", "")
+    BNPL_MODEL_PATH = _BNPL_MODEL_ENV or str(Path(BNPL_PIPELINE_DIR) / "bnpl_model_production.pkl")
