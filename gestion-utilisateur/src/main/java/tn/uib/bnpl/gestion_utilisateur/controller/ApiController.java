@@ -52,28 +52,33 @@ public class ApiController {
     }
     @PostMapping("/users/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
+
         try {
             String email = body.get("email");
             String password = body.get("password");
 
-            // Valider credentials (sans générer JWT)
             User user = userService.findByEmail(email);
 
             if (user.getStatus() == AccountStatus.BLOCKED)
                 return ResponseEntity.status(403).body(Map.of("error", "Compte bloqué"));
 
-            // Vérification password (appel service)
-            userService.login(email, password); // lance exception si KO, sinon envoie OTP
+            // vérifie password + envoie OTP
+            userService.login(email, password);
 
-            // Répondre avec statut + email (pas de token encore)
+            // 🔥 AJOUT TOKEN ICI
+            String token = jwtUtil.generateToken(
+                    user.getId(),
+                    user.getEmail(),
+                    user.getRole()
+            );
+
             Map<String, Object> resp = new HashMap<>();
             resp.put("otpRequired", true);
             resp.put("email", email);
 
-            // Cas compte CREATED : on informe aussi
-            if (user.getStatus() == AccountStatus.CREATED) {
-                resp.put("status", "CREATED");
-            }
+            // 🔥 AJOUT ROLE + TOKEN
+            resp.put("token", token);
+            resp.put("role", user.getRole());
 
             return ResponseEntity.ok(resp);
 
@@ -81,7 +86,6 @@ public class ApiController {
             return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
     }
-
     // Nouveau endpoint : vérifier OTP
     @PostMapping("/users/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request) {

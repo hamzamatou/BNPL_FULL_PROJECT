@@ -13,6 +13,6 @@
     "test:micro:no-loyer": "node test_micro.mjs no-loyer-no-devis"
   },
   "dependencies": {
-    "undici": "^8.1.0"
+    "undici": "^7.25.0"
   }
 }

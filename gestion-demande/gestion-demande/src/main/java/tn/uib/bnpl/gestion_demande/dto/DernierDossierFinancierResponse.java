@@ -1,12 +1,9 @@
 package tn.uib.bnpl.gestion_demande.dto;
-
+ 
 import java.math.BigDecimal;
-
-/**
- * Pré-remplissage des champs de "données financières" à partir du dernier dossier du client.
- */
+ 
 public record DernierDossierFinancierResponse(
-        Integer ancienneteEmploiMois,
+        Integer    ancienneteEmploiMois,
         BigDecimal revenuMensuelNet,
         BigDecimal autresRevenusMensuels,
         BigDecimal loyerMensuel,
@@ -14,4 +11,3 @@ public record DernierDossierFinancierResponse(
         BigDecimal autresChargesFixes,
         BigDecimal encoursCredits
 ) {}
-

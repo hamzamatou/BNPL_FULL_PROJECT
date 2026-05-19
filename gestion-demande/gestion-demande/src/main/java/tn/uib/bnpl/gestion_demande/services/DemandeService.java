@@ -8,7 +8,6 @@ import java.util.List;
 
 public interface DemandeService {
 
-    DemandeFinancement creerDemandeComplete(CreationDemandeCompleteRequest request);
 
     DemandeFinancement validerConsentementEtSoumettre(String token);
 
@@ -19,4 +18,6 @@ public interface DemandeService {
     DernierDossierFinancierResponse getDernierDossierFinancierParCin(String cin);
 
     String getPresignedDocumentUrl(String objectKey);
+
+	DemandeFinancement creerDemandeComplete(CreationDemandeCompleteRequest request, String recommandationsJson);
 }
