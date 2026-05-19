@@ -15,5 +15,6 @@
   "dependencies": {
     "docx": "^9.6.1",
     "undici": "^8.1.0"
+
   }
 }

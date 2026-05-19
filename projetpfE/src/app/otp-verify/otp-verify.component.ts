@@ -130,22 +130,40 @@ onKeyDown(event: KeyboardEvent, index: number) {
     const email = this.authService.getPendingEmail()!;
 
     this.authService.verifyOtp(email, this.otpCode).subscribe({
-      next: (res) => {
-        this.loading = false;
-        this.authService.clearPendingEmail();
-        this.stopTimer();
+   next: (res) => {
+  this.loading = false;
 
-        if (res.status === 'CREATED') {
-          this.router.navigate(['/activate-account', res.token]);
-          return;
-        }
+  this.authService.clearPendingEmail();
+  this.stopTimer();
 
-        const role = this.normalizeRole(res.role);
-        if      (role === 'ADMIN')            this.router.navigate(['/admin']);
-        else if (role === 'COMMERCANT')       this.router.navigate(['/commercant']);
-        else if (role === 'ANALYSTE_BANCAIRE') this.router.navigate(['/banque']);
-        else this.errorMessage = `Rôle inconnu : ${String(res.role)}`;
-      },
+  // 🔥 STOCKAGE TOKEN
+  if (res.token) {
+    localStorage.setItem('token', res.token);
+
+    // 👇 DEBUG pour inspecter facilement dans console
+    console.log('🔐 TOKEN:', res.token);
+    console.log('👤 ROLE:', res.role);
+  }
+
+  if (res.status === 'CREATED') {
+    this.router.navigate(['/activate-account', res.token]);
+    return;
+  }
+
+  const role = this.normalizeRole(res.role);
+
+  if (role === 'ADMIN') {
+    this.router.navigate(['/admin']);
+  }
+  else if (role === 'COMMERCANT') {
+    this.router.navigate(['/commercant']);
+  }
+  else if (role === 'ANALYSTE_BANCAIRE') {
+    this.router.navigate(['/banque']);
+  }
+  else {
+    this.errorMessage = `Rôle inconnu : ${String(res.role)}`;
+  }},
       error: (err) => {
         this.loading = false;
         this.digits = ['', '', '', '', '', ''];

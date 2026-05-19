@@ -39,19 +39,17 @@ public class ApiAuthenticationFilter extends OncePerRequestFilter implements Ord
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String path = normalizeApiPath(request);
+    	String path = request.getServletPath();
 
-        // endpoints publics
-        if (path.equals("/api/users/login") || path.equals("/api/users/register")) {
-            filterChain.doFilter(request, response);
-            return;
-        }
+    	// 🚫 skip authentication for public routes
+    	if (path.startsWith("/api/users/login")
+    	        || path.startsWith("/api/users/register")
+    	        || path.startsWith("/api/users/verify-otp")
+    	        || path.startsWith("/api/users/activate")) {
 
-        // endpoints internes
-        if (path.startsWith("/api/internal/")) {
-            applyInternalApiKeyAuth(request, response, filterChain);
-            return;
-        }
+    	    filterChain.doFilter(request, response);
+    	    return;
+    	}
 
         // JWT
         applyJwtAuth(request);

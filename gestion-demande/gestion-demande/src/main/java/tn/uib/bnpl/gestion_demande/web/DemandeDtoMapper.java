@@ -1,92 +1,33 @@
 package tn.uib.bnpl.gestion_demande.web;
 
 import org.springframework.stereotype.Component;
-import tn.uib.bnpl.gestion_demande.classes.DemandeFinancement;
-import tn.uib.bnpl.gestion_demande.classes.DocumentDossier;
-import tn.uib.bnpl.gestion_demande.dto.ClientIdentityDto;
-import tn.uib.bnpl.gestion_demande.dto.DemandeCompleteResponse;
-import tn.uib.bnpl.gestion_demande.dto.DemandeSummaryResponse;
-import tn.uib.bnpl.gestion_demande.dto.DocumentDossierResponse;
-import tn.uib.bnpl.gestion_demande.dto.DossierClientResponse;
-import tn.uib.bnpl.gestion_demande.services.ClientRemoteService;
+import tn.uib.bnpl.gestion_demande.classes.*;
+import tn.uib.bnpl.gestion_demande.dto.*;
 
 import java.util.List;
 
 @Component
 public class DemandeDtoMapper {
 
-    private final ClientRemoteService clientRemoteService;
-
-    public DemandeDtoMapper(ClientRemoteService clientRemoteService) {
-        this.clientRemoteService = clientRemoteService;
-    }
-
     public DemandeSummaryResponse toSummary(DemandeFinancement d) {
-        Long clientId = d.getDossierClient() != null ? d.getDossierClient().getClientId() : null;
-        String nom = null;
-        String prenom = null;
-        if (clientId != null) {
-            try {
-                ClientIdentityDto identity = clientRemoteService.getClientIdentity(clientId);
-                nom = identity.nom();
-                prenom = identity.prenom();
-            } catch (Exception ignored) {
-            }
-        }
+        DossierClient dos = d.getDossierClient();
         return new DemandeSummaryResponse(
                 d.getId(),
                 d.getReferenceDemande(),
                 d.getMontant(),
+                d.getDureeMois(),
                 d.getStatut(),
                 d.getDateCreation(),
                 d.getDateDerniereMiseAJour(),
                 d.getTypeProduit(),
-                clientId,
-                nom,
-                prenom
+                dos != null ? dos.getClientId() : null,
+                null,
+                null,
+                null
         );
     }
 
     public DemandeCompleteResponse toComplete(DemandeFinancement d) {
-        Long clientId = d.getDossierClient() != null ? d.getDossierClient().getClientId() : null;
-        ClientIdentityDto client = null;
-        if (clientId != null) {
-            try {
-                client = clientRemoteService.getClientIdentity(clientId);
-            } catch (Exception ignored) {
-            }
-        }
-
-        DossierClientResponse dossier = null;
-        if (d.getDossierClient() != null) {
-            var dc = d.getDossierClient();
-            List<DocumentDossierResponse> documents = dc.getDocuments() == null
-                    ? List.of()
-                    : dc.getDocuments().stream().map(this::toDocument).toList();
-
-            dossier = new DossierClientResponse(
-                    dc.getId(),
-                    dc.getClientId(),
-                    dc.getReferenceDossier(),
-                    dc.getDateCreation(),
-                    dc.getDateDerniereMiseAJour(),
-                    dc.getSituationFamiliale(),
-                    dc.getNombreEnfants(),
-                    dc.getAncienneteEmploiMois(),
-                    dc.getTypeContrat(),
-                    dc.getRevenuMensuelNet(),
-                    dc.getAutresRevenusMensuels(),
-                    dc.getRevenuAnnuel(),
-                    dc.getLoyerMensuel(),
-                    dc.getMensualitesCredits(),
-                    dc.getAutresChargesFixes(),
-                    dc.getChargesMensuelles(),
-                    dc.getEncoursCredits(),
-                    dc.getTauxEndettement(),
-                    documents
-            );
-        }
-
         return new DemandeCompleteResponse(
                 d.getId(),
                 d.getReferenceDemande(),
@@ -96,19 +37,76 @@ public class DemandeDtoMapper {
                 d.getDateCreation(),
                 d.getDateDerniereMiseAJour(),
                 d.getTypeProduit(),
-                client,
-                dossier
+                null,
+                mapDossier(d.getDossierClient()),
+                mapRecommandation(d.getRecommandation()),
+                mapPrescoring(d.getPrescoringScore())
         );
     }
 
-    private DocumentDossierResponse toDocument(DocumentDossier doc) {
-        return new DocumentDossierResponse(
+    private DemandeCompleteResponse.DossierClientDto mapDossier(DossierClient dos) {
+        if (dos == null) return null;
+        return new DemandeCompleteResponse.DossierClientDto(
+                dos.getId(),
+                dos.getReferenceDossier(),
+                dos.getDateCreation(),
+                dos.getAncienneteEmploiMois(),
+                dos.getTypeContrat(),
+                dos.getRevenuMensuelNet(),
+                dos.getAutresRevenusMensuels(),
+                dos.getLoyerMensuel(),
+                dos.getMensualitesCredits(),
+                dos.getAutresChargesFixes(),
+                dos.getChargesMensuelles(),
+                dos.getEncoursCredits(),
+                dos.getTauxEndettement(),
+                dos.getSituationFamiliale(),
+                dos.getNombreEnfants(),
+                mapDocuments(dos.getDocuments())
+        );
+    }
+
+    private List<DemandeCompleteResponse.DocumentDossierDto> mapDocuments(List<DocumentDossier> docs) {
+        if (docs == null) return List.of();
+        return docs.stream().map(doc -> new DemandeCompleteResponse.DocumentDossierDto(
                 doc.getId(),
                 doc.getTypeDocument(),
                 doc.getObjectKey(),
                 doc.getNomFichier(),
                 doc.getContentType(),
                 doc.getTailleOctets()
+        )).toList();
+    }
+
+    private DemandeCompleteResponse.RecommandationRDto mapRecommandation(Recommandation r) {
+        if (r == null) return null;
+        return new DemandeCompleteResponse.RecommandationRDto(
+                r.getId(),
+                r.getRecommandationsJson(),
+                r.getGeneratedAt()
+        );
+    }
+
+    /**
+     * PrescoringScore — champs exacts de l'entité :
+     *   getId()                → Long
+     *   getProbabiliteDefaut() → double
+     *   getScore()             → int
+     *   getZoneCode()          → String   ("vert" | "orange" | "rouge")
+     *   getExplicationsJson()  → String
+     *   getComputedAt()        → LocalDateTime
+     *
+     * ABSENT de l'entité : getZoneLibelle() → supprimé du mapper et du DTO.
+     */
+    private DemandeCompleteResponse.PrescoringScoreRDto mapPrescoring(PrescoringScore ps) {
+        if (ps == null) return null;
+        return new DemandeCompleteResponse.PrescoringScoreRDto(
+                ps.getId(),
+                ps.getProbabiliteDefaut(),
+                ps.getScore(),
+                ps.getZoneCode(),
+                ps.getExplicationsJson(),
+                ps.getComputedAt()
         );
     }
 }

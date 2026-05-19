@@ -1,40 +1,133 @@
 <div class="page">
-  <h2>Creer une demande BNPL</h2>
+
+  <h2 class="title">Créer une demande BNPL</h2>
 
   <app-stepper [step]="currentStep"></app-stepper>
 
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 1 — Infos client
+  ════════════════════════════════════════════════════════════════════════ -->
   <app-infos-client
-    [status]="currentStep > 1 ? 'completed' : 'active'"
+    *ngIf="currentStep === 1"
+    [status]="'active'"
     (nextStep)="setInfosClient($event)">
   </app-infos-client>
 
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 2 — Données financières
+  ════════════════════════════════════════════════════════════════════════ -->
   <app-donnees-financieres
-    *ngIf="currentStep >= 2"
-    [status]="currentStep > 2 ? 'completed' : (currentStep === 2 ? 'active' : 'pending')"
+    *ngIf="currentStep === 2"
+    [status]="'active'"
     [prefill]="donneesFinancieresPrefill"
-    [situationFamiliale]="infosClientData.situationFamiliale ?? ''"
-    [nombreEnfantsClient]="infosClientData.nombreEnfants ?? 0"
-    [ancienneteEmploiMoisClient]="infosClientData.ancienneteEmploiMois ?? 0"
     (nextStep)="setDonneesFinancieres($event)"
     (prevStep)="prevStep()">
   </app-donnees-financieres>
 
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 3 — Documents
+  ════════════════════════════════════════════════════════════════════════ -->
   <app-documents
-    *ngIf="currentStep >= 3"
-    [status]="currentStep > 3 ? 'completed' : (currentStep === 3 ? 'active' : 'pending')"
-    [aUnLoyer]="donneesFinancieresData.aUnLoyer ?? false"
-    [montant]="donneesFinancieresData.montant ?? 0"
+    *ngIf="currentStep === 3"
+    [status]="'active'"
     (nextStep)="setDocuments($event.documents, $event.typeProduit)"
     (prevStep)="prevStep()">
   </app-documents>
 
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 4 — Analyse IA (cohérence + recommandations)
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentStep === 4" class="ia-step">
+
+    <!-- Spinner pendant l'analyse -->
+    <div *ngIf="isAnalysing" class="ia-loading">
+      <div class="spinner"></div>
+      <p class="ia-loading-text">Analyse IA en cours — vérification de la cohérence du dossier…</p>
+    </div>
+
+    <!-- Résultat : anomalies bloquantes -->
+    <ng-container *ngIf="!isAnalysing">
+
+      <app-anomalies-panel
+        [anomalies]="anomalies">
+      </app-anomalies-panel>
+
+      <!-- Message d'erreur technique (service IA indisponible) -->
+      <div *ngIf="analyseError && anomalies.length === 0" class="error-banner">
+        {{ analyseError }}
+      </div>
+
+      <!-- Recommandations (popup) — visibles uniquement si cohérence OK -->
+      <app-recommandations-modal
+        *ngIf="coherenceOK"
+        [recommandations]="recommandations">
+      </app-recommandations-modal>
+
+      <!-- Message de succès si aucune anomalie -->
+      <div *ngIf="coherenceOK" class="coherence-ok-banner">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+        Cohérence du dossier validée — vous pouvez envoyer le consentement au client.
+      </div>
+
+    </ng-container>
+
+    <!-- Actions step 4 -->
+    <div class="actions" *ngIf="!isAnalysing">
+      <button class="btn secondary" (click)="prevStep()">Retour</button>
+
+      <!-- Relancer si erreur ou anomalies -->
+      <button
+        *ngIf="anomalies.length > 0 || analyseError"
+        class="btn warning"
+        (click)="lancerAnalyseIA()">
+        Relancer l'analyse
+      </button>
+
+      <!-- Continuer uniquement si cohérence OK -->
+      <button
+        *ngIf="coherenceOK"
+        class="btn primary"
+        (click)="goToConsent()">
+        Envoyer le consentement au client
+      </button>
+    </div>
+
+  </div>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 5 — Consentement / création de la demande
+  ════════════════════════════════════════════════════════════════════════ -->
   <app-consentement
-    *ngIf="currentStep >= 4"
+    *ngIf="currentStep === 5"
     [status]="submitSuccess ? 'completed' : 'active'"
     [submitting]="isSubmitting"
     [success]="submitSuccess"
     [errorMessage]="submitErrorMessage"
     (prevStep)="prevStep()"
+    (submit)="submitDemande()"
     (restart)="restartFlow()">
   </app-consentement>
+
+  <!-- ═══════════════════════════════════════════════════════════════════════
+       STEP 6 — Succès
+  ════════════════════════════════════════════════════════════════════════ -->
+  <div *ngIf="currentStep === 6" class="success-box">
+    <div class="success-icon">
+      <svg width="40" height="40" viewBox="0 0 24 24" fill="none"
+           stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+        <circle cx="12" cy="12" r="10"/>
+        <polyline points="9 12 11 14 15 10"/>
+      </svg>
+    </div>
+    <h3>Demande créée avec succès</h3>
+    <p>
+      Un email de consentement a été envoyé au client.
+      La demande sera soumise à l'analyse bancaire dès validation.
+    </p>
+    <button class="btn primary" (click)="restartFlow()">Nouvelle demande</button>
+  </div>
+
 </div>

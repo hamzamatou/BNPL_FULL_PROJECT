@@ -55,7 +55,7 @@ services:
       RABBITMQ_DEFAULT_USER: bnpl
       RABBITMQ_DEFAULT_PASS: bnpl123
     ports:
-      - "5672:5672"    # AMQP
+      - "5673:5672"    # AMQP
       - "15672:15672"  # Management UI
     volumes:
       - rabbitmq_data:/var/lib/rabbitmq
