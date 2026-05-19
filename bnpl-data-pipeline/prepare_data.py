@@ -96,7 +96,6 @@ def prepare_bnpl_dataset(
         "State servant": "CDI",
         "Working": "CDI",
         "Commercial associate": "CDD",
-        "Maternity leave": "CDD",
     }
     n_before = len(df)
     df["type_contrat"] = df["NAME_INCOME_TYPE"].map(mapping_contrat)

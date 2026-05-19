@@ -1,0 +1,493 @@
+const {
+  Document, Packer, Paragraph, TextRun, Table, TableRow, TableCell,
+  HeadingLevel, AlignmentType, PageNumber, Header, Footer,
+  WidthType, BorderStyle, ShadingType, VerticalAlign,
+  ImageRun, PageBreak
+} = require('docx');
+const fs = require('fs');
+ 
+const TNR  = "Times New Roman";
+const SZ   = 24;       // 12pt
+const SZH1 = 32;       // 16pt
+const SZH2 = 28;       // 14pt
+const SZH3 = 26;       // 13pt
+const LINE = 360;      // 1.5 interligne
+const AFT  = 140;
+ 
+// ── helpers texte ──────────────────────────────────────────
+function p(text, opts = {}) {
+  return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: { line: LINE, before: 0, after: AFT },
+    children: [new TextRun({
+      text, font: TNR, size: SZ,
+      bold: opts.bold || false,
+      italics: opts.italic || false,
+      color: opts.color || "000000"
+    })]
+  });
+}
+ 
+function pmix(runs) {
+  return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: { line: LINE, before: 0, after: AFT },
+    children: runs.map(r => new TextRun({
+      text: r.text, font: TNR, size: SZ,
+      bold: r.bold || false,
+      italics: r.italic || false,
+      color: r.color || "000000"
+    }))
+  });
+}
+ 
+function h1(t) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_1,
+    spacing: { before: 500, after: 220 },
+    children: [new TextRun({ text: t, font: TNR, size: SZH1, bold: true, color: "1F3864" })]
+  });
+}
+function h2(t) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_2,
+    spacing: { before: 360, after: 180 },
+    children: [new TextRun({ text: t, font: TNR, size: SZH2, bold: true, color: "2E4057" })]
+  });
+}
+function h3(t) {
+  return new Paragraph({
+    heading: HeadingLevel.HEADING_3,
+    spacing: { before: 260, after: 140 },
+    children: [new TextRun({ text: t, font: TNR, size: SZH3, bold: true, italics: true, color: "1F3864" })]
+  });
+}
+function sp() {
+  return new Paragraph({ spacing: { before: 0, after: 100 },
+    children: [new TextRun({ text: "", font: TNR, size: SZ })] });
+}
+function pb() { return new Paragraph({ children: [new PageBreak()] }); }
+ 
+function caption(text) {
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { line: LINE, before: 60, after: 200 },
+    children: [new TextRun({ text, font: TNR, size: 20, italics: true, color: "555555" })]
+  });
+}
+ 
+function encadre(title, text, color) {
+  return new Paragraph({
+    alignment: AlignmentType.JUSTIFIED,
+    spacing: { line: LINE, before: 160, after: 160 },
+    border: {
+      top: { style: "single", size: 6, color: color },
+      bottom: { style: "single", size: 6, color: color },
+      left: { style: "single", size: 18, color: color },
+      right: { style: "single", size: 6, color: color },
+    },
+    shading: { fill: "F5F8FF", type: ShadingType.CLEAR },
+    indent: { left: 200, right: 200 },
+    children: [
+      new TextRun({ text: title + "  ", font: TNR, size: SZ, bold: true, color }),
+      new TextRun({ text, font: TNR, size: SZ, color: "333333" })
+    ]
+  });
+}
+ 
+// ── helpers tableau ──────────────────────────────────────────
+const BD = { style: BorderStyle.SINGLE, size: 1, color: "CCCCCC" };
+const BS = { top:BD, bottom:BD, left:BD, right:BD };
+ 
+function cell(text, opts = {}) {
+  return new TableCell({
+    borders: BS,
+    shading: opts.header
+      ? { fill: "1F3864", type: ShadingType.CLEAR }
+      : opts.shade
+        ? { fill: "EEF2F7", type: ShadingType.CLEAR }
+        : { fill: "FFFFFF", type: ShadingType.CLEAR },
+    margins: { top: 80, bottom: 80, left: 120, right: 120 },
+    verticalAlign: VerticalAlign.CENTER,
+    width: opts.w ? { size: opts.w, type: WidthType.DXA } : undefined,
+    children: [new Paragraph({
+      alignment: AlignmentType.JUSTIFIED,
+      spacing: { line: 276, before: 0, after: 0 },
+      children: [new TextRun({
+        text, font: TNR, size: 20,
+        bold: opts.bold || opts.header || false,
+        color: opts.header ? "FFFFFF" : "000000"
+      })]
+    })]
+  });
+}
+function hrow(labels, widths) {
+  return new TableRow({ children: labels.map((l, i) =>
+    cell(l, { header: true, w: widths ? widths[i] : undefined }))});
+}
+function row(cells, shade = false) {
+  return new TableRow({ children: cells.map(c => cell(c, { shade })) });
+}
+ 
+// ── image helper ──────────────────────────────────────────
+function img(path, w, h) {
+  const buf = fs.readFileSync(path);
+  return new Paragraph({
+    alignment: AlignmentType.CENTER,
+    spacing: { before: 180, after: 80 },
+    children: [new ImageRun({ data: buf, transformation: { width: w, height: h } })]
+  });
+}
+ 
+// ══════════════════════════════════════════════════════════
+// TABLEAUX
+// ══════════════════════════════════════════════════════════
+ 
+// T1 — Comparaison 3 modèles
+const tCompar = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [3000, 1800, 1800, 2426],
+  rows: [
+    hrow(["Modèle", "AUC-ROC", "F1 (défaut)", "Retenu ?"], [3000, 1800, 1800, 2426]),
+    row(["Régression logistique", "0,6500", "0,19", "Non — performances insuffisantes"], false),
+    row(["XGBoost", "0,7966", "0,44", "Non — pas de contraintes métier"], true),
+    row(["LightGBM", "0,8222", "0,49", "✅ Oui — meilleur sur tous les critères"], false),
+  ]
+});
+ 
+// T2 — Paramètres LightGBM vulgarisés
+const tParams = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [3000, 1500, 4526],
+  rows: [
+    hrow(["Paramètre", "Valeur", "Ce que ça veut dire simplement"], [3000, 1500, 4526]),
+    row(["n_estimators", "2 500", "Le modèle construit 2 500 arbres de décision"], false),
+    row(["learning_rate", "0,02", "Chaque arbre apprend lentement pour être plus précis"], true),
+    row(["num_leaves", "63", "Chaque arbre peut faire jusqu'à 63 embranchements"], false),
+    row(["subsample", "0,8", "Chaque arbre ne voit que 80 % des données (évite le surapprentissage)"], true),
+    row(["scale_pos_weight", "auto", "Donne plus d'importance aux défauts rares"], false),
+    row(["early_stopping", "100", "S'arrête si le modèle ne s'améliore plus depuis 100 étapes"], true),
+  ]
+});
+ 
+// T3 — Contraintes métier
+const tMono = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [3500, 1500, 4026],
+  rows: [
+    hrow(["Variable", "Règle imposée", "Logique métier"], [3500, 1500, 4026]),
+    row(["Taux d'endettement global", "↑ Risque augmente", "Plus on est endetté, plus le risque est élevé"], false),
+    row(["Reste à vivre", "↓ Risque diminue", "Plus le reste à vivre est grand, moins on risque le défaut"], true),
+    row(["Buffer financier", "↓ Risque diminue", "Une marge positive protège contre les imprévus"], false),
+    row(["Mensualité BNPL", "↑ Risque augmente", "Une mensualité élevée pèse sur le remboursement"], true),
+    row(["Score de risque combiné", "↑ Risque augmente", "Ce score résume tous les signaux négatifs du dossier"], false),
+    row(["CDD < 6 mois d'ancienneté", "↑ Risque augmente", "Signal le plus fort : contrat précaire très récent"], true),
+  ]
+});
+ 
+// T4 — Rapport classification
+const tReport = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [3000, 1500, 1500, 1500, 1526],
+  rows: [
+    hrow(["Classe", "Précision", "Rappel", "F1-score", "Nombre"], [3000, 1500, 1500, 1500, 1526]),
+    row(["Non-défaut (classe 0)", "0,92", "0,85", "0,88", "34 541"], false),
+    row(["Défaut (classe 1)", "0,41", "0,60", "0,49", "6 102"], true),
+    row(["Précision globale", "—", "—", "0,81", "40 643"], false),
+  ]
+});
+ 
+// T5 — Zones de risque
+const tZones = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [2000, 2500, 4526],
+  rows: [
+    hrow(["Zone", "Probabilité de défaut", "Ce que ça signifie"], [2000, 2500, 4526]),
+    row(["🟢 Verte", "PD < 8 %", "Dossier très solide — risque très faible"], false),
+    row(["🟠 Orange", "8 % ≤ PD < 15 %", "Risque modéré — dossier acceptable avec vigilance"], true),
+    row(["🟠 Orange foncé", "15 % ≤ PD < 25 %", "Risque notable — examen approfondi recommandé"], false),
+    row(["🔴 Rouge", "25 % ≤ PD < 40 %", "Risque élevé — signal fort de difficulté de remboursement"], true),
+    row(["🔴 Rouge foncé", "PD ≥ 40 %", "Risque très élevé — défaut très probable"], false),
+  ]
+});
+ 
+// T6 — Réponse JSON vulgarisée
+const tJSON = new Table({ width: { size: 9026, type: WidthType.DXA },
+  columnWidths: [2500, 6526],
+  rows: [
+    hrow(["Champ retourné", "Ce que l'analyste reçoit"], [2500, 6526]),
+    row(["pd_pct", "La probabilité de défaut en % (ex : 18,5 %)"], false),
+    row(["score", "Un score de 0 à 1000 (comme une note bancaire — plus c'est haut, mieux c'est)"], true),
+    row(["zone", "Le feu tricolore : vert / orange / rouge"], false),
+    row(["alertes", "Liste des problèmes détectés sur les données saisies (ex: taux d'effort trop élevé)"], true),
+    row(["explications", "Un texte en français expliquant pourquoi ce score a été attribué"], false),
+    row(["defaut", "true ou false selon que le seuil de 22,8 % est dépassé"], true),
+  ]
+});
+ 
+// ══════════════════════════════════════════════════════════
+// DOCUMENT
+// ══════════════════════════════════════════════════════════
+const doc = new Document({
+  styles: {
+    default: { document: { run: { font: TNR, size: SZ } } },
+    paragraphStyles: [
+      { id: "Heading1", name: "Heading 1", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: SZH1, bold: true, font: TNR, color: "1F3864" },
+        paragraph: { spacing: { before: 500, after: 220 }, outlineLevel: 0 } },
+      { id: "Heading2", name: "Heading 2", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: SZH2, bold: true, font: TNR, color: "2E4057" },
+        paragraph: { spacing: { before: 360, after: 180 }, outlineLevel: 1 } },
+      { id: "Heading3", name: "Heading 3", basedOn: "Normal", next: "Normal", quickFormat: true,
+        run: { size: SZH3, bold: true, italics: true, font: TNR, color: "1F3864" },
+        paragraph: { spacing: { before: 260, after: 140 }, outlineLevel: 2 } },
+    ]
+  },
+  sections: [{
+    properties: {
+      page: {
+        size: { width: 11906, height: 16838 },
+        margin: { top: 1440, right: 1440, bottom: 1440, left: 1701 }
+      }
+    },
+    headers: {
+      default: new Header({ children: [new Paragraph({
+        alignment: AlignmentType.RIGHT,
+        border: { bottom: { style: "single", size: 6, color: "CCCCCC" } },
+        spacing: { after: 100 },
+        children: [new TextRun({ text: "Phases 4, 5 & 6 — Modélisation, Évaluation & Déploiement | Pré-scoring BNPL UIB",
+          font: TNR, size: 18, italics: true, color: "888888" })]
+      })] })
+    },
+    footers: {
+      default: new Footer({ children: [new Paragraph({
+        alignment: AlignmentType.CENTER,
+        border: { top: { style: "single", size: 6, color: "CCCCCC" } },
+        children: [
+          new TextRun({ text: "Page ", font: TNR, size: 18, color: "888888" }),
+          new TextRun({ children: [PageNumber.CURRENT], font: TNR, size: 18, color: "888888" }),
+          new TextRun({ text: " / ", font: TNR, size: 18, color: "888888" }),
+          new TextRun({ children: [PageNumber.TOTAL_PAGES], font: TNR, size: 18, color: "888888" }),
+        ]
+      })] })
+    },
+    children: [
+ 
+      // ══════════════════════════════════════════
+      // PHASE 4 — MODÉLISATION
+      // ══════════════════════════════════════════
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 300, after: 300 },
+        children: [new TextRun({ text: "Phase 4 — Modélisation",
+          font: TNR, size: 36, bold: true, color: "1F3864" })]
+      }),
+ 
+      // ── 4.1 ──
+      h2("4.1 Qu'est-ce que la modélisation ?"),
+      p("La modélisation est l'étape où l'on entraîne un programme informatique à apprendre à partir d'exemples passés. Dans notre cas, on lui montre des milliers de dossiers de crédit dont on connaît l'issue (le client a remboursé ou non), et il apprend à reconnaître les caractéristiques associées à un défaut de paiement."),
+      p("Concrètement, à la fin de cette étape, le modèle est capable de regarder un nouveau dossier qu'il n'a jamais vu et d'estimer une probabilité de défaut — par exemple « ce client a 18 % de chances de ne pas rembourser »."),
+      encadre("💡 Analogie :", "C'est comme former un jeune analyste crédit en lui faisant étudier 200 000 dossiers réels, avec les décisions prises et leurs résultats. Après cette formation, il peut évaluer de nouveaux dossiers seul.", "1F3864"),
+      sp(),
+ 
+      // ── 4.2 ──
+      h2("4.2 Les trois modèles testés"),
+      p("Avant de choisir un modèle définitif, trois approches différentes ont été comparées. Chaque approche a ses propres forces et faiblesses. Le tableau suivant présente les résultats de cette comparaison :"),
+      sp(), tCompar, sp(),
+      p("La métrique principale utilisée pour comparer les modèles est l'AUC-ROC (valeur entre 0 et 1). Plus cette valeur est proche de 1, meilleur est le modèle. Une valeur de 0,5 correspond à un modèle qui prédit au hasard, comme un simple tirage à pile ou face."),
+      sp(),
+ 
+      // ── 4.3 Régression logistique ──
+      h2("4.3 Modèle 1 — Régression logistique"),
+      p("La régression logistique est le modèle le plus simple des trois. Elle fonctionne en additionnant les informations du client (revenus, charges, ancienneté...), en attribuant un poids à chacune, puis en transformant la somme en une probabilité grâce à une formule mathématique appelée sigmoïde."),
+      img("/home/claude/modele1_regression_simple.png", 480, 220),
+      caption("Figure 1 — Fonctionnement de la régression logistique : de la saisie client à la décision."),
+      sp(),
+      p("Ce modèle est facile à interpréter mais présente une limitation importante : il suppose que chaque variable agit indépendamment des autres. Or dans la réalité, ce sont souvent les combinaisons de facteurs qui créent le risque — par exemple, un CDD récent associé à de faibles revenus et des charges élevées est bien plus risqué que chacun de ces facteurs pris séparément. La régression logistique ne peut pas capturer ces interactions, ce qui explique ses performances limitées (AUC = 0,65)."),
+      sp(),
+ 
+      // ── 4.4 XGBoost ──
+      h2("4.4 Modèle 2 — XGBoost"),
+      p("XGBoost est un algorithme beaucoup plus puissant. Au lieu d'une seule formule linéaire, il construit une série d'arbres de décision — des schémas de questions/réponses du type « Le taux d'effort est-il supérieur à 40 % ? Si oui, est-ce un CDD ? Si oui... » — et combine leurs réponses pour produire une prédiction finale."),
+      p("La particularité de XGBoost est que chaque arbre apprend des erreurs commises par le précédent. Au bout de 200 arbres, le modèle est très précis sur les cas complexes que les modèles simples ne voient pas."),
+      img("/home/claude/modele2_xgboost_simple.png", 480, 240),
+      caption("Figure 2 — Fonctionnement de XGBoost : construction séquentielle de 200 arbres de décision."),
+      sp(),
+      p("XGBoost obtient de très bonnes performances avec une AUC de 0,7966. Cependant, il présente une limitation critique dans notre contexte bancaire : il ne permet pas d'imposer des règles logiques au modèle. Par exemple, on ne peut pas garantir que le modèle dira toujours qu'un taux d'effort plus élevé signifie plus de risque — il pourrait parfois produire des résultats contre-intuitifs difficiles à justifier auprès des régulateurs bancaires."),
+      sp(),
+ 
+      // ── 4.5 LightGBM ──
+      h2("4.5 Modèle 3 — LightGBM (modèle retenu ✅)"),
+      p("LightGBM fonctionne sur le même principe que XGBoost (arbres de décision séquentiels), mais avec une différence technique importante : au lieu de développer tous les embranchements de l'arbre au même niveau, il se concentre à chaque étape sur le seul embranchement qui réduira le plus l'erreur. Cela le rend plus précis et plus rapide."),
+      img("/home/claude/modele3_lightgbm_simple.png", 480, 290),
+      caption("Figure 3 — Fonctionnement de LightGBM : leaf-wise boosting, contraintes métier et pipeline complet."),
+      sp(),
+ 
+      h3("4.5.1 Les paramètres du modèle"),
+      p("Les paramètres sont les réglages qui contrôlent le comportement du modèle pendant l'apprentissage. Voici les paramètres retenus et leur signification concrète :"),
+      sp(), tParams, sp(),
+ 
+      h3("4.5.2 Les contraintes métier — la grande force de LightGBM"),
+      p("C'est la raison principale pour laquelle LightGBM a été choisi plutôt que XGBoost. On peut lui imposer des règles logiques qui doivent toujours être respectées, quelles que soient les données :"),
+      sp(), tMono, sp(),
+      encadre("💡 Pourquoi c'est important ?",
+        "Sans ces contraintes, le modèle pourrait apprendre par erreur qu'un taux d'effort très élevé est parfois associé à moins de risque (à cause de cas particuliers dans les données). Avec les contraintes, on lui interdit physiquement de produire ce type de conclusion illogique. Cela rend le système plus fiable et plus facile à expliquer aux auditeurs bancaires.", "1F3864"),
+      sp(),
+ 
+      h3("4.5.3 La calibration des probabilités"),
+      p("Après l'entraînement, les probabilités produites par LightGBM sont légèrement décalées par rapport à la réalité. Par exemple, quand le modèle dit « 30 % de risque », il peut en réalité y avoir 35 % de défauts dans cette catégorie. On applique donc une correction appelée calibration isotonique, qui ajuste ces probabilités pour qu'elles correspondent exactement à ce qu'on observe dans les données réelles."),
+      encadre("💡 Analogie :",
+        "C'est comme régler la balance d'une cuisine : si elle indique toujours 50g de trop, on la corrige avant de l'utiliser. Le modèle calibré dit la vraie probabilité, pas une approximation.", "1F3864"),
+      sp(),
+ 
+      h3("4.5.4 Le seuil de décision"),
+      p("Normalement, un modèle de classification utilise un seuil de 50 % pour prendre une décision. Mais dans notre cas, les défauts sont rares (15 % du dataset). Si on utilise 50 % comme seuil, le modèle ne signalera presque jamais un défaut car les probabilités dépassent rarement ce niveau pour la classe minoritaire."),
+      p("On détermine donc le seuil optimal en testant toutes les valeurs possibles et en choisissant celle qui offre le meilleur équilibre entre détecter les vrais défauts et limiter les fausses alertes. Le seuil retenu est 22,8 % : tout client avec une probabilité de défaut supérieure à 22,8 % est signalé comme risqué."),
+      sp(),
+ 
+      // ══════════════════════════════════════════
+      // PHASE 5 — ÉVALUATION
+      // ══════════════════════════════════════════
+      pb(),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 300, after: 300 },
+        children: [new TextRun({ text: "Phase 5 — Évaluation",
+          font: TNR, size: 36, bold: true, color: "1F3864" })]
+      }),
+ 
+      // ── 5.1 ──
+      h2("5.1 Comment mesure-t-on la qualité d'un modèle de scoring ?"),
+      p("Évaluer un modèle de scoring crédit, ce n'est pas simplement compter combien de fois il a raison. En effet, si le modèle dit toujours « pas de défaut », il aura raison 85 % du temps sur notre dataset — mais il sera complètement inutile puisqu'il ne détectera aucun défaut réel."),
+      p("On utilise donc des métriques plus adaptées, qui mesurent réellement la capacité du modèle à distinguer les bons clients des mauvais clients."),
+      encadre("📊 L'AUC-ROC :", "C'est la métrique principale. Elle mesure, sur une échelle de 0 à 1, la capacité du modèle à classer correctement un client en défaut parmi deux candidats tirés au sort. Un score de 0,82 signifie que le modèle choisit correctement le client le plus risqué dans 82 % des cas. Un score de 0,5 correspond à un choix aléatoire.", "1F3864"),
+      sp(),
+ 
+      // ── 5.2 ──
+      h2("5.2 Comparaison des trois modèles"),
+      p("Les trois modèles ont été testés sur le même ensemble de données de test (données que le modèle n'a jamais vues pendant l'apprentissage). Les résultats sont présentés ci-dessous :"),
+ 
+      h3("5.2.1 Courbes ROC"),
+      img("/home/claude/courbes_roc.png", 430, 375),
+      caption("Figure 4 — Courbes ROC des trois modèles. Plus la courbe est proche du coin supérieur gauche, meilleur est le modèle."),
+      sp(),
+      p("La courbe ROC montre la performance de chaque modèle à différents niveaux de seuil de décision. LightGBM (courbe bleue foncée) est clairement supérieur aux deux autres sur l'ensemble de la plage, ce qui confirme son choix comme modèle de production."),
+ 
+      h3("5.2.2 Comparaison des AUC"),
+      img("/home/claude/comparaison_auc.png", 400, 250),
+      caption("Figure 5 — Comparaison des AUC-ROC. LightGBM dépasse XGBoost de +2,56 points."),
+      sp(),
+ 
+      h3("5.2.3 Matrices de confusion"),
+      img("/home/claude/matrices_confusion.png", 500, 155),
+      caption("Figure 6 — Matrices de confusion. VN = vrais négatifs (bons clients bien classés), VP = vrais positifs (défauts détectés), FP = fausses alertes, FN = défauts manqués."),
+      sp(),
+      encadre("💡 Comment lire une matrice de confusion ?",
+        "Elle montre en 4 cases ce que le modèle a prédit vs ce qui s'est réellement passé. L'idéal est d'avoir des cases VN et VP grandes (le modèle a raison) et des cases FP et FN petites (le modèle se trompe peu). On voit clairement que LightGBM a la meilleure distribution.", "1F3864"),
+      sp(),
+ 
+      // ── 5.3 ──
+      h2("5.3 Résultats détaillés de LightGBM"),
+      p("Le rapport complet d'évaluation du modèle LightGBM sur le jeu de test (40 643 dossiers dont 6 102 défauts réels) est le suivant :"),
+      sp(), tReport, sp(),
+      p("Ces chiffres se lisent de la façon suivante. La précision de 0,41 sur la classe « Défaut » signifie que sur 100 clients signalés comme risqués par le modèle, 41 sont effectivement en défaut. Les 59 autres feront l'objet d'un examen approfondi par un analyste. Le rappel de 0,60 signifie que le modèle détecte 60 % des vrais défauts avant qu'ils ne surviennent. Ces 40 % manqués seront éventuellement filtrés par la couche de règles métier et par l'analyse humaine."),
+      encadre("💡 Ces chiffres sont-ils satisfaisants ?",
+        "Dans le contexte d'un pré-scoring (première alerte automatique), ces performances sont tout à fait acceptables. Le modèle n'est pas censé remplacer l'analyste crédit, mais lui signaler les dossiers qui méritent une attention particulière. Une précision de 41 % signifie que le modèle multiplie par environ 5 la concentration de défauts dans les dossiers qu'il marque comme risqués, ce qui améliore significativement l'efficacité du contrôle humain.", "2E7D32"),
+      sp(),
+ 
+      // ── 5.4 ──
+      h2("5.4 Les zones de risque retournées à l'analyste"),
+      p("Pour faciliter la lecture des résultats par les analystes crédit, la probabilité de défaut est traduite en une zone de risque avec un code couleur intuitif :"),
+      sp(), tZones, sp(),
+      p("Cette grille de couleurs est distincte du seuil opérationnel de 22,8 % utilisé par le modèle pour la décision binaire. Elle offre une lecture plus nuancée qui permet à l'analyste d'apprécier le niveau de risque au-delà d'un simple oui/non."),
+      sp(),
+ 
+      // ── 5.5 ──
+      h2("5.5 Validation sur trois profils réels"),
+      p("Pour vérifier que le modèle produit des résultats cohérents avec le bon sens, trois profils types ont été soumis au système :"),
+      sp(),
+      new Table({ width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [3200, 2000, 1500, 2326],
+        rows: [
+          hrow(["Profil du client", "Probabilité de défaut", "Zone", "Décision"], [3200, 2000, 1500, 2326]),
+          row(["CDI stable — 2 200 DT/mois, 48 mois ancienneté, 750 DT de charges", "< 22,8 %", "🟢 Verte", "Non-défaut — dossier solide"], false),
+          row(["CDD récent — 900 DT/mois, 8 mois ancienneté, 620 DT de charges", "> 22,8 %", "🔴 Rouge", "Défaut probable — examen requis"], true),
+          row(["CDI moyen — 1 500 DT/mois, 36 mois ancienneté, 550 DT de charges", "< 22,8 %", "🟠 Orange", "Non-défaut — vigilance modérée"], false),
+        ]
+      }),
+      sp(),
+      p("Ces résultats sont parfaitement cohérents avec l'intuition bancaire : le profil CDD avec faible ancienneté et charges élevées par rapport à ses revenus est correctement identifié comme le plus risqué, tandis que le CDI avec une longue ancienneté et une bonne capacité de remboursement est classé en zone acceptable."),
+ 
+      // ══════════════════════════════════════════
+      // PHASE 6 — DÉPLOIEMENT
+      // ══════════════════════════════════════════
+      pb(),
+      new Paragraph({
+        alignment: AlignmentType.CENTER,
+        spacing: { before: 300, after: 300 },
+        children: [new TextRun({ text: "Phase 6 — Déploiement",
+          font: TNR, size: 36, bold: true, color: "1F3864" })]
+      }),
+ 
+      // ── 6.1 ──
+      h2("6.1 Qu'est-ce que le déploiement ?"),
+      p("Le déploiement, c'est l'étape où le modèle quitte l'environnement de développement pour être mis à disposition des utilisateurs réels. Concrètement, le modèle entraîné est intégré dans un service informatique accessible via internet (une API), que les systèmes de gestion des dossiers UIB BNPL peuvent interroger automatiquement pour chaque nouvelle demande de crédit."),
+      encadre("💡 Analogie :", "C'est comme installer un nouveau collaborateur dans son bureau, lui donner un téléphone et lui demander de répondre aux demandes d'évaluation de dossiers envoyées par les agences.", "1F3864"),
+      sp(),
+ 
+      // ── 6.2 ──
+      h2("6.2 Comment est structuré le déploiement ?"),
+      p("Le modèle LightGBM est sauvegardé dans un fichier appelé bnpl_model_production.pkl. Ce fichier contient non seulement le modèle lui-même, mais aussi toutes les informations nécessaires pour traiter un nouveau dossier de la même manière qu'il a été traité pendant l'entraînement : les paramètres de normalisation, les encodages des variables, le seuil de décision, etc."),
+      p("Ce fichier est chargé au démarrage du microservice Flask service-coherence-ocr, qui tourne en permanence sur le serveur UIB (port 8090). Ce même service gère également les vérifications OCR de documents — ainsi, le pré-scoring et la vérification documentaire sont regroupés dans un seul point d'entrée cohérent."),
+      sp(),
+ 
+      // ── 6.3 ──
+      h2("6.3 Comment soumettre un dossier à l'API ?"),
+      p("Pour obtenir un score, le système de gestion UIB envoie une requête à l'adresse du microservice avec les informations du client. Voici un exemple concret d'une requête pour un client CDI gagnant 2 200 DT par mois :"),
+      new Paragraph({
+        spacing: { line: LINE, before: 120, after: 120 },
+        shading: { fill: "F0F0F0", type: ShadingType.CLEAR },
+        indent: { left: 400, right: 400 },
+        children: [new TextRun({
+          text: "/prescoring/prescore?revenu_mensuel_net=2200&revenu_annuel=26400&charges_mensuelles_totales=750&montant_demande=3000&nbr_mois_remboursement=12&anciennete_emploi_mois=48&type_contrat=CDI",
+          font: "Courier New", size: 18, color: "1F3864"
+        })]
+      }),
+      sp(),
+      p("Le serveur répond en quelques millisecondes avec un objet JSON contenant l'ensemble des informations de scoring :"),
+      sp(), tJSON, sp(),
+ 
+      // ── 6.4 ──
+      h2("6.4 Ce qui se passe à l'intérieur du serveur"),
+      p("Entre le moment où la requête arrive et le moment où la réponse est envoyée, le serveur exécute automatiquement les étapes suivantes :"),
+      sp(),
+      new Table({ width: { size: 9026, type: WidthType.DXA },
+        columnWidths: [1200, 2800, 5026],
+        rows: [
+          hrow(["Étape", "Action", "Ce que ça fait concrètement"], [1200, 2800, 5026]),
+          row(["①", "Validation des données", "Vérifie que tous les paramètres sont présents et dans les bornes valides"], false),
+          row(["②", "Feature engineering", "Calcule les 32 variables dérivées (taux d'effort, buffer financier, score de risque...)"], true),
+          row(["③", "Normalisation", "Applique les bornes de clip enregistrées lors de l'entraînement"], false),
+          row(["④", "Encodage", "Convertit CDI/CDD en valeurs numériques comme appris à l'entraînement"], true),
+          row(["⑤", "Prédiction LightGBM", "Le modèle calcule la probabilité de défaut"], false),
+          row(["⑥", "Calibration", "Ajuste la probabilité pour qu'elle soit précise"], true),
+          row(["⑦", "Règles métier", "Calcule les alertes brutes sur les données saisies (indépendamment du modèle)"], false),
+          row(["⑧", "Assemblage réponse", "Construit le JSON avec score, zone, alertes et texte d'explication"], true),
+        ]
+      }),
+      sp(),
+ 
+      // ── 6.5 ──
+      h2("6.5 Perspectives — Le second cycle CRISP-DM"),
+      p("Conformément à la nature itérative de la méthodologie CRISP-DM, les résultats de ce premier déploiement alimenteront un second cycle d'amélioration. Ce second cycle intégrera trois améliorations majeures identifiées lors de l'évaluation."),
+      p("La première amélioration est l'ajout d'un module de détection des profils atypiques (Isolation Forest). Ce composant signalera les dossiers dont le profil est très différent de tous les dossiers vus pendant l'entraînement — par exemple un client avec des revenus anormalement élevés ou une combinaison de caractéristiques très inhabituelle. Pour ces profils, la prédiction du modèle est moins fiable et l'analyste doit être averti."),
+      p("La deuxième amélioration est l'intégration des explications SHAP. SHAP est une technique qui permet de dire, pour chaque dossier individuel, quelles variables ont le plus contribué au score et dans quel sens. L'analyste pourra ainsi lire directement « Ce client a été classé risqué principalement à cause de son faible reste à vivre (−0,12) et de son ancienneté insuffisante (−0,08) »."),
+      p("La troisième amélioration est la recalibration du modèle sur les premières données réelles des clients UIB BNPL, collectées en production dans un environnement sécurisé conforme à la loi organique n° 2004-63. Cette recalibration permettra d'adapter progressivement le modèle aux spécificités du marché tunisien, améliorant sa précision au-delà de ce que permet le dataset Home Credit utilisé pour cette première itération."),
+      sp(),
+ 
+      encadre("🎯 En résumé :",
+        "Le système de pré-scoring BNPL UIB est opérationnel et produit des scores fiables (AUC = 0,8222). Il s'améliore à chaque cycle : cette première version pose les fondations techniques, la suivante intégrera les données réelles tunisiennes et des explications plus riches pour les analystes crédit.", "1F3864"),
+ 
+    ]
+  }]
+});
+ 
+Packer.toBuffer(doc).then(buf => {
+  fs.writeFileSync("/mnt/user-data/outputs/phases_4_5_6_version_pedagogique.docx", buf);
+  console.log("Done");
+});

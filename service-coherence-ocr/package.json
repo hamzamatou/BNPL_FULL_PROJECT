@@ -13,6 +13,7 @@
     "test:micro:no-loyer": "node test_micro.mjs no-loyer-no-devis"
   },
   "dependencies": {
+    "docx": "^9.6.1",
     "undici": "^8.1.0"
   }
 }
