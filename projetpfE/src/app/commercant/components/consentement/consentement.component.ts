@@ -15,13 +15,20 @@ export class ConsentementComponent {
   @Input() errorMessage = '';
 
   @Output() prevStep = new EventEmitter<void>();
+  @Output() submit = new EventEmitter<void>();
   @Output() restart = new EventEmitter<void>();
 
-  goBack() {
+  goBack(): void {
     this.prevStep.emit();
   }
 
-  restartFlow() {
+  envoyer(): void {
+    if (!this.submitting) {
+      this.submit.emit();
+    }
+  }
+
+  restartFlow(): void {
     this.restart.emit();
   }
 }

@@ -1,4 +1,4 @@
-import { Component, EventEmitter, Input, Output } from '@angular/core';
+import { Component, EventEmitter, Input, OnChanges, Output, SimpleChanges } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { CommonModule } from '@angular/common';
 import {
@@ -13,8 +13,11 @@ import {
   templateUrl: './infos-client.component.html',
   styleUrls: ['./infos-client.component.css']
 })
-export class InfosClientComponent {
+export class InfosClientComponent implements OnChanges {
   @Input() status: 'active' | 'completed' | 'pending' = 'active';
+
+  /** Données à réafficher après corrections IA (retour step 4 → step 1). */
+  @Input() initialData: Record<string, unknown> | null = null;
 
   // Tous les champs obligatoires du client
   nom: string = '';
@@ -42,6 +45,41 @@ export class InfosClientComponent {
 
   get shouldShowNombreEnfants(): boolean {
     return this.situationFamiliale !== '' && this.situationFamiliale !== 'CELIBATAIRE';
+  }
+
+  ngOnChanges(changes: SimpleChanges): void {
+    if (changes['initialData'] && this.initialData) {
+      this.patchFromInitial(this.initialData);
+    }
+  }
+
+  private patchFromInitial(data: Record<string, unknown>): void {
+    const str = (k: string) => (data[k] != null ? String(data[k]) : undefined);
+    const num = (k: string) => {
+      const v = data[k];
+      if (v === null || v === undefined || v === '') return undefined;
+      const n = Number(v);
+      return Number.isFinite(n) ? n : undefined;
+    };
+
+    if (str('nom')) this.nom = str('nom')!;
+    if (str('prenom')) this.prenom = str('prenom')!;
+    if (str('email')) this.email = str('email')!;
+    if (str('telephone')) this.telephone = str('telephone')!;
+    if (str('cin')) this.cin = str('cin')!;
+    if (str('adresse')) this.adresse = str('adresse')!;
+    if (str('sexe')) this.sexe = str('sexe')!;
+    if (str('profession')) this.profession = str('profession')!;
+    if (str('employeur')) this.employeur = str('employeur')!;
+    if (str('typeContrat')) this.typeContrat = str('typeContrat') as 'CDI' | 'CDD' | '';
+    if (str('dateNaissance')) this.dateNaissance = str('dateNaissance')!;
+    if (str('situationFamiliale')) {
+      this.situationFamiliale = str('situationFamiliale') as SituationFamilialeCode;
+    }
+    const anc = num('ancienneteEmploiMois');
+    if (anc !== undefined) this.ancienneteEmploiMois = anc;
+    const ne = num('nombreEnfants');
+    if (ne !== undefined) this.nombreEnfants = ne;
   }
 
   libelleSituation(): string {

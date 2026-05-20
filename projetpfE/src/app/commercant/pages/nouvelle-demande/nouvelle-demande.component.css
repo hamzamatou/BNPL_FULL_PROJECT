@@ -33,6 +33,22 @@
   max-width: 360px;
 }
 
+.corrections-banner {
+  margin: 1rem 0;
+  padding: 0.85rem 1.1rem;
+  border-radius: 10px;
+  border: 1px solid #93c5fd;
+  background: #eff6ff;
+  font-size: 14px;
+  color: #1e40af;
+  line-height: 1.5;
+}
+
+.corrections-banner strong {
+  display: block;
+  margin-bottom: 0.25rem;
+}
+
 /* Bannière cohérence OK */
 .coherence-ok-banner {
   display: flex;

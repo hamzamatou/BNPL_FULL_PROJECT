@@ -46,7 +46,9 @@ export class MesDemandesComponent implements OnInit {
   }
 
   get waitingCount(): number {
-    return this.demandes.filter((d) => d.statut === 'EN_ATTENTE_CONSENTEMENT').length;
+    return this.demandes.filter((d) =>
+      d.statut === 'EN_ATTENTE_CONSENTEMENT' || d.statut === 'CREE'
+    ).length;
   }
 
   get analysisCount(): number {
@@ -104,7 +106,7 @@ export class MesDemandesComponent implements OnInit {
     const s = (statut || '').toUpperCase();
     if (s.includes('ANALYSE') || s.includes('EN_COURS')) return 'EN_ANALYSE';
     if (s.includes('SOUMISE') || s.includes('ACCEPTEE')) return 'SOUMISE';
-    // Backend: "EN_ATTENTE_CONSENTEMENT" est le statut unique avant consentement.
+    if (s === 'CREE') return 'CREE';
     return 'EN_ATTENTE_CONSENTEMENT';
   }
 

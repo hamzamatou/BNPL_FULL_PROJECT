@@ -11,6 +11,7 @@ type DonneesFinancieresPrefill = {
   mensualitesCredits?: number;
   autresChargesFixes?: number;
   credits?: number;
+  montant?: number;
 };
 
 @Component({
@@ -125,6 +126,10 @@ export class DonneesFinancieresComponent implements OnChanges {
       }
       if (p.autresChargesFixes !== undefined) this.autresChargesFixes = p.autresChargesFixes;
       if (p.credits !== undefined) this.credits = p.credits;
+      if (p.montant !== undefined) this.montant = p.montant;
+      if (p.ancienneteEmploiMois !== undefined) {
+        this.ancienneteEmploiMoisClient = p.ancienneteEmploiMois;
+      }
     }
     this.recalculerRevenuAnnuel();
   }

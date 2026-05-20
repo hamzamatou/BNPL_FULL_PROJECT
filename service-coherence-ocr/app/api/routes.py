@@ -8,6 +8,7 @@ from app.services.service_recommendation import (
     generer_recommandations
 )
 from app.services.prescoring_service import get_prescoring_status, prescore_dossier
+from app.services.dossier_validation_service import valider_dossier_et_recommander
 
 api_bp = Blueprint("api", __name__)
 
@@ -18,6 +19,40 @@ api_bp = Blueprint("api", __name__)
 @api_bp.get("/health")
 def health():
     return jsonify({"status": "UP"}), 200
+
+
+# =========================
+# VALIDATION DOSSIER (cohérence + reco si anomalies vide)
+# =========================
+@api_bp.post("/dossier/validate")
+def dossier_validate():
+    declared_json = request.form.get("declared_data", "")
+    if not declared_json:
+        return jsonify({"message": "declared_data est obligatoire"}), 400
+
+    try:
+        declared_data = json.loads(declared_json)
+    except Exception:
+        return jsonify({"message": "declared_data invalide"}), 400
+
+    try:
+        result = valider_dossier_et_recommander(
+            donnees_declarees=declared_data,
+            fichiers=request.files,
+        )
+        return jsonify(result), 200
+    except OCRDocumentError as ex:
+        return jsonify({
+            "message": "Erreur OCR sur document",
+            "detail": str(ex),
+            "anomalies": [{"code": "OCR_ERROR", "niveau": "BLOQUANT", "message": str(ex)}],
+            "recommandations": [],
+        }), 400
+    except Exception as ex:
+        return jsonify({
+            "message": "Erreur technique interne",
+            "detail": str(ex),
+        }), 500
 
 
 # =========================

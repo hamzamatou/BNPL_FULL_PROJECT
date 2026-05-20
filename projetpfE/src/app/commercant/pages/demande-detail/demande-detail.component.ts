@@ -62,6 +62,7 @@ export class DemandeDetailComponent implements OnInit {
     const s = (this.demande?.statut || '').toUpperCase();
     if (!s) return '-';
     // Un seul statut backend avant validation client
+    if (s === 'CREE') return 'Créée';
     if (s.includes('EN_ATTENTE_CONSENTEMENT')) return 'En attente consentement';
     if (s.includes('EN_ATTENTE') || s.includes('BROUILLON')) return 'En attente';
     if (s.includes('SOUMISE')) return 'Soumise';
@@ -79,7 +80,7 @@ export class DemandeDetailComponent implements OnInit {
     if (s.includes('REFUSEE') || s.includes('REFUSE')) return 3;
     if (s.includes('EN_ANALYSE') || s.includes('ANALYSE') || s.includes('EN_COURS')) return 2;
     if (s.includes('SOUMISE')) return 1;
-    if (s.includes('EN_ATTENTE_CONSENTEMENT')) return 0;
+    if (s === 'CREE' || s.includes('EN_ATTENTE_CONSENTEMENT')) return 0;
     if (s.includes('EN_ATTENTE') || s.includes('BROUILLON')) return 0;
     return 0;
   }

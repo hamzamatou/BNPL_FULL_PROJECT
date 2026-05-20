@@ -28,9 +28,14 @@ public record CoherenceResultDto(
         @JsonProperty("message")            String message,
         @JsonProperty("documents_manquants") List<String> documentsManquants
 ) {
+    /** Vrai si le tableau anomalies est vide (aucun écart signalé). */
+    public boolean hasAucuneAnomalie() {
+        return anomalies == null || anomalies.isEmpty();
+    }
+
     /** Vrai si le dossier est conforme (pas d'anomalie bloquante). */
     public boolean isConforme() {
-        if (anomalies == null || anomalies.isEmpty()) return true;
+        if (hasAucuneAnomalie()) return true;
         return anomalies.stream().noneMatch(a -> "BLOQUANT".equalsIgnoreCase(a.niveau()));
     }
 
@@ -38,6 +43,23 @@ public record CoherenceResultDto(
     public List<String> anomalieMessages() {
         if (anomalies == null) return List.of();
         return anomalies.stream().map(AnomalieDto::message).toList();
+    }
+
+    /** Messages des anomalies non bloquantes (niveau ALERTE). */
+    public List<String> alerteMessages() {
+        if (anomalies == null) return List.of();
+        return anomalies.stream()
+                .filter(a -> a.niveau() != null && !"BLOQUANT".equalsIgnoreCase(a.niveau()))
+                .map(AnomalieDto::message)
+                .toList();
+    }
+
+    public List<String> anomaliesBloquantesMessages() {
+        if (anomalies == null) return List.of();
+        return anomalies.stream()
+                .filter(a -> "BLOQUANT".equalsIgnoreCase(a.niveau()))
+                .map(AnomalieDto::message)
+                .toList();
     }
 
     @JsonIgnoreProperties(ignoreUnknown = true)

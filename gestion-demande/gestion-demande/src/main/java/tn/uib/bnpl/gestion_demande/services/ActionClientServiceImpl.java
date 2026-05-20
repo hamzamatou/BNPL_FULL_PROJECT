@@ -253,12 +253,30 @@ public class ActionClientServiceImpl implements ActionClientService {
         );
         try {
             notificationPublisher.publishEmail(event);
+            passerEnAttenteConsentement(demandeId);
         } catch (Exception ex) {
             log.error(
                     "Publication RabbitMQ echouee (demandeId={}). Aucun message en file — pas d'envoi mail au redemarrage.",
                     demandeId,
                     ex);
         }
+    }
+
+    /**
+     * Après publication réussie de l'e-mail de consentement : CREE → EN_ATTENTE_CONSENTEMENT.
+     */
+    private void passerEnAttenteConsentement(Long demandeId) {
+        demandeRepo.findById(demandeId).ifPresent(demande -> {
+            if (!"CREE".equalsIgnoreCase(demande.getStatut())) {
+                return;
+            }
+            LocalDateTime now = LocalDateTime.now();
+            demande.setStatut("EN_ATTENTE_CONSENTEMENT");
+            demande.setDateDerniereMiseAJour(now);
+            demandeRepo.save(demande);
+            log.info("Demande {} — statut EN_ATTENTE_CONSENTEMENT (mail consentement publié)",
+                    demande.getReferenceDemande());
+        });
     }
 
     private void publishOtpNotification(Long demandeId, String emailClient, String otp) {

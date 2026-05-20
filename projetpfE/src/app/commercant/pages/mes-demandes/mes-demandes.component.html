@@ -76,8 +76,8 @@
         <div>{{ demande.client }}</div>
         <div>{{ demande.montant }}</div>
         <div>
-          <span class="badge" [class.wait]="demande.statut === 'EN_ATTENTE_CONSENTEMENT'" [class.analysis]="demande.statut === 'EN_ANALYSE'" [class.sent]="demande.statut === 'SOUMISE'">
-            {{ demande.statut === 'EN_ATTENTE_CONSENTEMENT' ? 'Consentement' : (demande.statut === 'EN_ANALYSE' ? 'En analyse' : 'Soumise') }}
+          <span class="badge" [class.wait]="demande.statut === 'EN_ATTENTE_CONSENTEMENT' || demande.statut === 'CREE'" [class.analysis]="demande.statut === 'EN_ANALYSE'" [class.sent]="demande.statut === 'SOUMISE'">
+            {{ demande.statut === 'CREE' ? 'Créée' : (demande.statut === 'EN_ATTENTE_CONSENTEMENT' ? 'Consentement' : (demande.statut === 'EN_ANALYSE' ? 'En analyse' : 'Soumise')) }}
           </span>
         </div>
         <div>{{ demande.date }}</div>

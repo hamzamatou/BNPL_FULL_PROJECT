@@ -95,7 +95,7 @@ toggleBlockUser(id: number): Observable<User> {
 
 activateAccount(data: any): Observable<any> {
   return this.http.post(`${this.apiUrl}/users/activate`, data, {
-    headers: this.getHeaders()
+    headers: this.getHeaders(),
   });
 }
 }

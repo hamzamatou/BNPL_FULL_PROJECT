@@ -8,6 +8,7 @@ import { DonneesFinancieresComponent }    from '../../components/donnees-financi
 import { DocumentsComponent }             from '../../components/documents/documents.component';
 import { ConsentementComponent }          from '../../components/consentement/consentement.component';
 import { AnomaliesPanelComponent }        from '../../components/anomalies-panel/anomalies-panel.component';
+import { AlertesPanelComponent }          from '../../components/alertes-panel/alertes-panel.component';
 import { RecommandationsModalComponent }  from '../../components/recommandations-modal/recommandations-modal.component';
 
 import {
@@ -16,23 +17,13 @@ import {
   CreationDemandeCompleteRequest,
   CoherenceErreurReponse,
 } from '../../../services/demande.service';
+import { applyCoherenceCorrections } from '../../../utils/coherence-corrections.util';
 
 /**
- * Flux IA corrigé :
- *
- *  Step 1  Infos client      → getDernierDossierFinancierParCin (pré-remplissage)
- *  Step 2  Données financières
- *  Step 3  Documents
- *  Step 4  Analyse IA        → POST /analyse-ia
- *                               ├─ 422 → anomalies affichées, boucle sur step 4
- *                               └─ 200 → popup recommandations
- *                                        bouton "Continuer" → step 5
- *  Step 5  Consentement      → POST /creation-complete (persiste reco + envoie email)
- *                               └─ 201 → step 6 succès
- *  Step 6  Succès
- *
- * Invariant : on n'envoie JAMAIS l'email de consentement
- * tant que la cohérence n'est pas validée.
+ *  Step 1–3  Formulaire
+ *  Step 4    Analyse IA → recommandations (popup) + possibilité de corriger
+ *  Step 5    Consentement → création BDD
+ *  Step 6    Succès
  */
 @Component({
   selector: 'app-nouvelle-demande',
@@ -45,6 +36,7 @@ import {
     DocumentsComponent,
     ConsentementComponent,
     AnomaliesPanelComponent,
+    AlertesPanelComponent,
     RecommandationsModalComponent,
   ],
   templateUrl: './nouvelle-demande.component.html',
@@ -54,134 +46,151 @@ export class NouvelleDemandeComponent {
 
   currentStep = 1;
 
-  // ── Données des étapes ───────────────────────────────────────────────────
-  infosClientData: any          = {};
-  donneesFinancieresData: any   = {};
-  donneesFinancieresPrefill: any = null;
+  infosClientData: Record<string, unknown> = {};
+  donneesFinancieresData: Record<string, unknown> = {};
+  donneesFinancieresPrefill: Record<string, unknown> | null = null;
   documentsData: DocumentMultipart[] = [];
   typeProduit = '';
 
-  // ── État step 4 : Analyse IA ─────────────────────────────────────────────
-  isAnalysing    = false;
-  analyseError   = '';
-  anomalies: string[]       = [];   // anomalies bloquantes → boucle step 4
-  recommandations: string[] = [];   // recommandations → popup
+  isAnalysing = false;
+  analyseError = '';
+  anomalies: string[] = [];
+  alertes: string[] = [];
+  recommandations: string[] = [];
+  champsCorriges: string[] = [];
+  iaValidee = false;
+  recoModalOpen = false;
 
-  // ── État step 5 : Création ───────────────────────────────────────────────
-  isSubmitting       = false;
-  submitSuccess      = false;
+  isSubmitting = false;
+  submitSuccess = false;
   submitErrorMessage = '';
 
   constructor(private demandeService: DemandeService) {}
 
-  // ── STEP 1 : infos client ────────────────────────────────────────────────
+  get stepperStep(): number {
+    if (this.currentStep >= 5) return 4;
+    return this.currentStep;
+  }
 
-  setInfosClient(clientData: any): void {
+  setInfosClient(clientData: Record<string, unknown>): void {
     this.infosClientData = clientData;
+    this.resetIaState();
 
-    this.demandeService.getDernierDossierFinancierParCin(clientData.cin).subscribe({
-      next:  dossier => { this.donneesFinancieresPrefill = dossier; this.currentStep = 2; },
-      error: ()      => { this.donneesFinancieresPrefill = null;    this.currentStep = 2; },
+    const cin = clientData['cin'];
+    if (!cin) {
+      this.donneesFinancieresPrefill = null;
+      this.currentStep = 2;
+      return;
+    }
+
+    this.demandeService.getDernierDossierFinancierParCin(String(cin)).subscribe({
+      next: dossier => {
+        this.donneesFinancieresPrefill = dossier as unknown as Record<string, unknown>;
+        this.currentStep = 2;
+      },
+      error: () => {
+        this.donneesFinancieresPrefill = null;
+        this.currentStep = 2;
+      },
     });
   }
 
-  // ── STEP 2 : données financières ─────────────────────────────────────────
-
-  setDonneesFinancieres(data: any): void {
-    this.donneesFinancieresData = { ...data, nombreEnfants: data.nombreEnfants ?? 0 };
+  setDonneesFinancieres(data: Record<string, unknown>): void {
+    this.donneesFinancieresData = { ...data, nombreEnfants: data['nombreEnfants'] ?? 0 };
+    this.resetIaState();
     this.currentStep = 3;
   }
 
-  // ── STEP 3 : documents → déclenche l'analyse IA ──────────────────────────
-
   setDocuments(documents: DocumentMultipart[], typeProduit: string): void {
     this.documentsData = documents;
-    this.typeProduit   = typeProduit;
-    this.donneesFinancieresData.typeProduit = typeProduit;
-
-    // Passer directement à l'analyse IA (step 4)
+    this.typeProduit = typeProduit;
+    this.donneesFinancieresData['typeProduit'] = typeProduit;
+    this.resetIaState();
     this.currentStep = 4;
     this.lancerAnalyseIA();
   }
 
-  // ── STEP 4 : analyse IA ───────────────────────────────────────────────────
-
-  /**
-   * Appelle POST /analyse-ia.
-   * Résultat 422 → anomalies affichées, le bouton "Relancer l'analyse" permet de réessayer.
-   * Résultat 200 → recommandations stockées, bouton "Continuer" déblocqué.
-   */
   lancerAnalyseIA(): void {
     if (this.isAnalysing) return;
 
-    this.isAnalysing    = true;
-    this.analyseError   = '';
-    this.anomalies      = [];
+    this.isAnalysing = true;
+    this.analyseError = '';
+    this.anomalies = [];
+    this.alertes = [];
     this.recommandations = [];
+    this.champsCorriges = [];
+    this.iaValidee = false;
 
-    const request: CreationDemandeCompleteRequest = {
-      ...this.infosClientData,
-      ...this.donneesFinancieresData,
-      documents: this.documentsData,
-    };
-
-    this.demandeService.analyseIA(request, this.documentsData).subscribe({
-      next: (res) => {
-        this.isAnalysing     = false;
+    this.demandeService.analyseIA(this.buildRequest(), this.documentsData).subscribe({
+      next: res => {
+        this.isAnalysing = false;
         this.recommandations = res.recommandations ?? [];
-        // anomalies vide → cohérence OK → afficher le popup puis débloquer "Continuer"
+        this.alertes = res.alertes ?? [];
+        this.appliquerCorrections(res.corrections);
+        this.iaValidee = true;
+        this.recoModalOpen = (res.recommandations?.length ?? 0) > 0;
       },
-
       error: (err: HttpErrorResponse) => {
         this.isAnalysing = false;
+        this.iaValidee = false;
 
         if (err.status === 422) {
           const body = err.error as CoherenceErreurReponse;
-          this.anomalies    = body?.anomalies ?? [];
-          this.analyseError = body?.message   ?? 'Incohérences détectées';
+          this.anomalies = body?.anomalies ?? [];
+          this.analyseError = body?.message ?? 'Incohérences détectées';
+          this.appliquerCorrections(body?.corrections);
         } else {
-          this.analyseError = err.error?.message ?? 'Erreur lors de lsanalyse IA';
+          this.analyseError = err.error?.message ?? 'Erreur lors de l\'analyse IA';
         }
       },
     });
   }
 
-  /** Vrai quand la cohérence est validée (pas d'anomalie, analyse terminée). */
-  get coherenceOK(): boolean {
-    return !this.isAnalysing && this.anomalies.length === 0 && this.analyseError === '';
+  private appliquerCorrections(corrections: Record<string, unknown> | undefined): void {
+    const result = applyCoherenceCorrections(
+      corrections,
+      this.infosClientData,
+      this.donneesFinancieresData
+    );
+    this.infosClientData = result.infosClientData;
+    this.donneesFinancieresData = result.donneesFinancieresData;
+    this.donneesFinancieresPrefill = result.donneesFinancieresPrefill;
+    this.champsCorriges = result.champsCorriges;
   }
 
-  // ── STEP 4 → 5 : le commerçant accepte les recommandations ───────────────
+  get coherenceOK(): boolean {
+    return this.iaValidee && !this.isAnalysing && this.anomalies.length === 0 && !this.analyseError;
+  }
+
+  get afficherRecommandations(): boolean {
+    return this.coherenceOK && this.recommandations.length > 0;
+  }
 
   goToConsent(): void {
     if (!this.coherenceOK) return;
     this.currentStep = 5;
   }
 
-  // ── STEP 5 : création de la demande + email consentement ──────────────────
+  modifierFormulaire(): void {
+    const cinCorrige = this.champsCorriges.some(c => c.toLowerCase().includes('cin'));
+    this.resetIaState();
+    this.currentStep = cinCorrige ? 1 : 2;
+  }
 
   submitDemande(): void {
-    if (this.isSubmitting) return;
+    if (this.isSubmitting || !this.coherenceOK) return;
 
-    this.isSubmitting       = true;
+    this.isSubmitting = true;
     this.submitErrorMessage = '';
 
-    const request: CreationDemandeCompleteRequest = {
-      ...this.infosClientData,
-      ...this.donneesFinancieresData,
-      documents: this.documentsData,
-    };
-
-    // Transmettre les recommandations déjà calculées au step 4
     const recommandationsJson = JSON.stringify(this.recommandations);
 
-    this.demandeService.creerDemande(request, recommandationsJson).subscribe({
+    this.demandeService.creerDemande(this.buildRequest(), recommandationsJson).subscribe({
       next: () => {
-        this.isSubmitting  = false;
+        this.isSubmitting = false;
         this.submitSuccess = true;
-        this.currentStep   = 6;
+        this.currentStep = 6;
       },
-
       error: (err: HttpErrorResponse) => {
         this.isSubmitting = false;
         this.submitErrorMessage = err.error?.message ?? 'Erreur lors de la création';
@@ -189,35 +198,55 @@ export class NouvelleDemandeComponent {
     });
   }
 
-  // ── Navigation ───────────────────────────────────────────────────────────
+  private buildRequest(): CreationDemandeCompleteRequest {
+    const finances = this.donneesFinancieresData;
+    return {
+      ...(this.infosClientData as object),
+      revenuMensuelNet: Number(finances['revenu'] ?? finances['revenuMensuelNet'] ?? 0),
+      autresRevenusMensuels: Number(finances['autresRevenus'] ?? finances['autresRevenusMensuels'] ?? 0),
+      revenuAnnuel: Number(finances['revenuAnnuel'] ?? 0),
+      encoursCredits: Number(finances['credits'] ?? finances['encoursCredits'] ?? 0),
+      loyerMensuel: Number(finances['loyer'] ?? finances['loyerMensuel'] ?? 0),
+      mensualitesCredits: Number(finances['mensualitesCredits'] ?? 0),
+      autresChargesFixes: Number(finances['autresChargesFixes'] ?? 0),
+      montant: Number(finances['montant'] ?? 0),
+      dureeMois: Number(finances['dureeMois'] ?? 24),
+      typeProduit: String(finances['typeProduit'] ?? this.typeProduit ?? ''),
+      documents: this.documentsData,
+    } as CreationDemandeCompleteRequest;
+  }
+
+  private resetIaState(): void {
+    this.isAnalysing = false;
+    this.analyseError = '';
+    this.anomalies = [];
+    this.alertes = [];
+    this.recommandations = [];
+    this.champsCorriges = [];
+    this.iaValidee = false;
+    this.recoModalOpen = false;
+  }
 
   prevStep(): void {
     if (this.currentStep > 1 && !this.isSubmitting && !this.isAnalysing) {
-      // Retour depuis step 4 → revenir aux documents (step 3)
-      if (this.currentStep === 4) {
-        this.anomalies       = [];
-        this.recommandations = [];
-        this.analyseError    = '';
+      if (this.currentStep === 4 || this.currentStep === 5) {
+        this.resetIaState();
+        this.submitErrorMessage = '';
       }
       this.currentStep--;
     }
   }
 
-  // ── Réinitialisation ─────────────────────────────────────────────────────
-
   restartFlow(): void {
-    this.currentStep               = 1;
-    this.infosClientData           = {};
-    this.donneesFinancieresData    = {};
+    this.currentStep = 1;
+    this.infosClientData = {};
+    this.donneesFinancieresData = {};
     this.donneesFinancieresPrefill = null;
-    this.documentsData             = [];
-    this.typeProduit               = '';
-    this.isAnalysing               = false;
-    this.analyseError              = '';
-    this.anomalies                 = [];
-    this.recommandations           = [];
-    this.isSubmitting              = false;
-    this.submitSuccess             = false;
-    this.submitErrorMessage        = '';
+    this.documentsData = [];
+    this.typeProduit = '';
+    this.resetIaState();
+    this.isSubmitting = false;
+    this.submitSuccess = false;
+    this.submitErrorMessage = '';
   }
 }

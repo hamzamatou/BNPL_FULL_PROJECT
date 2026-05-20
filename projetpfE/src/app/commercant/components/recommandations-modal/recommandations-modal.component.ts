@@ -88,7 +88,13 @@ import { CommonModule } from '@angular/common';
             </svg>
             Ces recommandations sont des conseils d'optimisation, pas une décision finale.
           </p>
-          <button class="btn-primary" (click)="close()">Compris</button>
+          <ng-container *ngIf="showActions; else simpleClose">
+            <button type="button" class="btn-secondary" (click)="onModifier()">Modifier le formulaire</button>
+            <button type="button" class="btn-primary" (click)="onContinuer()">Continuer</button>
+          </ng-container>
+          <ng-template #simpleClose>
+            <button type="button" class="btn-primary" (click)="close()">Compris</button>
+          </ng-template>
         </div>
 
       </div>
@@ -224,6 +230,13 @@ import { CommonModule } from '@angular/common';
       transition: background 0.15s;
     }
     .btn-primary:hover { background: #d97706; }
+    .btn-secondary {
+      padding: 0.55rem 1rem;
+      background: #fff; color: #374151;
+      border: 1px solid #d1d5db; border-radius: 8px;
+      font-size: 14px; font-weight: 600; cursor: pointer; flex-shrink: 0;
+    }
+    .btn-secondary:hover { background: #f3f4f6; }
 
     @media (prefers-color-scheme: dark) {
       .reco-trigger-btn    { background: linear-gradient(135deg,#2d1f00,#3d2b00); border-color: #854d0e; }
@@ -247,11 +260,25 @@ import { CommonModule } from '@angular/common';
 export class RecommandationsModalComponent {
   /** Tableau de phrases de conseil — string[] parsé depuis Recommandation.recommandationsJson */
   @Input() recommandations: string[] = [];
-  @Input()  modalOpen = false;
+  @Input() modalOpen = false;
+  /** Si true, footer = Modifier + Continuer (étape analyse avant création). */
+  @Input() showActions = false;
   @Output() modalOpenChange = new EventEmitter<boolean>();
+  @Output() modifier = new EventEmitter<void>();
+  @Output() continuer = new EventEmitter<void>();
 
   open()  { this.modalOpen = true;  this.modalOpenChange.emit(true);  }
   close() { this.modalOpen = false; this.modalOpenChange.emit(false); }
+
+  onModifier(): void {
+    this.close();
+    this.modifier.emit();
+  }
+
+  onContinuer(): void {
+    this.close();
+    this.continuer.emit();
+  }
 
   closeOnBackdrop(event: MouseEvent) {
     if ((event.target as HTMLElement).classList.contains('modal-backdrop')) this.close();

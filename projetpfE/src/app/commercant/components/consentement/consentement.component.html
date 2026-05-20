@@ -9,43 +9,46 @@
         }
       </div>
       <div class="title-block">
-        <h3>Consentement</h3>
+        <h3>Consentement client</h3>
         <div class="ssub" [ngClass]="status">
-          {{ status === 'completed' ? 'Demande creee' : 'En cours' }}
+          {{ status === 'completed' ? 'Demande créée' : 'Validation finale' }}
         </div>
       </div>
     </div>
-
-    @if (success) {
-      <div class="status-badge">
-        <span class="check-box">✔</span> Demande creee
-      </div>
-    }
   </div>
 
   @if (submitting) {
     <div class="card-body">
-      <div class="info-box loading">Creation de la demande en cours...</div>
+      <div class="info-box loading">Création de la demande et envoi du lien de consentement…</div>
     </div>
   } @else if (success) {
     <div class="card-body">
       <div class="info-box success">
-        Votre demande est creee. Un lien de consentement valide 2h a ete envoye au client par email.
+        Votre demande est créée. Un lien de consentement valide 2 h a été envoyé au client par email.
         Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
       </div>
-
       <div class="actions">
         <button type="button" class="btn btn-red" (click)="restartFlow()">Nouvelle demande</button>
       </div>
     </div>
   } @else {
     <div class="card-body">
-      <div class="info-box error">
-        Creation echouee : {{ errorMessage || 'verifier les champs, le JWT et le backend 8081/8080.' }}
+      <div class="info-box">
+        En validant, la demande sera enregistrée et un email de consentement sera envoyé au client.
+        Les recommandations IA ont déjà été consultées à l'étape précédente.
       </div>
 
+      @if (errorMessage) {
+        <div class="info-box error" style="margin-top: 1rem;">
+          {{ errorMessage }}
+        </div>
+      }
+
       <div class="actions">
-        <button type="button" class="btn btn-outline" (click)="goBack()">Retour aux documents</button>
+        <button type="button" class="btn btn-outline" (click)="goBack()">Retour à l'analyse</button>
+        <button type="button" class="btn btn-red" (click)="envoyer()">
+          Envoyer le consentement
+        </button>
       </div>
     </div>
   }

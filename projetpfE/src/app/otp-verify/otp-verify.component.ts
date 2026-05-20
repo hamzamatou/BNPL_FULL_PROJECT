@@ -136,13 +136,8 @@ onKeyDown(event: KeyboardEvent, index: number) {
   this.authService.clearPendingEmail();
   this.stopTimer();
 
-  // 🔥 STOCKAGE TOKEN
   if (res.token) {
     localStorage.setItem('token', res.token);
-
-    // 👇 DEBUG pour inspecter facilement dans console
-    console.log('🔐 TOKEN:', res.token);
-    console.log('👤 ROLE:', res.role);
   }
 
   if (res.status === 'CREATED') {

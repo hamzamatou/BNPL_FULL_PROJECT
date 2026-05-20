@@ -21,6 +21,7 @@ import java.io.InputStream;
 import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDateTime;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
@@ -28,13 +29,10 @@ import java.util.concurrent.TimeUnit;
 /**
  * Service de gestion des demandes — flux corrigé avec IA pré-création.
  *
- * Nouveau flux :
- *  1. Angular → POST /analyse-ia       (cohérence + recommandations, sans création)
- *  2. Angular → POST /creation-complete (crée la demande + persiste recommandations)
- *  3. Client  → POST /consentement/confirm → prescoring
- *
- * creerDemandeComplete() reçoit maintenant recommandationsJson (déjà calculé
- * à l'étape 1) — il ne rappelle plus le service IA.
+ * Flux création :
+ *  1. POST /analyse-ia (côté front) — cohérence + recommandations, sans BDD
+ *  2. POST /creation-complete — persistance + email (reco déjà calculées)
+ *  3. Client → POST /consentement/confirm → prescoring
  */
 @Service
 @Transactional
@@ -81,14 +79,18 @@ public class DemandeServiceImpl implements DemandeService {
     }
 
     // =========================================================================
-    // CRÉATION — cohérence déjà faite, recommandationsJson passé en param
+    // CRÉATION — IA déjà validée via /analyse-ia, recommandations transmises par le front
     // =========================================================================
 
     @Override
     public DemandeFinancement creerDemandeComplete(
             CreationDemandeCompleteRequest request,
-            String recommandationsJson              // ← transmis par Angular (peut être null)
+            String recommandationsJson
     ) {
+        String recoJson = (recommandationsJson != null && !recommandationsJson.isBlank())
+                ? recommandationsJson
+                : "[]";
+
         Long commercantUserId = SecurityUtils.getCurrentUserId();
         Long clientId         = resolveOrCreateClient(request);
 
@@ -129,18 +131,15 @@ public class DemandeServiceImpl implements DemandeService {
         );
         dossier = dossierRepo.save(dossier);
 
-        // ── Demande (statut : EN_ATTENTE_CONSENTEMENT) ────────────────────────
+        // ── Demande (statut CREE → EN_ATTENTE_CONSENTEMENT après envoi mail) ──
         DemandeFinancement demande = new DemandeFinancement(
             dossier, commercantUserId, genererRef("DEM"),
             montant, request.getDureeMois(),
-            "EN_ATTENTE_CONSENTEMENT", now, now, request.getTypeProduit()
+            "CREE", now, now, request.getTypeProduit()
         );
         demande = demandeRepo.save(demande);
 
-        // ── Persistance des recommandations ───────────────────────────────────
-        String recoJson = (recommandationsJson != null && !recommandationsJson.isBlank())
-                ? recommandationsJson
-                : "[]";
+        // ── Persistance des recommandations (calculées par le micro IA) ───────
         Recommandation reco = Recommandation.of(demande, recoJson);
         recommandationRepo.save(reco);
         demande.setRecommandation(reco);
@@ -154,7 +153,8 @@ public class DemandeServiceImpl implements DemandeService {
             TypeActionClient.CONSENTEMENT, frontBaseUrl
         );
 
-        log.info("Demande créée — ref={} statut=EN_ATTENTE_CONSENTEMENT", demande.getReferenceDemande());
+        demande = demandeRepo.findById(demande.getId()).orElse(demande);
+        log.info("Demande créée — ref={} statut={}", demande.getReferenceDemande(), demande.getStatut());
         return demande;
     }
 
@@ -308,4 +308,5 @@ public class DemandeServiceImpl implements DemandeService {
     private static int        safeInt(Integer v)   { return v == null ? 0 : v; }
     private static String     str(Object v)        { return v == null ? null : v.toString(); }
     private static String     genererRef(String p) { return p + "-" + System.currentTimeMillis(); }
+
 }
