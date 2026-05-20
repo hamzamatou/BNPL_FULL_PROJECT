@@ -12,7 +12,7 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-
+import jakarta.servlet.http.HttpServletRequest;
 import tn.uib.bnpl.gestion_utilisateur.classes.AccountStatus;
 import tn.uib.bnpl.gestion_utilisateur.classes.Banque;
 import tn.uib.bnpl.gestion_utilisateur.classes.CreateAnalysteRequest;
@@ -24,8 +24,8 @@ import tn.uib.bnpl.gestion_utilisateur.dto.CreateClientRequest;
 import tn.uib.bnpl.gestion_utilisateur.dto.CreatedClientResponse;
 import tn.uib.bnpl.gestion_utilisateur.dto.OtpVerifyRequest;
 import tn.uib.bnpl.gestion_utilisateur.repository.BanqueRepository;
+import tn.uib.bnpl.gestion_utilisateur.services.AccesAuditService;
 import tn.uib.bnpl.gestion_utilisateur.services.UserService;
-
 import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.List;
@@ -39,15 +39,17 @@ public class ApiController {
 
     private final UserService userService;
     private final JwtUtil jwtUtil;
-
+    private final AccesAuditService accesAuditService;
     private final BanqueRepository banqueRepository;
 
     public ApiController(UserService userService,
                          JwtUtil jwtUtil,
+                         AccesAuditService accesAuditService,
                          BanqueRepository banqueRepository) {
 
         this.userService = userService;
         this.jwtUtil = jwtUtil;
+        this.accesAuditService = accesAuditService;
         this.banqueRepository = banqueRepository;
     }
     @PostMapping("/users/login")
@@ -88,11 +90,12 @@ public class ApiController {
     }
     // Nouveau endpoint : vérifier OTP
     @PostMapping("/users/verify-otp")
-    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request) {
+    public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request, HttpServletRequest httpRequest) {
         try {
             String token = userService.verifyOtp(request.email(), request.otpCode());
 
             User user = userService.findByEmail(request.email());
+            accesAuditService.publierConnexion(user, httpRequest);
 
             Map<String, Object> resp = new HashMap<>();
             resp.put("token", token);
@@ -104,6 +107,33 @@ public class ApiController {
         } catch (Exception e) {
             return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
+    }
+
+    /**
+     * Déconnexion : trace DECONNEXION dans reporting-archivage puis le client supprime le JWT.
+     */
+    @PostMapping("/users/logout")
+    public ResponseEntity<Void> logout(HttpServletRequest httpRequest) {
+        String token = extractBearerToken(httpRequest.getHeader("Authorization"));
+        if (token != null && jwtUtil.validateToken(token)) {
+            try {
+                Long userId = jwtUtil.extractId(token);
+                String email = jwtUtil.extractEmail(token);
+                String roleStr = jwtUtil.extractRole(token);
+                Role role = roleStr != null ? Role.valueOf(roleStr) : null;
+                accesAuditService.publierDeconnexion(userId, email, role, httpRequest);
+            } catch (Exception ignored) {
+                // Déconnexion locale autorisée même si l'audit échoue
+            }
+        }
+        return ResponseEntity.noContent().build();
+    }
+
+    private static String extractBearerToken(String authHeader) {
+        if (authHeader == null || !authHeader.startsWith("Bearer ")) {
+            return null;
+        }
+        return authHeader.substring(7).trim();
     }
     @PostMapping("/users/activate")
     public ResponseEntity<?> activate(@RequestBody Map<String, String> body) {
@@ -166,6 +196,17 @@ public class ApiController {
     @PreAuthorize("hasAuthority('INTERNAL')")
     public ResponseEntity<CreatedClientResponse> createClientInternal(@RequestBody CreateClientRequest request) {
         return ResponseEntity.ok(userService.createClientForBnpl(request));
+    }
+
+    /**
+     * Mise à jour client depuis gestion-demande (Feign) lorsqu'un client existe déjà (même CIN).
+     */
+    @PutMapping("/internal/clients/{id}")
+    @PreAuthorize("hasAuthority('INTERNAL')")
+    public ResponseEntity<CreatedClientResponse> updateClientInternal(
+            @PathVariable("id") Long id,
+            @RequestBody CreateClientRequest request) {
+        return ResponseEntity.ok(userService.updateClientForBnpl(id, request));
     }
 
     @GetMapping("/internal/clients/{id}/identity")

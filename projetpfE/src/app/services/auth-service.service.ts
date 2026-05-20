@@ -1,6 +1,6 @@
 import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
-import { Observable, tap } from 'rxjs';
+import { Observable, tap, finalize, of } from 'rxjs';
 
 @Injectable({ providedIn: 'root' })
 export class AuthService {
@@ -41,7 +41,20 @@ export class AuthService {
     this._pendingEmail = null;
   }
 
-  logout() {
+  logout(): Observable<void> {
+    const token = this.getToken();
+    if (!token) {
+      this.clearSession();
+      return of(void 0);
+    }
+    return this.http.post<void>(`${this.baseUrl}/logout`, {}, {
+      headers: { Authorization: `Bearer ${token}` }
+    }).pipe(
+      finalize(() => this.clearSession())
+    );
+  }
+
+  private clearSession(): void {
     localStorage.removeItem('token');
     this._pendingEmail = null;
   }

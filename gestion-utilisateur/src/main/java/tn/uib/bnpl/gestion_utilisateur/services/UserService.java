@@ -29,6 +29,8 @@ public interface UserService {
 
     CreatedClientResponse createClientForBnpl(CreateClientRequest request);
 
+    CreatedClientResponse updateClientForBnpl(Long clientId, CreateClientRequest request);
+
     ClientIdentityResponse getClientIdentity(Long clientId);
 
     Long getClientIdByCin(String cin);

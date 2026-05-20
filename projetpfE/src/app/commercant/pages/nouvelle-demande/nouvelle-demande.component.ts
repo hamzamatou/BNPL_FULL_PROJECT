@@ -16,6 +16,7 @@ import {
   DocumentMultipart,
   CreationDemandeCompleteRequest,
   CoherenceErreurReponse,
+  SituationFamilialeCode,
 } from '../../../services/demande.service';
 import { applyCoherenceCorrections } from '../../../utils/coherence-corrections.util';
 
@@ -66,6 +67,25 @@ export class NouvelleDemandeComponent {
   submitErrorMessage = '';
 
   constructor(private demandeService: DemandeService) {}
+
+  /** Typage explicite pour le template (infosClientData est un Record). */
+  get clientSituationFamiliale(): SituationFamilialeCode | '' {
+    const v = this.infosClientData['situationFamiliale'];
+    if (v === null || v === undefined || v === '') return '';
+    return String(v) as SituationFamilialeCode;
+  }
+
+  get clientNombreEnfants(): number {
+    const v = this.infosClientData['nombreEnfants'];
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+
+  get clientAncienneteEmploiMois(): number {
+    const v = this.infosClientData['ancienneteEmploiMois'];
+    const n = Number(v);
+    return Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
 
   get stepperStep(): number {
     if (this.currentStep >= 5) return 4;

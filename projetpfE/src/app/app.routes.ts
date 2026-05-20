@@ -13,6 +13,7 @@ import { BanquePriseEnChargeDetailComponent } from './banque/pages/banque-prise-
 import { ActivateAccountComponent } from './activate-account/activate-account.component';
 import { UserDetailComponent } from './admin/user-detail/user-detail.component';
 import { OtpVerifyComponent } from './otp-verify/otp-verify.component';
+import { ReportingPilotageComponent } from './admin/pages/reporting-pilotage/reporting-pilotage.component';
 
 export const routes: Routes = [
 
@@ -35,6 +36,12 @@ export const routes: Routes = [
     component: UserDetailComponent,
     canActivate: [RoleGuard],
     data: { role: 'ADMIN' },
+  },
+  {
+    path: 'admin/reporting',
+    component: ReportingPilotageComponent,
+    canActivate: [RoleGuard],
+    data: { roles: ['ADMIN', 'ANALYSTE_BANCAIRE'] },
   },
   {
     path: 'commercant',

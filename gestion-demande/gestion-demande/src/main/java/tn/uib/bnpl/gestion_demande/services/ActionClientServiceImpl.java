@@ -36,6 +36,7 @@ public class ActionClientServiceImpl implements ActionClientService {
     private final DemandeFinancementRepository demandeRepo;
     private final ClientRemoteService clientRemoteService;
     private final NotificationPublisher notificationPublisher;
+    private final EmailService emailService;
 
     @Value("${app.notifications.async.enabled:false}")
     private boolean asyncNotificationsEnabled;
@@ -47,11 +48,13 @@ public class ActionClientServiceImpl implements ActionClientService {
             ActionClientTokenRepository tokenRepo,
             DemandeFinancementRepository demandeRepo,
             ClientRemoteService clientRemoteService,
-            NotificationPublisher notificationPublisher) {
+            NotificationPublisher notificationPublisher,
+            EmailService emailService) {
         this.tokenRepo = tokenRepo;
         this.demandeRepo = demandeRepo;
         this.clientRemoteService = clientRemoteService;
         this.notificationPublisher = notificationPublisher;
+        this.emailService = emailService;
     }
 
     @Override
@@ -256,10 +259,29 @@ public class ActionClientServiceImpl implements ActionClientService {
             passerEnAttenteConsentement(demandeId);
         } catch (Exception ex) {
             log.error(
-                    "Publication RabbitMQ echouee (demandeId={}). Aucun message en file — pas d'envoi mail au redemarrage.",
+                    "Publication RabbitMQ echouee (demandeId={}). Repli SMTP direct si configure.",
                     demandeId,
                     ex);
+            envoyerConsentementParSmtpDirect(emailClient, consentementUrl, demande.getReferenceDemande());
+            passerEnAttenteConsentement(demandeId);
         }
+    }
+
+    /** Repli local quand RabbitMQ est indisponible (ex. mauvais port ou broker arrete). */
+    private void envoyerConsentementParSmtpDirect(String emailClient, String consentementUrl, String referenceDemande) {
+        String subject = "UIB BNPL — Consentement demande " + referenceDemande;
+        String body = """
+                Bonjour,
+
+                Veuillez confirmer votre consentement pour la demande %s via le lien ci-dessous (valide 2 heures) :
+
+                %s
+
+                Cordialement,
+                UIB BNPL
+                """.formatted(referenceDemande, consentementUrl);
+        emailService.sendSimple(emailClient, subject, body);
+        log.info("E-mail consentement envoye en repli SMTP direct — ref={} to={}", referenceDemande, emailClient);
     }
 
     /**

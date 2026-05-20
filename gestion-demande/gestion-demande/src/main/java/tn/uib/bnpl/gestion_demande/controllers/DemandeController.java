@@ -1,5 +1,6 @@
 package tn.uib.bnpl.gestion_demande.controllers;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -13,6 +14,7 @@ import tn.uib.bnpl.gestion_demande.services.AnalyseIAService;
 import tn.uib.bnpl.gestion_demande.services.DemandeService;
 import tn.uib.bnpl.gestion_demande.web.DemandeDtoMapper;
 
+import java.util.ArrayList;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
@@ -86,18 +88,43 @@ public class DemandeController {
         }
     }
 
+    /**
+     * Même enveloppe multipart que {@code /analyse-ia} : {@code declared_data} (JSON sans binaires)
+     * + parties nommées {@code cin}, {@code fiche_paie_m1}, etc.
+     * L'ancien format {@code documents[i].file} n'était pas lié correctement par {@code @ModelAttribute}.
+     */
     @PostMapping(value = "/creation-complete", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
-    public ResponseEntity<DemandeSummaryResponse> creerDemandeComplete(
-            @ModelAttribute CreationDemandeCompleteRequest request,
+    public ResponseEntity<?> creerDemandeComplete(
+            @RequestPart("declared_data") String declaredDataJson,
+            @RequestPart(value = "cin", required = false) MultipartFile cin,
+            @RequestPart(value = "fiche_paie_m1", required = false) MultipartFile fichePaieM1,
+            @RequestPart(value = "fiche_paie_m2", required = false) MultipartFile fichePaieM2,
+            @RequestPart(value = "fiche_paie_m3", required = false) MultipartFile fichePaieM3,
+            @RequestPart(value = "attestation_travail", required = false) MultipartFile attestationTravail,
+            @RequestPart(value = "devis", required = false) MultipartFile devis,
+            @RequestPart(value = "justificatif_loyer", required = false) MultipartFile justificatifLoyer,
             @RequestParam(value = "recommandations_json", required = false) String recommandationsJson
     ) {
-        if (request.getDocuments() == null || request.getDocuments().isEmpty() ||
-                request.getDocuments().stream().allMatch(d -> d.getFile() == null || d.getFile().isEmpty())) {
-            return ResponseEntity.badRequest().build();
-        }
+        try {
+            CreationDemandeCompleteRequest request =
+                    objectMapper.readValue(declaredDataJson, CreationDemandeCompleteRequest.class);
 
-        DemandeFinancement created = demandeService.creerDemandeComplete(request, recommandationsJson);
-        return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toSummary(created));
+            Map<String, MultipartFile> files = buildFilesMap(
+                    cin, fichePaieM1, fichePaieM2, fichePaieM3, attestationTravail, devis, justificatifLoyer);
+
+            if (files.isEmpty()) {
+                return ResponseEntity.badRequest()
+                        .body(Map.of("message", "Au moins un document est requis pour la création."));
+            }
+
+            attachDocumentsFromParts(request, files);
+
+            DemandeFinancement created = demandeService.creerDemandeComplete(request, recommandationsJson);
+            return ResponseEntity.status(HttpStatus.CREATED).body(dtoMapper.toSummary(created));
+        } catch (JsonProcessingException ex) {
+            return ResponseEntity.badRequest()
+                    .body(Map.of("message", "declared_data JSON invalide.", "detail", ex.getMessage()));
+        }
     }
 
     @PostMapping("/consentement/confirm")
@@ -146,5 +173,23 @@ public class DemandeController {
         if (devis != null && !devis.isEmpty()) files.put("devis", devis);
         if (justificatifLoyer != null && !justificatifLoyer.isEmpty()) files.put("justificatif_loyer", justificatifLoyer);
         return files;
+    }
+
+    private static void attachDocumentsFromParts(
+            CreationDemandeCompleteRequest request,
+            Map<String, MultipartFile> files) {
+        List<CreationDemandeCompleteRequest.DocumentMultipart> list = new ArrayList<>();
+        for (Map.Entry<String, MultipartFile> e : files.entrySet()) {
+            MultipartFile f = e.getValue();
+            if (f == null || f.isEmpty()) {
+                continue;
+            }
+            CreationDemandeCompleteRequest.DocumentMultipart d =
+                    new CreationDemandeCompleteRequest.DocumentMultipart();
+            d.setTypeDocument(e.getKey());
+            d.setFile(f);
+            list.add(d);
+        }
+        request.setDocuments(list);
     }
 }

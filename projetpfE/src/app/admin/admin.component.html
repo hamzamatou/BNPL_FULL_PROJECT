@@ -7,6 +7,7 @@
   <div class="admin-tabs">
     <span class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Vue d'ensemble</span>
     <span class="tab" [class.active]="activeTab === 'requests'" (click)="setTab('requests')">Demandes</span>
+    <a class="tab link-tab" routerLink="/admin/reporting">Pilotage &amp; audit</a>
     <span class="tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">Utilisateurs</span>
   </div>
 

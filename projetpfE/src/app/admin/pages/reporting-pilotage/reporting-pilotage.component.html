@@ -1,0 +1,280 @@
+<div class="reporting-portal">
+  <div class="reporting-header">
+    <h1>Pilotage &amp; audit</h1>
+    <p class="subtitle">Reporting, traçabilité et archivage (US3.4 – US3.8)</p>
+  </div>
+
+  <div class="reporting-tabs">
+    <span class="tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">Tableau de bord</span>
+    <span class="tab" [class.active]="activeTab === 'actions-demandes'" (click)="setTab('actions-demandes')">Actions demandes</span>
+    <span class="tab" [class.active]="activeTab === 'actions-documents'" (click)="setTab('actions-documents')">Actions documents</span>
+    <span class="tab" [class.active]="activeTab === 'acces'" (click)="setTab('acces')">Accès plateforme</span>
+    <span class="tab" [class.active]="activeTab === 'decisions'" (click)="setTab('decisions')">Décisions</span>
+    <span class="tab" [class.active]="activeTab === 'archives'" (click)="setTab('archives')">Archives</span>
+  </div>
+
+  <div class="alert error" *ngIf="errorMessage">{{ errorMessage }}</div>
+  <div class="loading" *ngIf="loading">Chargement…</div>
+
+  <!-- Filtres (hors dashboard) -->
+  <div class="filters" *ngIf="activeTab !== 'dashboard' && !loading">
+    <label *ngIf="activeTab === 'actions-demandes' || activeTab === 'actions-documents' || activeTab === 'decisions'">
+      ID demande
+      <input type="number" [(ngModel)]="filterDemandeId" placeholder="ex. 42" />
+    </label>
+    <label *ngIf="activeTab === 'actions-documents'">
+      Clé document (MinIO)
+      <input type="text" [(ngModel)]="filterObjectKey" placeholder="objectKey" />
+    </label>
+    <label *ngIf="activeTab === 'acces'">
+      ID utilisateur
+      <input type="number" [(ngModel)]="filterUserId" />
+    </label>
+    <label *ngIf="activeTab === 'acces'" class="checkbox-label">
+      <input type="checkbox" [(ngModel)]="filterSuspectOnly" />
+      Suspects uniquement
+    </label>
+    <label *ngIf="activeTab !== 'archives'">
+      Type
+      <input type="text" [(ngModel)]="filterType" placeholder="ex. ACCEPTEE" />
+    </label>
+    <label>
+      Du
+      <input type="datetime-local" [(ngModel)]="filterDebut" />
+    </label>
+    <label>
+      Au
+      <input type="datetime-local" [(ngModel)]="filterFin" />
+    </label>
+    <button type="button" class="btn-search" (click)="search()">Rechercher</button>
+  </div>
+
+  <!-- Dashboard -->
+  <div *ngIf="activeTab === 'dashboard' && dashboard && !loading">
+    <div class="kpi-grid">
+      <div class="kpi-card">
+        <div class="kpi-label">Actions demandes (24h)</div>
+        <div class="kpi-value">{{ dashboard.actionsDemandes24h }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Décisions financement (24h)</div>
+        <div class="kpi-value">{{ dashboard.decisionsFinancement24h }}</div>
+      </div>
+      <div class="kpi-card warn">
+        <div class="kpi-label">Accès suspects (24h)</div>
+        <div class="kpi-value">{{ dashboard.accesSuspects24h }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Dossiers archivés</div>
+        <div class="kpi-value">{{ dashboard.dossiersArchivesTotal }}</div>
+      </div>
+      <div class="kpi-card">
+        <div class="kpi-label">Archives (30 j)</div>
+        <div class="kpi-value">{{ dashboard.dossiersArchives30j }}</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="chart-card">
+        <h3>Répartition actions (demandes)</h3>
+        <div class="bar-row" *ngFor="let item of repartitionEntries(dashboard.repartitionActionsParType)">
+          <span class="bar-label">{{ libelleActionDemande(item.key) }}</span>
+          <div class="bar-track"><div class="bar-fill" [style.width.%]="item.value"></div></div>
+          <span class="bar-value">{{ item.value }}</span>
+        </div>
+      </div>
+      <div class="chart-card">
+        <h3>Répartition décisions</h3>
+        <div class="bar-row" *ngFor="let item of repartitionEntries(dashboard.repartitionDecisionsParType)">
+          <span class="bar-label">{{ libelleDecision(item.key) }}</span>
+          <div class="bar-track"><div class="bar-fill decision" [style.width.%]="item.value"></div></div>
+          <span class="bar-value">{{ item.value }}</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="table-container">
+      <h3>Dernières actions sur les demandes</h3>
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Demande</th>
+            <th>Type</th>
+            <th>Libellé</th>
+            <th>Acteur</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let a of dashboard.dernieresActions">
+            <td>{{ asApiDate(a.dateAction) | date:'short' }}</td>
+            <td>#{{ a.demandeId }} {{ a.referenceDemande || '' }}</td>
+            <td><span class="tag">{{ libelleActionDemande(a.typeAction) }}</span></td>
+            <td>{{ a.libelle }}</td>
+            <td>{{ a.acteurEmail || '—' }}</td>
+          </tr>
+          <tr *ngIf="!dashboard.dernieresActions?.length">
+            <td colspan="5" class="empty">Aucune action enregistrée</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Actions demandes -->
+  <div *ngIf="activeTab === 'actions-demandes' && !loading">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Demande</th>
+            <th>Type</th>
+            <th>Statuts</th>
+            <th>Acteur</th>
+            <th>Libellé</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of actionsDemandes">
+            <td>{{ asApiDate(row.dateAction) | date:'short' }}</td>
+            <td>#{{ row.demandeId }}</td>
+            <td><span class="tag">{{ libelleActionDemande(row.typeAction) }}</span></td>
+            <td>{{ row.statutAvant || '—' }} → {{ row.statutApres || '—' }}</td>
+            <td>{{ row.acteurEmail || '—' }}</td>
+            <td>{{ row.libelle }}</td>
+          </tr>
+          <tr *ngIf="!actionsDemandes.length"><td colspan="6" class="empty">Aucun résultat</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Actions documents -->
+  <div *ngIf="activeTab === 'actions-documents' && !loading">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Demande</th>
+            <th>Document</th>
+            <th>Type action</th>
+            <th>Acteur</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of actionsDocuments">
+            <td>{{ asApiDate(row.dateAction) | date:'short' }}</td>
+            <td>#{{ row.demandeId }}</td>
+            <td class="mono">{{ row.objectKey || row.typeDocument || '—' }}</td>
+            <td><span class="tag">{{ libelleActionDocument(row.typeAction) }}</span></td>
+            <td>{{ row.acteurEmail || '—' }}</td>
+          </tr>
+          <tr *ngIf="!actionsDocuments.length"><td colspan="5" class="empty">Aucun résultat</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Accès -->
+  <div *ngIf="activeTab === 'acces' && !loading">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Utilisateur</th>
+            <th>Type</th>
+            <th>IP</th>
+            <th>Endpoint</th>
+            <th>Suspect</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of acces" [class.suspect-row]="row.suspect">
+            <td>{{ asApiDate(row.dateAcces) | date:'short' }}</td>
+            <td>
+              {{ row.userEmail || row.userId || '—' }}
+              <span *ngIf="row.userRole" class="role-tag">{{ row.userRole }}</span>
+            </td>
+            <td>{{ libelleAcces(row.typeAcces) }}</td>
+            <td>{{ row.adresseIp || '—' }}</td>
+            <td class="mono">{{ row.endpoint || '—' }}</td>
+            <td><span class="badge" [class.bad]="row.suspect">{{ row.suspect ? 'Oui' : 'Non' }}</span></td>
+          </tr>
+          <tr *ngIf="!acces.length"><td colspan="6" class="empty">Aucun résultat</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Décisions -->
+  <div *ngIf="activeTab === 'decisions' && !loading">
+    <div class="table-container">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Date</th>
+            <th>Demande</th>
+            <th>Décision</th>
+            <th>Étape BPM</th>
+            <th>Acteur</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of decisions">
+            <td>{{ asApiDate(row.dateDecision) | date:'short' }}</td>
+            <td>#{{ row.demandeId }} {{ row.referenceDemande || '' }}</td>
+            <td><span class="tag decision">{{ libelleDecision(row.typeDecision) }}</span></td>
+            <td>{{ row.etapeWorkflow || '—' }}</td>
+            <td>{{ row.acteurEmail || '—' }}</td>
+          </tr>
+          <tr *ngIf="!decisions.length"><td colspan="5" class="empty">Aucun résultat</td></tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <!-- Archives -->
+  <div *ngIf="activeTab === 'archives' && !loading">
+    <div class="archives-layout">
+      <div class="table-container">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Archivé le</th>
+              <th>Demande</th>
+              <th>Statut final</th>
+              <th>CIN</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of archives">
+              <td>{{ asApiDate(row.dateArchivage) | date:'short' }}</td>
+              <td>#{{ row.demandeId }} {{ row.referenceDemande || '' }}</td>
+              <td>{{ row.statutFinal }}</td>
+              <td>{{ row.cinClient || '—' }}</td>
+              <td>
+                <button type="button" class="btn-link" (click)="viewArchiveDetail(row.demandeId)">Détail</button>
+              </td>
+            </tr>
+            <tr *ngIf="!archives.length"><td colspan="5" class="empty">Aucune archive</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="archive-detail" *ngIf="selectedArchive">
+        <h3>Snapshot dossier #{{ selectedArchive.demandeId }}</h3>
+        <pre>{{ parseSnapshot(selectedArchive.snapshotJson) | json }}</pre>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pagination -->
+  <div class="pagination" *ngIf="activeTab !== 'dashboard' && totalElements > 0 && !loading">
+    <button type="button" (click)="prevPage()" [disabled]="currentPage === 0">Précédent</button>
+    <span>Page {{ currentPage + 1 }} — {{ totalElements }} élément(s)</span>
+    <button type="button" (click)="nextPage()" [disabled]="(currentPage + 1) * pageSize >= totalElements">Suivant</button>
+  </div>
+</div>

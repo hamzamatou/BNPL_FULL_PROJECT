@@ -192,19 +192,19 @@ export class DemandeService {
     recommandationsJson: string = '[]'
   ): Observable<DemandeFinancementDto> {
     const formData = new FormData();
-
+    const declared: Record<string, unknown> = {};
     (Object.keys(request) as (keyof CreationDemandeCompleteRequest)[]).forEach(key => {
       if (key === 'documents') return;
-      const value = request[key];
-      if (value !== null && value !== undefined) formData.append(key, String(value));
+      const v = request[key];
+      if (v !== null && v !== undefined) {
+        declared[key as string] = v;
+      }
     });
-
+    formData.append('declared_data', JSON.stringify(declared));
+    request.documents.forEach((doc) => {
+      formData.append(doc.typeDocument, doc.file, doc.file.name);
+    });
     formData.append('recommandations_json', recommandationsJson);
-
-    request.documents.forEach((doc, index) => {
-      formData.append(`documents[${index}].typeDocument`, doc.typeDocument);
-      formData.append(`documents[${index}].file`, doc.file, doc.file.name);
-    });
 
     return this.http.post<DemandeFinancementDto>(
       `${this.baseUrl}/creation-complete`,

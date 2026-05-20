@@ -15,9 +15,9 @@
     *ngIf="currentStep === 2"
     [status]="'active'"
     [prefill]="donneesFinancieresPrefill"
-    [situationFamiliale]="infosClientData['situationFamiliale'] || ''"
-    [nombreEnfantsClient]="infosClientData['nombreEnfants'] || 0"
-    [ancienneteEmploiMoisClient]="infosClientData['ancienneteEmploiMois'] || 0"
+    [situationFamiliale]="clientSituationFamiliale"
+    [nombreEnfantsClient]="clientNombreEnfants"
+    [ancienneteEmploiMoisClient]="clientAncienneteEmploiMois"
     (nextStep)="setDonneesFinancieres($event)"
     (prevStep)="prevStep()">
   </app-donnees-financieres>

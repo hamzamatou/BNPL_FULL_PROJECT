@@ -217,6 +217,41 @@ public class UserServiceImpl implements UserService {
         return new CreatedClientResponse(saved.getId(), saved.getEmail());
     }
 
+    @Override
+    public CreatedClientResponse updateClientForBnpl(Long clientId, CreateClientRequest request) {
+        User client = userRepository.findById(clientId)
+                .orElseThrow(() -> new RuntimeException("Client introuvable"));
+
+        if (client.getRole() != Role.CLIENT) {
+            throw new RuntimeException("L'utilisateur " + clientId + " n'est pas un client");
+        }
+
+        String email = request.email() != null ? request.email().trim() : null;
+        if (email == null || email.isBlank()) {
+            throw new RuntimeException("Email client obligatoire");
+        }
+
+        userRepository.findByEmail(email).ifPresent(existing -> {
+            if (!existing.getId().equals(clientId)) {
+                throw new RuntimeException("Email déjà utilisé");
+            }
+        });
+
+        client.setEmail(email);
+        client.setNom(trimToNull(request.nom()));
+        client.setPrenom(trimToNull(request.prenom()));
+        client.setCin(trimToNull(request.cin()));
+        client.setTelephone(trimToNull(request.telephone()));
+        client.setAdresse(trimToNull(request.adresse()));
+        client.setSexe(trimToNull(request.sexe()));
+        client.setProfession(trimToNull(request.profession()));
+        client.setEmployeur(trimToNull(request.employeur()));
+        client.setDateModification(LocalDateTime.now());
+
+        User saved = userRepository.save(client);
+        return new CreatedClientResponse(saved.getId(), saved.getEmail());
+    }
+
     // ======================
     // CLIENT IDENTITY
     // ======================

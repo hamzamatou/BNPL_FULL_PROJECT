@@ -3,11 +3,11 @@ import { FormsModule } from '@angular/forms';
 import { NgClass, NgFor, NgIf } from '@angular/common';
 import { UserService, User } from '../services/user.service';
 import { AddUserComponent } from '../add-user/add-user.component';
-import { Router } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 @Component({
   selector: 'app-admin-portal',
   standalone: true,
-  imports: [FormsModule, NgIf, NgFor, NgClass, AddUserComponent],
+  imports: [FormsModule, NgIf, NgFor, NgClass, AddUserComponent, RouterLink],
   templateUrl: './admin.component.html',
   styleUrls: ['./admin.component.css']
 })

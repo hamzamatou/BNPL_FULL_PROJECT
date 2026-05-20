@@ -1,5 +1,5 @@
 import { Component } from '@angular/core';
-import { RouterLink, RouterLinkActive } from '@angular/router';
+import { Router, RouterLink, RouterLinkActive } from '@angular/router';
 import { AuthService } from '../../services/auth-service.service';
 
 @Component({
@@ -13,8 +13,19 @@ export class NavbarComponent {
   roleLabel = '';
   userName = '';
 
-  constructor(private readonly authService: AuthService) {
+  constructor(
+    private readonly authService: AuthService,
+    private readonly router: Router
+  ) {
     this.initFromToken();
+  }
+
+  onLogout(event: Event): void {
+    event.preventDefault();
+    this.authService.logout().subscribe({
+      next: () => this.router.navigate(['/login']),
+      error: () => this.router.navigate(['/login'])
+    });
   }
 
   private initFromToken(): void {
@@ -47,7 +58,7 @@ export class NavbarComponent {
     const r = role.toUpperCase();
     if (r === 'ADMIN') return 'Admin';
     if (r === 'COMMERCANT') return 'Commerçant';
-    if (r === 'BANQUE') return 'Banque';
+    if (r === 'ANALYSTE_BANCAIRE' || r === 'BANQUE') return 'Banque';
     if (r === 'CLIENT') return 'Client';
     return role;
   }

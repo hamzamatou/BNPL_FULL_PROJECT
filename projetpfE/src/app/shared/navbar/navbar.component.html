@@ -11,7 +11,7 @@
       <span>
         Profil ({{ roleLabel || 'Utilisateur' }} · {{ userName || '—' }})
       </span>
-      <a routerLink="/login">Deconnexion</a>
+      <a href="#" (click)="onLogout($event)">Deconnexion</a>
     </div>
   </div>
   <nav class="top-nav">
@@ -20,9 +20,11 @@
       <a routerLink="/commercant" routerLinkActive="active" class="top-nav-item">Creer une demande</a>
     } @else if (roleLabel === 'Admin') {
       <a routerLink="/admin" routerLinkActive="active" class="top-nav-item">Utilisateurs</a>
-    } @else if (roleLabel === 's') {
+      <a routerLink="/admin/reporting" routerLinkActive="active" class="top-nav-item">Pilotage &amp; audit</a>
+    } @else if (roleLabel === 'Banque') {
       <a routerLink="/banque/demandes" routerLinkActive="active" class="top-nav-item">Demandes banque</a>
       <a routerLink="/banque/affectees" routerLinkActive="active" class="top-nav-item">Prise en charge</a>
+      <a routerLink="/admin/reporting" routerLinkActive="active" class="top-nav-item">Pilotage &amp; audit</a>
     }
   </nav>
 </header>

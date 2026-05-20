@@ -2,8 +2,6 @@ package tn.uib.bnpl.gestion_utilisateur;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
-
-
 /**
  * Sans exclusion : Spring Boot enregistre {@code BearerTokenAuthenticationFilter} (OAuth2 Resource Server).
  * Il s’exécute après {@link tn.uib.bnpl.gestion_utilisateur.config.ApiAuthenticationFilter} et écrase

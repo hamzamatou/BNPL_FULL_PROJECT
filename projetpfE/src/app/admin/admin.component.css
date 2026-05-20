@@ -40,6 +40,11 @@
   border-bottom-color: #C8102E;
 }
 
+.tab.link-tab {
+  text-decoration: none;
+  display: inline-block;
+}
+
 /* --- KPI Cards --- */
 .kpi-grid {
   display: grid;
