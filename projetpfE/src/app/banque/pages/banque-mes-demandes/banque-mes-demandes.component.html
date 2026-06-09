@@ -1,0 +1,89 @@
+<section class="list-page banque-mes-demandes">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Historique demandes</h1>
+      <p class="page-sub">Demandes que vous avez traitées</p>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  <div class="card filters-card">
+    <div class="filters-row">
+      <select class="filter-select" [(ngModel)]="filterType">
+        <option value="">Tous les types</option>
+        <option value="PRISE_EN_CHARGE">Prise en charge</option>
+        <option value="ACCEPTEE">Acceptée</option>
+        <option value="REFUSEE">Refusée</option>
+        <option value="DEMANDE_COMPLEMENTS">Compléments</option>
+      </select>
+      <input class="filter-date" type="datetime-local" [(ngModel)]="filterDebut" />
+      <input class="filter-date" type="datetime-local" [(ngModel)]="filterFin" />
+      <button type="button" class="btn-search" (click)="searchHistorique()">Rechercher</button>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="section-title">Demandes traitées ({{ totalHistorique }})</div>
+
+    @if (loading) {
+      <div class="table-state">
+        <span class="spinner" aria-hidden="true"></span>
+        Chargement…
+      </div>
+    } @else if (historique.length === 0) {
+      <div class="table-state">Aucune demande traitée pour le moment.</div>
+    } @else {
+      <div class="table-wrap">
+        <div class="table hist-cols">
+          <div class="thead">
+            <div>Référence</div>
+            <div>Décision</div>
+            <div>Libellé</div>
+            <div>Date</div>
+            <div class="col-action">Action</div>
+          </div>
+          @for (row of historique; track row.id) {
+            <div class="tr">
+              <div class="ref-cell">
+                <strong>{{ row.referenceDemande || ('DEM-' + row.demandeId) }}</strong>
+              </div>
+              <div>
+                <span class="status-badge" [ngClass]="decisionBadgeClass(row.typeDecision)">
+                  {{ libelleDecision(row.typeDecision) }}
+                </span>
+              </div>
+              <div class="client-cell">{{ row.libelle }}</div>
+              <div class="date-cell">{{ row.dateDecision | date: 'dd/MM/yyyy HH:mm' }}</div>
+              <div class="row-actions">
+                <a class="detail-btn" [routerLink]="['/banque/affectees', row.demandeId]">
+                  Détail
+                  <span class="detail-arrow" aria-hidden="true">›</span>
+                </a>
+              </div>
+            </div>
+          }
+        </div>
+      </div>
+
+      <div class="pager">
+        <button type="button" class="pager-btn" [disabled]="currentPage === 0" (click)="prevPage()">
+          Précédent
+        </button>
+        <span class="pager-info">
+          Page {{ currentPage + 1 }} · {{ totalHistorique }} entrée(s)
+        </span>
+        <button
+          type="button"
+          class="pager-btn"
+          [disabled]="(currentPage + 1) * pageSize >= totalHistorique"
+          (click)="nextPage()"
+        >
+          Suivant
+        </button>
+      </div>
+    }
+  </div>
+</section>

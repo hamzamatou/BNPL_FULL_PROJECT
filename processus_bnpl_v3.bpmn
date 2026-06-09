@@ -1,0 +1,455 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xmlns:camunda="http://camunda.org/schema/1.0/bpmn" xmlns:bpmndi="http://www.omg.org/spec/BPMN/20100524/DI" xmlns:dc="http://www.omg.org/spec/DD/20100524/DC" xmlns:di="http://www.omg.org/spec/DD/20100524/DI" xmlns:bioc="http://bpmn.io/schema/bpmn/biocolor/1.0" xmlns:color="http://www.omg.org/spec/BPMN/non-normative/color/1.0" targetNamespace="http://bpmn.io/schema/bpmn" exporter="Camunda Modeler" exporterVersion="5.46.1">
+  <message id="Message_AnnulationCommercant" name="Message_AnnulationCommercant" />
+  <process id="Process_BNPL" name="Processus BNPL" isExecutable="true" camunda:historyTimeToLive="180">
+    <laneSet id="LaneSet_BNPL">
+      <lane id="Lane_Analyste" name="Analyste Bancaire">
+        <flowNodeRef>Task_RouterDemande</flowNodeRef>
+        <flowNodeRef>Task_PriseEnCharge</flowNodeRef>
+        <flowNodeRef>Task_ExpirerVerrou</flowNodeRef>
+        <flowNodeRef>Task_PrendreDecision</flowNodeRef>
+        <flowNodeRef>Task_DemanderComplement</flowNodeRef>
+        <flowNodeRef>Task_CloreArchiverDemande</flowNodeRef>
+        <flowNodeRef>GW_Decision</flowNodeRef>
+        <flowNodeRef>EndEvent_Cloturee</flowNodeRef>
+        <flowNodeRef>GW_RefusPartiel</flowNodeRef>
+        <flowNodeRef>Timer_Expiration48h</flowNodeRef>
+      </lane>
+      <lane id="Lane_Client" name="Client">
+        <flowNodeRef>Task_ValiderConsentement</flowNodeRef>
+      </lane>
+      <lane id="Lane_ServiceIA" name="Service IA">
+        <flowNodeRef>Task_VerifierCoherence</flowNodeRef>
+        <flowNodeRef>Activity_0juifhr</flowNodeRef>
+        <flowNodeRef>Task_GenererRecommandations</flowNodeRef>
+        <flowNodeRef>Task_Prescoring</flowNodeRef>
+        <flowNodeRef>GW_Coherence</flowNodeRef>
+        <flowNodeRef>GW_Score</flowNodeRef>
+        <flowNodeRef>EndEvent_RejetAuto</flowNodeRef>
+      </lane>
+      <lane id="Lane_Commercant" name="Commerçant">
+        <flowNodeRef>Task_AnalyserDemande</flowNodeRef>
+        <flowNodeRef>Task_SoumettreDemande</flowNodeRef>
+        <flowNodeRef>SubProcess_AnnulationCommercant</flowNodeRef>
+        <flowNodeRef>StartEvent_Debut</flowNodeRef>
+        <flowNodeRef>StartEvent_AnnulationCommercant</flowNodeRef>
+        <flowNodeRef>EndEvent_Annulee</flowNodeRef>
+      </lane>
+    </laneSet>
+    <startEvent id="StartEvent_Debut" name="Début">
+      <outgoing>sf_1</outgoing>
+    </startEvent>
+    <userTask id="Task_AnalyserDemande" name="Analyser la demande">
+      <incoming>Flow_0wwwpgy</incoming>
+      <outgoing>sf_2</outgoing>
+    </userTask>
+    <userTask id="Task_SoumettreDemande" name="Soumettre la demande de financement">
+      <outgoing>sf_8</outgoing>
+    </userTask>
+    <serviceTask id="Task_VerifierCoherence" name="Vérifier cohérence et détecter anomalies" camunda:type="external" camunda:topic="verification-coherence">
+      <outgoing>sf_3</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="GW_Coherence" name="Données cohérentes ?" default="sf_incoherent">
+      <outgoing>sf_coherent</outgoing>
+      <outgoing>sf_incoherent</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="Activity_0juifhr" name="proposer des corrections" camunda:type="external" camunda:topic="proposer-corrections">
+      <incoming>sf_incoherent</incoming>
+      <outgoing>Flow_0wwwpgy</outgoing>
+    </serviceTask>
+    <serviceTask id="Task_GenererRecommandations" name="Générer des recommandations ciblées" camunda:type="external" camunda:topic="recommandations">
+      <outgoing>sf_5</outgoing>
+    </serviceTask>
+    <userTask id="Task_ValiderConsentement" name="Valider le consentement">
+      <incoming>sf_8</incoming>
+      <outgoing>sf_client_3</outgoing>
+    </userTask>
+    <serviceTask id="Task_Prescoring" name="Évaluer le score interne" camunda:type="external" camunda:topic="prescoring">
+      <incoming>sf_client_3</incoming>
+      <outgoing>sf_11</outgoing>
+    </serviceTask>
+    <exclusiveGateway id="GW_Score" name="Score suffisant ?" default="sf_score_faible">
+      <outgoing>sf_score_faible</outgoing>
+      <outgoing>sf_score_ok</outgoing>
+    </exclusiveGateway>
+    <endEvent id="EndEvent_RejetAuto" name="Rejet automatique">
+      <incoming>sf_score_faible</incoming>
+      <terminateEventDefinition id="TerminateEventDefinition_RejetAuto" />
+    </endEvent>
+    <serviceTask id="Task_RouterDemande" name="Router vers banque partenaire via API scoring" camunda:type="external" camunda:topic="routage-banque">
+      <outgoing>sf_12</outgoing>
+    </serviceTask>
+    <userTask id="Task_PriseEnCharge" name="Prendre en charge de la demande">
+      <incoming>sf_12</incoming>
+      <incoming>sf_exp_to_pec</incoming>
+      <incoming>sf_refus_partiel</incoming>
+      <outgoing>sf_pec_to_ins</outgoing>
+    </userTask>
+    <serviceTask id="Task_ExpirerVerrou" name="Expirer" camunda:type="external" camunda:topic="expiration-prise-en-charge">
+      <incoming>sf_timer_to_exp</incoming>
+      <outgoing>sf_exp_to_pec</outgoing>
+    </serviceTask>
+    <userTask id="Task_PrendreDecision" name="Instruire et décider">
+      <incoming>sf_pec_to_ins</incoming>
+      <incoming>Flow_0bmwscr</incoming>
+      <outgoing>sf_analyste_3</outgoing>
+    </userTask>
+    <boundaryEvent id="Timer_Expiration48h" name="48h" attachedToRef="Task_PrendreDecision">
+      <outgoing>sf_timer_to_exp</outgoing>
+      <timerEventDefinition id="TimerDef_Expiration48h">
+        <timeDuration xsi:type="tFormalExpression">PT48H</timeDuration>
+      </timerEventDefinition>
+    </boundaryEvent>
+    <exclusiveGateway id="GW_Decision" name="Décision ?" default="sf_complement">
+      <incoming>sf_analyste_3</incoming>
+      <outgoing>sf_accepte</outgoing>
+      <outgoing>sf_refuse</outgoing>
+      <outgoing>sf_complement</outgoing>
+    </exclusiveGateway>
+    <serviceTask id="Task_DemanderComplement" name="Demander des informations complémentaires" camunda:type="external" camunda:topic="demander-complement">
+      <incoming>sf_complement</incoming>
+      <outgoing>Flow_0bmwscr</outgoing>
+    </serviceTask>
+    <serviceTask id="Task_CloreArchiverDemande" name="Clôturer et archiver la demande" camunda:type="external" camunda:topic="cloturer-archiver-demande">
+      <incoming>sf_accepte</incoming>
+      <incoming>sf_refus_definitif</incoming>
+      <outgoing>sf_cloture_end</outgoing>
+    </serviceTask>
+    <endEvent id="EndEvent_Cloturee" name="Demande clôturée">
+      <incoming>sf_cloture_end</incoming>
+    </endEvent>
+    <exclusiveGateway id="GW_RefusPartiel" name="Autres banques éligibles ?" default="sf_refus_definitif">
+      <incoming>sf_refuse</incoming>
+      <outgoing>sf_refus_partiel</outgoing>
+      <outgoing>sf_refus_definitif</outgoing>
+    </exclusiveGateway>
+    <sequenceFlow id="sf_1" sourceRef="StartEvent_Debut" targetRef="Task_AnalyserDemande" />
+    <sequenceFlow id="sf_2" sourceRef="Task_AnalyserDemande" targetRef="Task_VerifierCoherence" />
+    <sequenceFlow id="sf_3" sourceRef="Task_VerifierCoherence" targetRef="GW_Coherence" />
+    <sequenceFlow id="sf_incoherent" name="Non" sourceRef="GW_Coherence" targetRef="Activity_0juifhr" />
+    <sequenceFlow id="sf_coherent" name="Oui" sourceRef="GW_Coherence" targetRef="Task_GenererRecommandations">
+      <conditionExpression xsi:type="tFormalExpression">${coherent == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sf_5" sourceRef="Task_GenererRecommandations" targetRef="Task_SoumettreDemande" />
+    <sequenceFlow id="sf_8" sourceRef="Task_SoumettreDemande" targetRef="Task_ValiderConsentement" />
+    <sequenceFlow id="Flow_0wwwpgy" sourceRef="Activity_0juifhr" targetRef="Task_AnalyserDemande" />
+    <sequenceFlow id="sf_client_3" sourceRef="Task_ValiderConsentement" targetRef="Task_Prescoring" />
+    <sequenceFlow id="sf_11" sourceRef="Task_Prescoring" targetRef="GW_Score" />
+    <sequenceFlow id="sf_score_faible" name="PD &#62; 60 %" sourceRef="GW_Score" targetRef="EndEvent_RejetAuto" />
+    <sequenceFlow id="sf_score_ok" name="Score moyen/élevé" sourceRef="GW_Score" targetRef="Task_RouterDemande">
+      <conditionExpression xsi:type="tFormalExpression">${scoreOk == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sf_12" sourceRef="Task_RouterDemande" targetRef="Task_PriseEnCharge" />
+    <sequenceFlow id="sf_pec_to_ins" sourceRef="Task_PriseEnCharge" targetRef="Task_PrendreDecision" />
+    <sequenceFlow id="sf_timer_to_exp" sourceRef="Timer_Expiration48h" targetRef="Task_ExpirerVerrou" />
+    <sequenceFlow id="sf_exp_to_pec" sourceRef="Task_ExpirerVerrou" targetRef="Task_PriseEnCharge" />
+    <sequenceFlow id="sf_accepte" name="Accepter" sourceRef="GW_Decision" targetRef="Task_CloreArchiverDemande">
+      <conditionExpression xsi:type="tFormalExpression">${decision == 'ACCEPTER'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sf_cloture_end" sourceRef="Task_CloreArchiverDemande" targetRef="EndEvent_Cloturee" />
+    <sequenceFlow id="sf_refuse" name="Refuser" sourceRef="GW_Decision" targetRef="GW_RefusPartiel">
+      <conditionExpression xsi:type="tFormalExpression">${decision == 'REFUSER'}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sf_complement" name="Infos complémentaires" sourceRef="GW_Decision" targetRef="Task_DemanderComplement" />
+    <sequenceFlow id="sf_refus_partiel" name="Refus partiel" sourceRef="GW_RefusPartiel" targetRef="Task_PriseEnCharge">
+      <conditionExpression xsi:type="tFormalExpression">${refusPartiel == true}</conditionExpression>
+    </sequenceFlow>
+    <sequenceFlow id="sf_refus_definitif" name="Refus définitif" sourceRef="GW_RefusPartiel" targetRef="Task_CloreArchiverDemande" />
+    <sequenceFlow id="Flow_0bmwscr" sourceRef="Task_DemanderComplement" targetRef="Task_PrendreDecision" />
+    <sequenceFlow id="sf_analyste_3" sourceRef="Task_PrendreDecision" targetRef="GW_Decision" />
+    <subProcess id="SubProcess_AnnulationCommercant" name="Annulation commerçant" triggeredByEvent="true">
+      <startEvent id="StartEvent_AnnulationCommercant" name="Annulation commerçant">
+        <outgoing>sf_annul_start</outgoing>
+        <messageEventDefinition id="MessageEventDef_AnnulationCommercant" messageRef="Message_AnnulationCommercant" />
+      </startEvent>
+      <serviceTask id="Task_AnnulerDemande" name="Annuler demande" camunda:type="external" camunda:topic="annuler-demande">
+        <incoming>sf_annul_start</incoming>
+        <outgoing>sf_annul_to_end</outgoing>
+      </serviceTask>
+      <endEvent id="EndEvent_Annulee" name="Demande annulée">
+        <incoming>sf_annul_to_end</incoming>
+        <terminateEventDefinition id="TerminateEventDefinition_Annulee" />
+      </endEvent>
+      <sequenceFlow id="sf_annul_start" sourceRef="StartEvent_AnnulationCommercant" targetRef="Task_AnnulerDemande" />
+      <sequenceFlow id="sf_annul_to_end" sourceRef="Task_AnnulerDemande" targetRef="EndEvent_Annulee" />
+    </subProcess>
+  </process>
+  <bpmndi:BPMNDiagram id="BPMNDiagram_BNPL">
+    <bpmndi:BPMNPlane id="BPMNPlane_BNPL" bpmnElement="Process_BNPL">
+      <bpmndi:BPMNShape id="Shape_Lane_Analyste" bpmnElement="Lane_Analyste" isHorizontal="true" bioc:stroke="#5b176d" bioc:fill="#e1bee7" color:background-color="#e1bee7" color:border-color="#5b176d">
+        <dc:Bounds x="160" y="710" width="1980" height="560" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Client" bpmnElement="Lane_Client" isHorizontal="true" bioc:stroke="#831311" bioc:fill="#ffcdd2" color:background-color="#ffcdd2" color:border-color="#831311">
+        <dc:Bounds x="160" y="590" width="1980" height="120" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_ServiceIA" bpmnElement="Lane_ServiceIA" isHorizontal="true" bioc:stroke="#5b176d" bioc:fill="#e1bee7" color:background-color="#e1bee7" color:border-color="#5b176d">
+        <dc:Bounds x="160" y="390" width="1980" height="200" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Lane_Commercant" bpmnElement="Lane_Commercant" isHorizontal="true" bioc:stroke="#0d4372" bioc:fill="#bbdefb" color:background-color="#bbdefb" color:border-color="#0d4372">
+        <dc:Bounds x="160" y="80" width="1980" height="310" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_Debut" bpmnElement="StartEvent_Debut">
+        <dc:Bounds x="282" y="312" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="285" y="355" width="31" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AnalyserDemande" bpmnElement="Task_AnalyserDemande">
+        <dc:Bounds x="680" y="290" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_SoumettreDemande" bpmnElement="Task_SoumettreDemande">
+        <dc:Bounds x="1260" y="290" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_VerifierCoherence" bpmnElement="Task_VerifierCoherence">
+        <dc:Bounds x="605" y="440" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW_Coherence" bpmnElement="GW_Coherence" isMarkerVisible="true">
+        <dc:Bounds x="880" y="455" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="873" y="417" width="64" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Activity_0juifhr_di" bpmnElement="Activity_0juifhr">
+        <dc:Bounds x="460" y="500" width="100" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_GenererRecommandations" bpmnElement="Task_GenererRecommandations">
+        <dc:Bounds x="980" y="440" width="180" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ValiderConsentement" bpmnElement="Task_ValiderConsentement">
+        <dc:Bounds x="1260" y="610" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_Prescoring" bpmnElement="Task_Prescoring">
+        <dc:Bounds x="1480" y="440" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW_Score" bpmnElement="GW_Score" isMarkerVisible="true">
+        <dc:Bounds x="1690" y="455" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1674" y="431" width="83" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_RejetAuto" bpmnElement="EndEvent_RejetAuto">
+        <dc:Bounds x="2032" y="462" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1906" y="505" width="90" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_RouterDemande" bpmnElement="Task_RouterDemande">
+        <dc:Bounds x="1625" y="680" width="180" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_PriseEnCharge" bpmnElement="Task_PriseEnCharge">
+        <dc:Bounds x="1625" y="850" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_ExpirerVerrou" bpmnElement="Task_ExpirerVerrou">
+        <dc:Bounds x="1620" y="1065" width="180" height="70" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_PrendreDecision" bpmnElement="Task_PrendreDecision">
+        <dc:Bounds x="1920" y="940" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW_Decision" bpmnElement="GW_Decision" isMarkerVisible="true">
+        <dc:Bounds x="854" y="835" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="914" y="843" width="52" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_DemanderComplement" bpmnElement="Task_DemanderComplement">
+        <dc:Bounds x="455" y="930" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_CloreArchiverDemande" bpmnElement="Task_CloreArchiverDemande">
+        <dc:Bounds x="650" y="770" width="170" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Cloturee" bpmnElement="EndEvent_Cloturee">
+        <dc:Bounds x="472" y="792" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="416" y="806" width="48" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_GW_RefusPartiel" bpmnElement="GW_RefusPartiel" isMarkerVisible="true">
+        <dc:Bounds x="985" y="735" width="50" height="50" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1021" y="726" width="77" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_SubProcess_AnnulationCommercant" bpmnElement="SubProcess_AnnulationCommercant" isExpanded="true">
+        <dc:Bounds x="1600" y="130" width="520" height="160" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1786" y="112" width="108" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_StartEvent_AnnulationCommercant" bpmnElement="StartEvent_AnnulationCommercant">
+        <dc:Bounds x="1632" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1619" y="235" width="62" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_Task_AnnulerDemande" bpmnElement="Task_AnnulerDemande">
+        <dc:Bounds x="1730" y="170" width="160" height="80" />
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNShape id="Shape_EndEvent_Annulee" bpmnElement="EndEvent_Annulee">
+        <dc:Bounds x="1952" y="192" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1946" y="235" width="48" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_sf_annul_start" bpmnElement="sf_annul_start">
+        <di:waypoint x="1668" y="210" />
+        <di:waypoint x="1730" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_annul_to_end" bpmnElement="sf_annul_to_end">
+        <di:waypoint x="1890" y="210" />
+        <di:waypoint x="1952" y="210" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNShape id="Shape_Timer_Expiration48h" bpmnElement="Timer_Expiration48h">
+        <dc:Bounds x="1982" y="1013" width="36" height="36" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1985" y="1049" width="19" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNShape>
+      <bpmndi:BPMNEdge id="Edge_sf_1" bpmnElement="sf_1">
+        <di:waypoint x="318" y="330" />
+        <di:waypoint x="680" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_2" bpmnElement="sf_2">
+        <di:waypoint x="760" y="370" />
+        <di:waypoint x="760" y="405" />
+        <di:waypoint x="690" y="405" />
+        <di:waypoint x="690" y="440" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_3" bpmnElement="sf_3">
+        <di:waypoint x="775" y="480" />
+        <di:waypoint x="880" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_incoherent" bpmnElement="sf_incoherent">
+        <di:waypoint x="905" y="505" />
+        <di:waypoint x="905" y="540" />
+        <di:waypoint x="560" y="540" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="874" y="516" width="21" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_coherent" bpmnElement="sf_coherent">
+        <di:waypoint x="930" y="480" />
+        <di:waypoint x="980" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="949" y="462" width="18" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_5" bpmnElement="sf_5">
+        <di:waypoint x="1160" y="480" />
+        <di:waypoint x="1210" y="480" />
+        <di:waypoint x="1210" y="330" />
+        <di:waypoint x="1260" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_8" bpmnElement="sf_8">
+        <di:waypoint x="1340" y="370" />
+        <di:waypoint x="1340" y="490" />
+        <di:waypoint x="1340" y="610" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_0wwwpgy_di" bpmnElement="Flow_0wwwpgy">
+        <di:waypoint x="460" y="540" />
+        <di:waypoint x="430" y="540" />
+        <di:waypoint x="430" y="330" />
+        <di:waypoint x="680" y="330" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_client_3" bpmnElement="sf_client_3">
+        <di:waypoint x="1420" y="650" />
+        <di:waypoint x="1460" y="650" />
+        <di:waypoint x="1460" y="480" />
+        <di:waypoint x="1480" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_11" bpmnElement="sf_11">
+        <di:waypoint x="1640" y="480" />
+        <di:waypoint x="1690" y="480" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_score_faible" bpmnElement="sf_score_faible">
+        <di:waypoint x="1740" y="480" />
+        <di:waypoint x="2032" y="480" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1866" y="448" width="53" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_score_ok" bpmnElement="sf_score_ok">
+        <di:waypoint x="1715" y="505" />
+        <di:waypoint x="1715" y="680" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1725" y="519" width="63" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_12" bpmnElement="sf_12">
+        <di:waypoint x="1710" y="760" />
+        <di:waypoint x="1710" y="850" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_pec_to_ins" bpmnElement="sf_pec_to_ins">
+        <di:waypoint x="1795" y="890" />
+        <di:waypoint x="2000" y="890" />
+        <di:waypoint x="2000" y="940" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_timer_to_exp" bpmnElement="sf_timer_to_exp">
+        <di:waypoint x="2000" y="1049" />
+        <di:waypoint x="2000" y="1100" />
+        <di:waypoint x="1800" y="1100" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_exp_to_pec" bpmnElement="sf_exp_to_pec">
+        <di:waypoint x="1710" y="1065" />
+        <di:waypoint x="1710" y="930" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_accepte" bpmnElement="sf_accepte">
+        <di:waypoint x="854" y="860" />
+        <di:waypoint x="735" y="860" />
+        <di:waypoint x="735" y="850" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="768" y="873" width="44" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_cloture_end" bpmnElement="sf_cloture_end">
+        <di:waypoint x="650" y="810" />
+        <di:waypoint x="508" y="810" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_refuse" bpmnElement="sf_refuse">
+        <di:waypoint x="904" y="860" />
+        <di:waypoint x="1120" y="860" />
+        <di:waypoint x="1120" y="760" />
+        <di:waypoint x="1035" y="760" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1070" y="801" width="40" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_complement" bpmnElement="sf_complement">
+        <di:waypoint x="879" y="885" />
+        <di:waypoint x="879" y="970" />
+        <di:waypoint x="625" y="970" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="695" y="936" width="84" height="27" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_refus_partiel" bpmnElement="sf_refus_partiel">
+        <di:waypoint x="1035" y="760" />
+        <di:waypoint x="1265" y="760" />
+        <di:waypoint x="1265" y="890" />
+        <di:waypoint x="1625" y="890" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="1120" y="742" width="62" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_refus_definitif" bpmnElement="sf_refus_definitif">
+        <di:waypoint x="1010" y="735" />
+        <di:waypoint x="880" y="735" />
+        <di:waypoint x="880" y="770" />
+        <di:waypoint x="820" y="770" />
+        <bpmndi:BPMNLabel>
+          <dc:Bounds x="910" y="717" width="68" height="14" />
+        </bpmndi:BPMNLabel>
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_Flow_0bmwscr_di" bpmnElement="Flow_0bmwscr">
+        <di:waypoint x="540" y="1010" />
+        <di:waypoint x="540" y="1180" />
+        <di:waypoint x="2000" y="1180" />
+        <di:waypoint x="2000" y="1020" />
+      </bpmndi:BPMNEdge>
+      <bpmndi:BPMNEdge id="Edge_sf_analyste_3" bpmnElement="sf_analyste_3">
+        <di:waypoint x="1920" y="980" />
+        <di:waypoint x="879" y="980" />
+        <di:waypoint x="879" y="885" />
+      </bpmndi:BPMNEdge>
+    </bpmndi:BPMNPlane>
+  </bpmndi:BPMNDiagram>
+</definitions>

@@ -14,7 +14,6 @@ public record PrescoringResultDto(
         @JsonProperty("pd_pct")       Double pdPct,
         @JsonProperty("score")        Integer score,
         @JsonProperty("zone")         ZoneDto zone,
-        @JsonProperty("alertes")      List<String> alertes,
         @JsonProperty("explications") List<String> explications,
         @JsonProperty("defaut")       Boolean defaut,
         @JsonProperty("seuil_pd_pct") Double seuilPdPct

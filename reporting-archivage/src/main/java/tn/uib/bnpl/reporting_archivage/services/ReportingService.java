@@ -3,6 +3,7 @@ package tn.uib.bnpl.reporting_archivage.services;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import tn.uib.bnpl.reporting_archivage.classes.*;
+import tn.uib.bnpl.reporting_archivage.dto.BanqueDashboardDto;
 import tn.uib.bnpl.reporting_archivage.dto.DashboardReportingDto;
 
 import java.time.LocalDateTime;
@@ -21,5 +22,9 @@ public interface ReportingService {
                                               LocalDateTime debut, LocalDateTime fin, Pageable pageable);
 
     Page<DecisionFinancementHistorique> getDecisions(Long demandeId, String type,
-                                                      LocalDateTime debut, LocalDateTime fin, Pageable pageable);
+                                                      LocalDateTime debut, LocalDateTime fin,
+                                                      Long acteurUserId,
+                                                      Pageable pageable);
+
+    BanqueDashboardDto getDashboardBanque(Long analysteUserId);
 }

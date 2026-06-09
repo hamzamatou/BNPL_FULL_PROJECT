@@ -1,0 +1,16 @@
+Fichier: C:\Users\USER\Desktop\uib-bnpl\BNPL_FULL_PROJECT\bnpl-data-pipeline\bnpl_model_production.pkl
+Existe: True
+Taille (Mo): 50.52
+Cles (18): ['cat_cols', 'clip_lower', 'clip_upper', 'encoders', 'features', 'focus_features', 'if_anomaly_rate_fit', 'if_proxy_score', 'if_scaler', 'isolation_forest', 'model', 'monotone_constraints', 'num_cols_clip', 'shap_background_n', 'shap_explainer', 'shap_note', 'split', 'threshold']
+Requis manquants: aucun
+IF: isolation_forest=True, if_scaler=True
+SHAP: shap_explainer=True
+Seuil: 0.22802002247175332
+Nb features: 27
+Test PD demo: 0.0818 (8.18%) | defaut=False
+Test IF: atypique=False predict=1 score=-0.4390
+Test SHAP: OK (type sortie ndarray)
+
+VERDICT: EXPLOITABLE pour prescoring (LightGBM OK).
+  + Foret d'isolation OK.
+  + SHAP OK.

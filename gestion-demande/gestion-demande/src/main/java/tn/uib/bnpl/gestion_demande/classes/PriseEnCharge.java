@@ -30,7 +30,8 @@ public class PriseEnCharge {
     private Integer scoreInterne;
 
     /**
-     * ROUTE, VERROUILLEE, DEVERROUILLEE (EXPIRE peut être déduit via {@link #dateExpiration}).
+     * ROUTE, VERROUILLEE, EXPIRE, DEVERROUILLEE.
+     * Fenêtre 48 h : {@link #dateExpiration} tant que {@link #decision} est null ; annulée au démarrage d'analyse.
      */
     @Column(nullable = false)
     private String statut;

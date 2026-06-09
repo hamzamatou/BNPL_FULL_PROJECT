@@ -10,7 +10,8 @@
     "test:micro": "node test_micro.mjs",
     "test:micro:ok": "node test_micro.mjs ok",
     "test:micro:missing": "node test_micro.mjs missing-doc",
-    "test:micro:no-loyer": "node test_micro.mjs no-loyer-no-devis"
+    "test:micro:no-loyer": "node test_micro.mjs no-loyer-no-devis",
+    "test:micro:all": "node test_micro.mjs --all"
   },
   "dependencies": {
     "docx": "^9.6.1",

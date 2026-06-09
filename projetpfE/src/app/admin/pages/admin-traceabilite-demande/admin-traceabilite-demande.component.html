@@ -1,0 +1,155 @@
+<section class="list-page admin-traceabilite-demande" translate="no">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Cycle de vie — traçabilité</h1>
+      <p class="page-sub">
+        Dossier <strong>{{ reference }}</strong> · {{ lignes.length }} événement(s)
+      </p>
+    </div>
+    <div class="header-actions-row">
+      <button type="button" class="btn-print" (click)="imprimerAudit()">
+        <admin-icon name="printer" /> Imprimer / PDF audit
+      </button>
+      <a [routerLink]="backLink" class="btn-back">
+        <admin-icon name="arrow-left" /> {{ backLabel }}
+      </a>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="table-state"><span class="spinner"></span> Chargement du cycle de vie…</div>
+  } @else {
+    <div class="meta-grid card">
+      <div class="meta-item">
+        <span class="meta-label">Référence</span>
+        <span class="meta-value">{{ reference }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Client</span>
+        <span class="meta-value">{{ clientLabel }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Commerçant</span>
+        <span class="meta-value">{{ commercantLabel }}</span>
+      </div>
+      <div class="meta-item">
+        <span class="meta-label">Statut actuel</span>
+        <span class="meta-value meta-value--status">{{ statutDemande }}</span>
+      </div>
+    </div>
+
+    <div class="card lifecycle-card">
+      <div class="lifecycle-header">
+        <div class="lifecycle-brand">
+          @if (!logoFailed) {
+            <img
+              [src]="logoSrc"
+              alt="UIB — Union Internationale de Banques"
+              class="lifecycle-logo"
+              width="100"
+              height="36"
+              decoding="async"
+              (error)="onLogoError()"
+            />
+          } @else {
+            <span class="lifecycle-brand-fallback">UIB</span>
+          }
+          <span class="lifecycle-brand-sub">BNPL</span>
+        </div>
+        <div>
+          <h2 class="lifecycle-title">Chronologie du dossier</h2>
+          <p class="lifecycle-desc">Du premier événement à la dernière action enregistrée</p>
+        </div>
+      </div>
+
+      @if (lignes.length === 0) {
+        <div class="table-empty">Aucune action enregistrée pour cette demande.</div>
+      } @else {
+        <ol class="lifecycle-timeline">
+          @for (l of lignes; track l.id; let first = $first; let last = $last) {
+            <li class="timeline-item" [class.timeline-item--first]="first" [class.timeline-item--last]="last">
+              <div class="timeline-rail" aria-hidden="true">
+                <span class="timeline-dot" [ngClass]="iconClass(l.categorie)"></span>
+              </div>
+              <article class="timeline-card">
+                <header class="timeline-card__head">
+                  <div class="timeline-card__meta">
+                    <span class="cat-badge" [ngClass]="categorieClass(l.categorie)">{{ l.categorie }}</span>
+                    <span class="timeline-type">{{ l.typeLabel }}</span>
+                  </div>
+                  <time class="timeline-date">{{ asApiDate(l.date) | date:'dd/MM/yyyy HH:mm' }}</time>
+                </header>
+                <h3 class="timeline-libelle">{{ l.libelle }}</h3>
+                <div class="timeline-details">
+                  <div class="detail-row">
+                    <span class="detail-label">Acteur</span>
+                    <span class="detail-value">{{ l.acteur }}</span>
+                  </div>
+                  <div class="detail-row">
+                    <span class="detail-label">Rôle</span>
+                    <span class="detail-value">{{ l.acteurRole }}</span>
+                  </div>
+                  @if (l.statutTransition !== '—') {
+                    <div class="detail-row detail-row--transition">
+                      <span class="detail-label">Transition</span>
+                      <span class="detail-value detail-value--mono">{{ l.statutTransition }}</span>
+                    </div>
+                  }
+                  @if (l.iaDetails) {
+                    <div class="timeline-ia">
+                      @if (l.iaDetails.score != null || l.iaDetails.probabiliteDefaut != null || l.iaDetails.zoneCode) {
+                        <div class="ia-block">
+                          <span class="detail-label">Score IA</span>
+                          <div class="ia-score-grid">
+                            @if (l.iaDetails.score != null) {
+                              <span class="ia-chip">Score {{ l.iaDetails.score }}/1000</span>
+                            }
+                            @if (l.iaDetails.probabiliteDefaut != null) {
+                              <span class="ia-chip">PD {{ l.iaDetails.probabiliteDefaut | number:'1.1-1' }} %</span>
+                            }
+                            @if (l.iaDetails.zoneCode) {
+                              <span class="ia-chip ia-chip--zone">Zone {{ l.iaDetails.zoneCode }}</span>
+                            }
+                          </div>
+                        </div>
+                      }
+                      @if (l.iaDetails.explications?.length) {
+                        <div class="ia-block">
+                          <span class="detail-label">Explications IA</span>
+                          <ul class="ia-list">
+                            @for (exp of l.iaDetails.explications; track exp) {
+                              <li>{{ exp }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                      @if (l.iaDetails.recommandations?.length) {
+                        <div class="ia-block">
+                          <span class="detail-label">Recommandations IA</span>
+                          <ul class="ia-list">
+                            @for (reco of l.iaDetails.recommandations; track reco) {
+                              <li>{{ reco }}</li>
+                            }
+                          </ul>
+                        </div>
+                      }
+                    </div>
+                  } @else if (l.detail !== '—') {
+                    <div class="detail-row">
+                      <span class="detail-label">Détail</span>
+                      <span class="detail-value">{{ l.detail }}</span>
+                    </div>
+                  }
+                </div>
+              </article>
+            </li>
+          }
+        </ol>
+      }
+    </div>
+  }
+</section>

@@ -1,0 +1,19 @@
+@import '../../styles/insight-panels.css';
+@import '../../styles/insight-modal.css';
+
+:host {
+  display: block;
+}
+
+.insight-modal__head .insight-card__icon {
+  background: #fef2f2;
+  color: var(--uib-red);
+}
+
+.insight-modal__body .insight-card__marker {
+  background: var(--uib-red);
+}
+
+.insight-modal__body .insight-card__item-label {
+  color: #b91c1c;
+}

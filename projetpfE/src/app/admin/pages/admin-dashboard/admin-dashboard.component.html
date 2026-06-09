@@ -1,0 +1,262 @@
+<section class="list-page admin-dashboard">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-sub">Supervision globale de la plateforme BNPL UIB</p>
+    </div>
+    <div class="header-actions-row">
+      <a routerLink="/admin/traceabilite" class="btn-secondary-link">
+        <admin-icon name="trace" /> Traçabilité complète
+      </a>
+      <a routerLink="/admin/demandes/en-cours" class="btn-secondary-link">
+        <admin-icon name="eye" /> Demandes en cours
+      </a>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="table-state">
+      <span class="spinner" aria-hidden="true"></span>
+      Chargement du tableau de bord…
+    </div>
+  } @else if (dashboard) {
+
+    <section class="kpi-section">
+      <h2 class="kpi-section__title">Supervision 24 h</h2>
+      <div class="stats-row stats-row--wide">
+        <div class="stat-card active">
+          <div class="stat-val">{{ num(dashboard.actionsDemandes24h) }}</div>
+          <div class="stat-lbl">Actions demandes (24 h)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ num(dashboard.decisionsFinancement24h) }}</div>
+          <div class="stat-lbl">Décisions financement (24 h)</div>
+        </div>
+        <div class="stat-card stat-card--warn">
+          <div class="stat-val">{{ num(dashboard.accesSuspects24h) }}</div>
+          <div class="stat-lbl">Accès suspects (24 h)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ num(dashboard.dossiersArchivesTotal) }}</div>
+          <div class="stat-lbl">Dossiers archivés (total)</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val">{{ num(dashboard.dossiersArchives30j) }}</div>
+          <div class="stat-lbl">Archives (30 jours)</div>
+        </div>
+      </div>
+      <p class="section-hint">
+        <a routerLink="/admin/traceabilite" [queryParams]="{ tab: 'acces' }">
+          Voir les accès plateforme →
+        </a>
+      </p>
+    </section>
+
+    <div class="charts-row charts-row--canvas">
+      <div class="card chart-card">
+        <div class="chart-wrap">
+          <canvas #actionsBarCanvas aria-label="Actions sur les demandes"></canvas>
+          @if (!hasMapData(dashboard.repartitionActionsParType)) {
+            <p class="chart-empty chart-empty--overlay">Aucune action enregistrée.</p>
+          }
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-wrap chart-wrap--donut">
+          <canvas #decisionsDoughnutCanvas aria-label="Décisions financement"></canvas>
+          @if (!hasMapData(dashboard.repartitionDecisionsParType)) {
+            <p class="chart-empty chart-empty--overlay">Aucune décision enregistrée.</p>
+          }
+        </div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card chart-card">
+        <h3 class="section-title">Répartition actions (demandes)</h3>
+        @for (item of repartitionEntries(dashboard.repartitionActionsParType); track item.key) {
+          <div class="bar-row">
+            <span class="bar-label">{{ libelleAction(item.key) }}</span>
+            <div class="bar-track">
+              <div class="bar-fill" [style.width.%]="repartitionBarWidth(item.value, dashboard.repartitionActionsParType)"></div>
+            </div>
+            <span class="bar-value">{{ item.value }}</span>
+          </div>
+        } @empty {
+          <p class="muted">Aucune action enregistrée.</p>
+        }
+      </div>
+
+      <div class="card chart-card">
+        <h3 class="section-title">Répartition décisions</h3>
+        @for (item of repartitionEntries(dashboard.repartitionDecisionsParType); track item.key) {
+          <div class="bar-row">
+            <span class="bar-label">{{ libelleDecision(item.key) }}</span>
+            <div class="bar-track">
+              <div class="bar-fill bar-fill--decision" [style.width.%]="repartitionBarWidth(item.value, dashboard.repartitionDecisionsParType)"></div>
+            </div>
+            <span class="bar-value">{{ item.value }}</span>
+          </div>
+        } @empty {
+          <p class="muted">Aucune décision enregistrée.</p>
+        }
+      </div>
+    </div>
+
+    <section class="scoring-section">
+      <h2 class="kpi-section__title">Scoring</h2>
+      <div class="scoring-row">
+        <div class="card scoring-card">
+          <h3 class="scoring-card__title">Répartition pré-scoring par zone</h3>
+          <div class="scoring-card__body">
+            <div class="chart-wrap chart-wrap--scoring">
+              <canvas #scoringZoneCanvas aria-label="Répartition pré-scoring par zone"></canvas>
+              @if (!hasScoringZoneData()) {
+                <p class="chart-empty chart-empty--overlay">Aucun prescoring enregistré.</p>
+              }
+            </div>
+            <ul class="scoring-legend">
+              @for (z of zoneScoringEntries(); track z.key) {
+                <li>
+                  <span class="scoring-legend__dot" [style.background]="z.color"></span>
+                  <span>{{ z.label }}</span>
+                  <strong>({{ z.value }})</strong>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+
+        <div class="card scoring-card">
+          <h3 class="scoring-card__title">Répartition du risque (pré-scoring)</h3>
+          <div class="scoring-card__body">
+            <div class="chart-wrap chart-wrap--scoring">
+              <canvas #scoringRisqueCanvas aria-label="Répartition du risque prescoring"></canvas>
+            </div>
+            <ul class="scoring-legend">
+              @for (r of risqueScoringEntries(); track r.key) {
+                <li>
+                  <span class="scoring-legend__dot" [style.background]="r.color"></span>
+                  <span>{{ r.label }}</span>
+                  <strong>({{ r.value }})</strong>
+                </li>
+              }
+            </ul>
+          </div>
+        </div>
+
+        <div class="card scoring-card">
+          <h3 class="scoring-card__title">Score moyen de pré-scoring</h3>
+          <div class="gauge-wrap">
+            <canvas #scoringGaugeCanvas aria-label="Score moyen prescoring"></canvas>
+            <div class="gauge-center">
+              <strong>{{ formatScore(dashboard.scoreMoyenPrescoring) }}</strong>
+              <span>/ {{ SCORE_MAX }}</span>
+            </div>
+            <div class="gauge-scale" aria-hidden="true">
+              <span>0</span>
+              <span>{{ SCORE_MAX }}</span>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <h2 class="kpi-section__title charts-section-title">Visualisations</h2>
+    <div class="charts-grid">
+      <div class="card chart-card chart-card--wide">
+        <div class="chart-wrap chart-wrap--line">
+          <canvas #evolutionLineCanvas aria-label="Évolution des demandes"></canvas>
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap chart-wrap--donut">
+          <canvas #statutDoughnutCanvas aria-label="Répartition statuts"></canvas>
+          @if (!hasStatutData()) {
+            <p class="chart-empty chart-empty--overlay">Aucun statut enregistré.</p>
+          }
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap">
+          <canvas #banqueBarCanvas aria-label="Taux acceptation banque"></canvas>
+          @if (!hasMapData(dashboard.tauxAcceptationParBanque)) {
+            <p class="chart-empty chart-empty--overlay">Pas encore de décisions bancaires.</p>
+          }
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap">
+          <canvas #commercantBarCanvas aria-label="Demandes par commerçant"></canvas>
+          @if (!hasMapData(dashboard.demandesParCommercant)) {
+            <p class="chart-empty chart-empty--overlay">Aucune demande par commerçant.</p>
+          }
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap chart-wrap--donut">
+          <canvas #acceptRefusePieCanvas aria-label="Acceptées vs refusées"></canvas>
+          @if (!hasAcceptRefuseData()) {
+            <p class="chart-empty chart-empty--overlay">Aucune décision acceptée/refusée.</p>
+          }
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap chart-wrap--donut">
+          <canvas #portefeuilleDoughnutCanvas aria-label="État du portefeuille"></canvas>
+          @if (!hasPortefeuilleData()) {
+            <p class="chart-empty chart-empty--overlay">Portefeuille vide.</p>
+          }
+        </div>
+      </div>
+
+      <div class="card chart-card">
+        <div class="chart-wrap">
+          <canvas #activiteBarCanvas aria-label="Activité mensuelle"></canvas>
+        </div>
+      </div>
+    </div>
+
+    <div class="card table-card">
+      <h3 class="section-title">Dernières actions sur les demandes</h3>
+      <div class="table-wrap">
+        <table class="dash-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Demande</th>
+              <th>Type</th>
+              <th>Libellé</th>
+              <th>Acteur</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (a of dashboard.dernieresActions; track a.id) {
+              <tr>
+                <td>{{ asApiDate(a.dateAction) | date:'short' }}</td>
+                <td><strong>{{ a.referenceDemande || ('DEM-' + a.demandeId) }}</strong></td>
+                <td><span class="tag">{{ libelleAction(a.typeAction) }}</span></td>
+                <td>{{ a.libelle || '—' }}</td>
+                <td>{{ a.acteurEmail || '—' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="muted">Aucune action récente.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+      <p class="table-foot">
+        <a routerLink="/admin/traceabilite">Voir toute la traçabilité →</a>
+      </p>
+    </div>
+  }
+</section>

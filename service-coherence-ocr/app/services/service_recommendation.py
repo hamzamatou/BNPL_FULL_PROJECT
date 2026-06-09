@@ -68,7 +68,8 @@ class RecommandationResult:
     raw_llm_response: Optional[str]           # brut Ollama pour debug
 
     def to_dict(self) -> dict:
-        return asdict(self)
+        """Réponse API : uniquement la liste des recommandations."""
+        return {"recommandations": list(self.recommandations or [])}
 
 
 # ──────────────────────────────────────────────────────────────────────────────
@@ -136,6 +137,65 @@ def _score_solvabilite(dossier: DossierFinancier, mensualite: float) -> str:
 # Fallback texte (si Ollama échoue ou retourne JSON invalide)
 # ──────────────────────────────────────────────────────────────────────────────
 
+_MOTS_CLES_DOC_INTERDITS = (
+    "document",
+    "pièce",
+    "piece",
+    "justificatif",
+    "joindre",
+    "joign",
+    "fiche de paie",
+    "attestation",
+    " ocr",
+    "lisible",
+    "scann",
+    "cin ",
+    "carte d'identité",
+)
+
+
+def _filtrer_recommandations_financieres(recommandations: list[str]) -> list[str]:
+    """
+    Ne conserve que les recommandations orientées montant ou durée
+    (exclut conseils sur documents / pièces supplémentaires).
+    """
+    filtrees: list[str] = []
+    for raw in recommandations:
+        texte = (raw or "").strip()
+        if not texte:
+            continue
+        low = texte.lower()
+        if any(mot in low for mot in _MOTS_CLES_DOC_INTERDITS):
+            continue
+        filtrees.append(texte)
+    return filtrees
+
+
+def _message_demande_conforme(score: str) -> str:
+    return (
+        "Dossier conforme : le montant et la durée respectent le plafond d'endettement "
+        f"(règle 40 % BCT). Il faut juste vérifier les dates des fiches de paie, "
+        f"s'il vous plaît. Score de solvabilité : {score}."
+    )
+
+
+def _appliquer_recommandations_si_conforme(
+    conforme: bool,
+    recommandations: list[str],
+    score: str,
+) -> list[str]:
+    """Si la demande est conforme, une seule recommandation explicite pour l'UI."""
+    if not conforme:
+        return recommandations
+    for texte in recommandations:
+        low = (texte or "").lower()
+        if "demande conforme" in low or "dossier conforme" in low:
+            if "demande conforme" in low:
+                return [texte.strip()]
+            return [_message_demande_conforme(score)]
+    return [_message_demande_conforme(score)]
+
+
 def _fallback_texte(
     mensualite: float,
     plafond: float,
@@ -148,14 +208,9 @@ def _fallback_texte(
 ) -> tuple[str, list[str]]:
     """Retourne (evaluation, recommandations) sans LLM."""
     if conforme:
-        evaluation = (
-            f"Dossier conforme : mensualité BNPL {mensualite} TND "
-            f"≤ plafond {plafond} TND. Score : {score}."
-        )
-        recommandations = [
-            "Vérifiez que toutes les pièces justificatives sont jointes et lisibles.",
-            "Assurez-vous que les 3 fiches de paie couvrent les 3 derniers mois consécutifs.",
-        ]
+        msg = _message_demande_conforme(score)
+        evaluation = msg
+        recommandations = [msg]
     else:
         evaluation = (
             f"Dossier NON conforme : mensualité BNPL {mensualite} TND "
@@ -164,8 +219,7 @@ def _fallback_texte(
         opt2 = (
             f"Option 2 : allonger la durée à {duree_min} mois pour conserver {montant_financement} TND."
             if (duree_min is not None and duree_min > 0)
-            else "Option 2 : le plafond mensuel BCT est atteint ou dépassé par les crédits existants — "
-            "réduire le montant ou les mensualités de crédits en cours avant d'ajouter un BNPL."
+            else "Option 2 : réduire le montant demandé — le plafond mensuel BNPL ne permet pas cette mensualité."
         )
         recommandations = [
             f"Option 1 : réduire le montant demandé à {montant_max} TND sur {duree_mois} mois.",
@@ -237,21 +291,33 @@ def generer_recommandations(dossier: DossierFinancier) -> RecommandationResult:
         data         = result.get("parsed", {})
 
         evaluation      = (data.get("evaluation") or "").strip()
-        recommandations = [
+        recommandations = _filtrer_recommandations_financieres([
             r for r in (data.get("recommandations") or [])
             if isinstance(r, str) and r.strip()
-        ]
+        ])
 
     except Exception:
         pass   # on tombe sur le fallback ci-dessous
 
     # ── 3. Fallback si LLM vide ou en erreur ──────────────────────────────────
-    if not evaluation or not recommandations:
+    if not recommandations:
         evaluation, recommandations = _fallback_texte(
             mensualite, plafond, conforme, mnt_max,
             dossier.duree_mois, duree_min_val,
             dossier.montant_financement, score,
         )
+
+    recommandations = _appliquer_recommandations_si_conforme(conforme, recommandations, score)
+
+    if not recommandations:
+        recommandations = (
+            [_message_demande_conforme(score)]
+            if conforme
+            else ["Vérifiez le montant ou la durée du financement pour respecter le plafond d'endettement."]
+        )
+
+    if conforme and not evaluation:
+        evaluation = recommandations[0]
 
     return RecommandationResult(
         conforme=conforme,

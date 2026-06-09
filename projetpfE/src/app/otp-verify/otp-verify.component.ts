@@ -3,6 +3,7 @@ import { FormsModule } from '@angular/forms';
 import { Router, RouterLink } from '@angular/router';
 import { NgIf, NgFor } from '@angular/common';
 import { AuthService } from '../services/auth-service.service';
+import { extractHttpErrorMessage } from '../shared/utils/http-error.util';
 
 @Component({
   selector: 'app-otp-verify',
@@ -58,6 +59,10 @@ export class OtpVerifyComponent implements OnInit, OnDestroy {
 
   // ── Saisie chiffre par chiffre ──
   onDigitInput(event: Event, index: number) {
+  if (this.timerExpired) {
+    return;
+  }
+
   const input = event.target as HTMLInputElement;
   const raw = input.value.replace(/\D/g, '');
 
@@ -83,6 +88,11 @@ export class OtpVerifyComponent implements OnInit, OnDestroy {
 }
 
 onKeyDown(event: KeyboardEvent, index: number) {
+  if (this.timerExpired) {
+    event.preventDefault();
+    return;
+  }
+
   if (event.key === 'Backspace') {
     event.preventDefault();
 
@@ -119,6 +129,11 @@ onKeyDown(event: KeyboardEvent, index: number) {
     if (arr[index]) arr[index].nativeElement.focus();
   }
   verifyOtp() {
+    if (this.timerExpired) {
+      this.errorMessage = 'Le code a expiré. Veuillez renvoyer un nouveau code.';
+      return;
+    }
+
     if (this.otpCode.length !== 6) {
       this.errorMessage = 'Le code doit contenir 6 chiffres';
       return;
@@ -163,7 +178,7 @@ onKeyDown(event: KeyboardEvent, index: number) {
         this.loading = false;
         this.digits = ['', '', '', '', '', ''];
         setTimeout(() => this.focusInput(0));
-        this.errorMessage = err?.error?.error ?? 'Code invalide ou expiré';
+        this.errorMessage = extractHttpErrorMessage(err, 'Code invalide ou expiré. Veuillez réessayer.');
       }
     });
   }
@@ -171,24 +186,34 @@ onKeyDown(event: KeyboardEvent, index: number) {
   resendOtp() {
     if (this.resendCooldown > 0 || this.loading) return;
 
-    const email = this.authService.getPendingEmail()!;
+    const email = this.authService.getPendingEmail();
+    if (!email) {
+      this.errorMessage = 'Session expirée. Veuillez vous reconnecter.';
+      return;
+    }
+
+    this.loading = true;
+    this.errorMessage = '';
+
     this.authService.resendOtp(email).subscribe({
       next: () => {
+        this.loading = false;
         this.digits = ['', '', '', '', '', ''];
-        this.errorMessage = '';
         this.timerSeconds = 300;
-        if (!this.timerInterval) this.startTimer();
+        this.startTimer();
         this.startResendCooldown(60);
         setTimeout(() => this.focusInput(0));
       },
-      error: () => {
-        this.errorMessage = 'Erreur lors du renvoi du code';
+      error: (err) => {
+        this.loading = false;
+        this.errorMessage = extractHttpErrorMessage(err, 'Impossible de renvoyer le code. Veuillez réessayer.');
       }
     });
   }
 
   // ── Timer ──
   private startTimer() {
+    this.stopTimer();
     this.timerInterval = setInterval(() => {
       this.timerSeconds--;
       if (this.timerSeconds <= 0) {
@@ -207,6 +232,10 @@ onKeyDown(event: KeyboardEvent, index: number) {
 
   // ── Cooldown bouton "Renvoyer" ──
   private startResendCooldown(seconds: number) {
+    if (this.cooldownInterval) {
+      clearInterval(this.cooldownInterval);
+      this.cooldownInterval = null;
+    }
     this.resendCooldown = seconds;
     this.cooldownInterval = setInterval(() => {
       this.resendCooldown--;

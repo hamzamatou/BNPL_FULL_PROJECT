@@ -1,10 +1,11 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
-import { Observable } from 'rxjs';
+import { Observable, map } from 'rxjs';
 import {
   AccesPlateformeHistoriqueDto,
   ActionDemandeHistoriqueDto,
   ActionDocumentHistoriqueDto,
+  BanqueDashboardDto,
   DashboardReportingDto,
   DecisionFinancementHistoriqueDto,
   DossierArchiveDto,
@@ -20,7 +21,68 @@ export class ReportingArchivageService {
   constructor(private readonly http: HttpClient) {}
 
   getDashboard(): Observable<DashboardReportingDto> {
-    return this.http.get<DashboardReportingDto>(`${this.reportingUrl}/dashboard`, {
+    return this.http
+      .get<DashboardReportingDto>(`${this.reportingUrl}/dashboard`, {
+        headers: this.authHeaders(),
+      })
+      .pipe(map((raw) => this.normalizeDashboard(raw)));
+  }
+
+  /** Conversion JSON → types TS (pas de calcul métier). */
+  private normalizeDashboard(raw: DashboardReportingDto): DashboardReportingDto {
+    const n = (v: unknown): number => {
+      if (v == null || v === '') return 0;
+      const x = Number(v);
+      return Number.isFinite(x) ? x : 0;
+    };
+    const mapObj = (v: Record<string, number> | undefined): Record<string, number> => {
+      if (!v) return {};
+      const out: Record<string, number> = {};
+      for (const [k, val] of Object.entries(v)) out[k] = n(val);
+      return out;
+    };
+    return {
+      ...raw,
+      actionsDemandes24h: n(raw.actionsDemandes24h),
+      decisionsFinancement24h: n(raw.decisionsFinancement24h),
+      accesSuspects24h: n(raw.accesSuspects24h),
+      dossiersArchivesTotal: n(raw.dossiersArchivesTotal),
+      dossiersArchives30j: n(raw.dossiersArchives30j),
+      repartitionActionsParType: mapObj(raw.repartitionActionsParType),
+      repartitionDecisionsParType: mapObj(raw.repartitionDecisionsParType),
+      dernieresActions: raw.dernieresActions ?? [],
+      demandesTotal: n(raw.demandesTotal),
+      demandesCeMois: n(raw.demandesCeMois),
+      montantTotalDemande: n(raw.montantTotalDemande),
+      montantMoyenDemande: n(raw.montantMoyenDemande),
+      clientsInscrits: n(raw.clientsInscrits),
+      commercantsPartenaires: n(raw.commercantsPartenaires),
+      banquesPartenaires: n(raw.banquesPartenaires),
+      utilisateursActifs: n(raw.utilisateursActifs),
+      utilisateursTotal: n(raw.utilisateursTotal),
+      demandesAcceptees: n(raw.demandesAcceptees),
+      demandesRefusees: n(raw.demandesRefusees),
+      tauxAcceptationPct: n(raw.tauxAcceptationPct),
+      demandesEnCoursAnalyse: n(raw.demandesEnCoursAnalyse),
+      demandesCloturees: n(raw.demandesCloturees),
+      scoreMoyenPrescoring: n(raw.scoreMoyenPrescoring),
+      prescoringRisqueFaible: n(raw.prescoringRisqueFaible),
+      prescoringRisqueMoyen: n(raw.prescoringRisqueMoyen),
+      prescoringRisqueEleve: n(raw.prescoringRisqueEleve),
+      demandesRoutees: n(raw.demandesRoutees),
+      reponsesBancairesRecues: n(raw.reponsesBancairesRecues),
+      tempsMoyenTraitementHeures:
+        raw.tempsMoyenTraitementHeures == null ? null : n(raw.tempsMoyenTraitementHeures),
+      repartitionPrescoringParZone: mapObj(raw.repartitionPrescoringParZone),
+      evolutionDemandesParJour: mapObj(raw.evolutionDemandesParJour),
+      repartitionStatuts: mapObj(raw.repartitionStatuts),
+      tauxAcceptationParBanque: mapObj(raw.tauxAcceptationParBanque),
+      demandesParCommercant: mapObj(raw.demandesParCommercant),
+    };
+  }
+
+  getDashboardBanque(): Observable<BanqueDashboardDto> {
+    return this.http.get<BanqueDashboardDto>(`${this.reportingUrl}/dashboard/banque`, {
       headers: this.authHeaders(),
     });
   }
@@ -88,6 +150,7 @@ export class ReportingArchivageService {
     if (withObjectKey && filters.objectKey) params = params.set('objectKey', filters.objectKey);
     if (filters.debut) params = params.set('debut', filters.debut);
     if (filters.fin) params = params.set('fin', filters.fin);
+    if (filters.acteurUserId != null) params = params.set('acteurUserId', String(filters.acteurUserId));
     return params;
   }
 

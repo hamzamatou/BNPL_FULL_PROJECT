@@ -11,7 +11,7 @@
 /* --- SECTION GAUCHE --- */
 .brand-section {
   flex: 0 0 50%; /* Exactement la moitié */
-  background-color: #C8102E; /* Le rouge UIB officiel */
+  background-color: var(--uib-red); /* Le rouge UIB officiel */
   color: white;
   display: flex;
   padding: 60px;
@@ -95,7 +95,7 @@
   font-size: 0.7rem;
   letter-spacing: 2px;
   font-weight: 700;
-  color: #C8102E;
+  color: var(--uib-red);
   text-transform: uppercase;
   margin-bottom: 10px;
 }
@@ -117,7 +117,7 @@
 .email-tag {
   display: inline-block;
   background: #FFF0F0;
-  color: #C8102E;
+  color: var(--uib-red);
   border: 0.5px solid #F5BEBE;
   border-radius: 4px;
   padding: 2px 8px;
@@ -148,7 +148,7 @@
   outline: none;
   background: #fafafa;
   transition: border-color 0.15s, background 0.15s, box-shadow 0.15s;
-  caret-color: #C8102E;
+  caret-color: var(--uib-red);
   -moz-appearance: textfield;
 }
 
@@ -158,14 +158,28 @@
 }
 
 .otp-inputs input:focus {
-  border-color: #C8102E;
+  border-color: var(--uib-red);
   background: #ffffff;
   box-shadow: 0 0 0 3px rgba(200, 16, 46, 0.1);
 }
 
 .otp-inputs input.filled {
-  border-color: #C8102E;
+  border-color: var(--uib-red);
   background: #FFF5F6;
+}
+
+.otp-inputs input.expired,
+.otp-inputs input:disabled {
+  background: #f0f0f0;
+  border-color: #d8d8d8;
+  color: #9ca3af;
+  cursor: not-allowed;
+  opacity: 0.75;
+}
+
+.timer-text.timer-expired {
+  color: var(--uib-red);
+  font-weight: 600;
 }
 
 /* ── Message d'erreur ── */
@@ -175,11 +189,11 @@
   gap: 8px;
   background: #FFF0F0;
   border: 0.5px solid #F5BEBE;
-  border-left: 3px solid #C8102E;
+  border-left: 3px solid var(--uib-red);
   border-radius: 6px;
   padding: 10px 14px;
   font-size: 0.82rem;
-  color: #C8102E;
+  color: var(--uib-red);
   margin-bottom: 18px;
 }
 
@@ -202,13 +216,13 @@
 
 .timer-count {
   font-weight: 700;
-  color: #C8102E;
+  color: var(--uib-red);
   font-variant-numeric: tabular-nums;
   font-size: 0.88rem;
 }
 
 .timer-text.expired {
-  color: #C8102E;
+  color: var(--uib-red);
   font-weight: 600;
 }
 
@@ -223,7 +237,7 @@
 }
 
 .resend-link.active {
-  color: #C8102E;
+  color: var(--uib-red);
   cursor: pointer;
   text-decoration: underline;
 }
@@ -236,7 +250,7 @@
 .btn-submit {
   width: 100%;
   padding: 14px;
-  background: #C8102E;
+  background: var(--uib-red);
   color: #fff;
   border: none;
   border-radius: 8px;

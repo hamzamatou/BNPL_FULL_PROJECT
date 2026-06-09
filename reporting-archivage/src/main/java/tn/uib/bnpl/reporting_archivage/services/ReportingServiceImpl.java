@@ -6,6 +6,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import tn.uib.bnpl.reporting_archivage.classes.*;
 import tn.uib.bnpl.reporting_archivage.dto.ActionDemandeResumeDto;
+import tn.uib.bnpl.reporting_archivage.dto.AdminDashboardKpiSnapshot;
+import tn.uib.bnpl.reporting_archivage.dto.BanqueDashboardDto;
 import tn.uib.bnpl.reporting_archivage.dto.DashboardReportingDto;
 import tn.uib.bnpl.reporting_archivage.repository.*;
 
@@ -23,18 +25,21 @@ public class ReportingServiceImpl implements ReportingService {
     private final AccesPlateformeHistoriqueRepository accesRepository;
     private final ActionDocumentHistoriqueRepository actionDocumentRepository;
     private final DossierArchiveRepository dossierArchiveRepository;
+    private final AdminDashboardKpiService adminDashboardKpiService;
 
     public ReportingServiceImpl(
             ActionDemandeHistoriqueRepository actionDemandeRepository,
             DecisionFinancementHistoriqueRepository decisionRepository,
             AccesPlateformeHistoriqueRepository accesRepository,
             ActionDocumentHistoriqueRepository actionDocumentRepository,
-            DossierArchiveRepository dossierArchiveRepository) {
+            DossierArchiveRepository dossierArchiveRepository,
+            AdminDashboardKpiService adminDashboardKpiService) {
         this.actionDemandeRepository = actionDemandeRepository;
         this.decisionRepository = decisionRepository;
         this.accesRepository = accesRepository;
         this.actionDocumentRepository = actionDocumentRepository;
         this.dossierArchiveRepository = dossierArchiveRepository;
+        this.adminDashboardKpiService = adminDashboardKpiService;
     }
 
     @Override
@@ -63,11 +68,39 @@ public class ReportingServiceImpl implements ReportingService {
                         a.getTypeAction().name(), a.getLibelle(), a.getActeurEmail(), a.getDateAction()))
                 .toList();
 
+        AdminDashboardKpiSnapshot kpi = adminDashboardKpiService.compute();
+
         return new DashboardReportingDto(
                 actions24h, decisions24h, accesSuspects24h, archivesTotal, archives30j,
                 new LinkedHashMap<>(repartitionActions),
                 new LinkedHashMap<>(repartitionDecisions),
-                dernieres
+                dernieres,
+                kpi.demandesTotal(),
+                kpi.demandesCeMois(),
+                kpi.montantTotalDemande(),
+                kpi.montantMoyenDemande(),
+                kpi.clientsInscrits(),
+                kpi.commercantsPartenaires(),
+                kpi.banquesPartenaires(),
+                kpi.utilisateursActifs(),
+                kpi.utilisateursTotal(),
+                kpi.demandesAcceptees(),
+                kpi.demandesRefusees(),
+                kpi.tauxAcceptationPct(),
+                kpi.demandesEnCoursAnalyse(),
+                kpi.demandesCloturees(),
+                kpi.scoreMoyenPrescoring(),
+                kpi.prescoringRisqueFaible(),
+                kpi.prescoringRisqueMoyen(),
+                kpi.prescoringRisqueEleve(),
+                kpi.demandesRoutees(),
+                kpi.reponsesBancairesRecues(),
+                kpi.tempsMoyenTraitementHeures(),
+                new LinkedHashMap<>(kpi.repartitionPrescoringParZone()),
+                new LinkedHashMap<>(kpi.evolutionDemandesParJour()),
+                new LinkedHashMap<>(kpi.repartitionStatuts()),
+                new LinkedHashMap<>(kpi.tauxAcceptationParBanque()),
+                new LinkedHashMap<>(kpi.demandesParCommercant())
         );
     }
 
@@ -123,7 +156,24 @@ public class ReportingServiceImpl implements ReportingService {
     @Override
     public Page<DecisionFinancementHistorique> getDecisions(Long demandeId, String type,
                                                              LocalDateTime debut, LocalDateTime fin,
+                                                             Long acteurUserId,
                                                              Pageable pageable) {
+        if (acteurUserId != null) {
+            if (demandeId != null) {
+                return decisionRepository.findByActeurUserIdAndDemandeId(acteurUserId, demandeId, pageable);
+            }
+            if (type != null && debut != null && fin != null) {
+                return decisionRepository.findByActeurUserIdAndTypeDecisionAndDateDecisionBetween(
+                        acteurUserId,
+                        TypeDecisionFinancement.valueOf(type.toUpperCase()),
+                        debut, fin, pageable);
+            }
+            if (debut != null && fin != null) {
+                return decisionRepository.findByActeurUserIdAndDateDecisionBetween(
+                        acteurUserId, debut, fin, pageable);
+            }
+            return decisionRepository.findByActeurUserId(acteurUserId, pageable);
+        }
         if (demandeId != null) {
             return decisionRepository.findByDemandeId(demandeId, pageable);
         }
@@ -135,5 +185,48 @@ public class ReportingServiceImpl implements ReportingService {
             return decisionRepository.findByDateDecisionBetween(debut, fin, pageable);
         }
         return decisionRepository.findAll(pageable);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public BanqueDashboardDto getDashboardBanque(Long analysteUserId) {
+        LocalDateTime depuis24h = LocalDateTime.now().minusHours(24);
+
+        long decisions24h = decisionRepository.countByActeurUserIdAndDateDecisionAfter(analysteUserId, depuis24h);
+        long acceptees = decisionRepository.countByActeurUserIdAndTypeDecision(
+                analysteUserId, TypeDecisionFinancement.ACCEPTEE);
+        long refusees = decisionRepository.countByActeurUserIdAndTypeDecision(
+                analysteUserId, TypeDecisionFinancement.REFUSEE);
+        long complements = decisionRepository.countByActeurUserIdAndTypeDecision(
+                analysteUserId, TypeDecisionFinancement.DEMANDE_COMPLEMENTS);
+        long prisesEnCharge = actionDemandeRepository.countByActeurUserIdAndTypeAction(
+                analysteUserId, TypeActionDemande.PRISE_EN_CHARGE);
+
+        Map<String, Long> repartition = decisionRepository.findByActeurUserId(
+                        analysteUserId, Pageable.unpaged())
+                .stream()
+                .collect(Collectors.groupingBy(d -> d.getTypeDecision().name(), Collectors.counting()));
+
+        List<BanqueDashboardDto.DecisionResumeDto> dernieres = decisionRepository
+                .findTop8ByActeurUserIdOrderByDateDecisionDesc(analysteUserId)
+                .stream()
+                .map(d -> new BanqueDashboardDto.DecisionResumeDto(
+                        d.getId(),
+                        d.getDemandeId(),
+                        d.getReferenceDemande(),
+                        d.getTypeDecision().name(),
+                        d.getLibelle(),
+                        d.getDateDecision()))
+                .toList();
+
+        return new BanqueDashboardDto(
+                decisions24h,
+                acceptees,
+                refusees,
+                complements,
+                prisesEnCharge,
+                new LinkedHashMap<>(repartition),
+                dernieres
+        );
     }
 }

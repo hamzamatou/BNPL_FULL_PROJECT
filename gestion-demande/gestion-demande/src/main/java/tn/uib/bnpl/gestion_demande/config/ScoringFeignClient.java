@@ -13,14 +13,12 @@ import tn.uib.bnpl.gestion_demande.dto.*;
 )
 public interface ScoringFeignClient {
 
-    /**
-     * Cohérence + recommandations (uniquement si anomalies[] vide) — appel unique depuis gestion-demande.
-     */
+    /** Étape 1 — cohérence OCR (multipart, comme le micro Python). */
     @PostMapping(
-            value = "/dossier/validate",
+            value = "/coherence/check",
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE
     )
-    DossierValidationResultDto validateDossier(
+    CoherenceResultDto checkCoherence(
             @RequestPart("declared_data") String declaredData,
             @RequestPart(value = "cin", required = false) MultipartFile cin,
             @RequestPart(value = "fiche_paie_m1", required = false) MultipartFile fichePaieM1,
@@ -29,31 +27,6 @@ public interface ScoringFeignClient {
             @RequestPart(value = "attestation_travail", required = false) MultipartFile attestationTravail,
             @RequestPart(value = "devis", required = false) MultipartFile devis,
             @RequestPart(value = "justificatif_loyer", required = false) MultipartFile justificatifLoyer
-    );
-
-    @PostMapping(
-            value = "/coherence/check",
-            consumes = MediaType.MULTIPART_FORM_DATA_VALUE
-    )
-    CoherenceResultDto checkCoherence(
-
-            @RequestPart("declared_data")
-            String declaredData,
-
-            @RequestPart("cin")
-            MultipartFile cin,
-
-            @RequestPart("fiche_paie_m1")
-            MultipartFile fichePaieM1,
-
-            @RequestPart("fiche_paie_m2")
-            MultipartFile fichePaieM2,
-
-            @RequestPart("fiche_paie_m3")
-            MultipartFile fichePaieM3,
-
-            @RequestPart("attestation_travail")
-            MultipartFile attestationTravail
     );
 
     @GetMapping("/recommendation/generate")

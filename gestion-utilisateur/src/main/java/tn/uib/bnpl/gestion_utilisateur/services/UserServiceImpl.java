@@ -1,5 +1,8 @@
 package tn.uib.bnpl.gestion_utilisateur.services;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
@@ -7,31 +10,46 @@ import tn.uib.bnpl.gestion_utilisateur.classes.AccountStatus;
 import tn.uib.bnpl.gestion_utilisateur.classes.Role;
 import tn.uib.bnpl.gestion_utilisateur.classes.User;
 import tn.uib.bnpl.gestion_utilisateur.config.JwtUtil;
+import tn.uib.bnpl.gestion_utilisateur.client.NotificationServiceClient;
 import tn.uib.bnpl.gestion_utilisateur.dto.ClientIdentityResponse;
 import tn.uib.bnpl.gestion_utilisateur.dto.CreateClientRequest;
 import tn.uib.bnpl.gestion_utilisateur.dto.CreatedClientResponse;
+import tn.uib.bnpl.gestion_utilisateur.dto.NotificationEmailRequest;
 import tn.uib.bnpl.gestion_utilisateur.repository.UserRepository;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Locale;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 @Service
 public class UserServiceImpl implements UserService {
 
-    private final EmailService emailService;
+    private static final Logger log = LoggerFactory.getLogger(UserServiceImpl.class);
+
+    private final NotificationPublisher notificationPublisher;
+    private final NotificationServiceClient notificationClient;
     private final UserRepository userRepository;
     private final PasswordEncoder passwordEncoder;
     private final JwtUtil jwtUtil;
 
+    @Value("${app.notifications.async.enabled:false}")
+    private boolean asyncNotificationsEnabled;
+
+    @Value("${internal.api.key}")
+    private String internalApiKey;
+
     public UserServiceImpl(UserRepository userRepository,
                            PasswordEncoder passwordEncoder,
                            JwtUtil jwtUtil,
-                           EmailService emailService) {
+                           NotificationPublisher notificationPublisher,
+                           NotificationServiceClient notificationClient) {
         this.userRepository = userRepository;
         this.passwordEncoder = passwordEncoder;
         this.jwtUtil = jwtUtil;
-        this.emailService = emailService;
+        this.notificationPublisher = notificationPublisher;
+        this.notificationClient = notificationClient;
     }
 
     // ======================
@@ -40,7 +58,13 @@ public class UserServiceImpl implements UserService {
     @Override
     public User saveUser(User user) {
 
-        if (userRepository.findByEmail(user.getEmail()).isPresent()) {
+        String normalizedEmail = normalizeEmail(user.getEmail());
+        if (normalizedEmail == null || normalizedEmail.isBlank()) {
+            throw new RuntimeException("Email obligatoire");
+        }
+        user.setEmail(normalizedEmail);
+
+        if (userRepository.findByEmailIgnoreCase(normalizedEmail).isPresent()) {
             throw new RuntimeException("Email déjà utilisé");
         }
 
@@ -50,28 +74,16 @@ public class UserServiceImpl implements UserService {
         user.setPassword(passwordEncoder.encode(rawPassword));
         user.setStatus(AccountStatus.CREATED);
 
-        String token = UUID.randomUUID().toString();
-        user.setActivationToken(token);
-        user.setTokenExpiration(LocalDateTime.now().plusHours(24));
-
         User saved = userRepository.save(user);
 
-        try {
-            emailService.sendCredentialsEmail(
-                saved.getEmail(),
-                saved.getEmail(),
-                rawPassword,
-                token
-            );
-        } catch (Exception e) {
-            System.out.println("Erreur email: " + e.getMessage());
-        }
+        publishActivationEmail(saved.getId(), saved.getEmail());
         return saved;
     }
     @Override
     public String login(String email, String password) throws Exception {
 
-        User user = userRepository.findByEmail(email)
+        String normalizedEmail = normalizeEmail(email);
+        User user = userRepository.findByEmailIgnoreCase(normalizedEmail)
                 .orElseThrow(() -> new Exception("Email introuvable"));
 
         if (user.getStatus() == AccountStatus.BLOCKED) {
@@ -82,48 +94,76 @@ public class UserServiceImpl implements UserService {
             throw new Exception("Mot de passe incorrect");
         }
 
-        // Générer OTP 6 chiffres
-        String otp = String.format("%06d", (int)(Math.random() * 1000000));
-        user.setOtpCode(otp);
-        user.setOtpExpiration(LocalDateTime.now().plusMinutes(5));
-        userRepository.save(user);
+        publishLoginOtpEmail(user.getEmail());
 
-        // Envoyer OTP par email
-        emailService.sendOtpEmail(user.getEmail(), otp);
-
-        // Retourner signal "OTP requis" — pas encore de JWT
         return "OTP_SENT";
     }
     @Override
     public void sendOtp(String email) throws Exception {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new Exception("Utilisateur introuvable"));
 
-        String otp = String.format("%06d", (int)(Math.random() * 1000000));
-        user.setOtpCode(otp);
-        user.setOtpExpiration(LocalDateTime.now().plusMinutes(5));
-        userRepository.save(user);
+        if (user.getStatus() == AccountStatus.BLOCKED) {
+            throw new Exception("Compte bloqué");
+        }
 
-        emailService.sendOtpEmail(user.getEmail(), otp);
+        publishLoginOtpEmail(user.getEmail());
+    }
+
+    private void publishActivationEmail(Long userId, String email) {
+        if (!asyncNotificationsEnabled) {
+            log.warn("Notifications async desactivees: mail activation non publie (userId={})", userId);
+            return;
+        }
+        NotificationEmailRequest event = new NotificationEmailRequest(
+                UUID.randomUUID().toString(),
+                "user-" + userId,
+                internalApiKey,
+                email,
+                "ACTIVATION_ACCOUNT",
+                Map.of("userId", userId, "email", email),
+                LocalDateTime.now()
+        );
+        try {
+            notificationPublisher.publishEmail(event);
+        } catch (Exception ex) {
+            log.error("Publication RabbitMQ activation echouee (userId={})", userId, ex);
+            throw new IllegalStateException("Impossible de publier la notification activation", ex);
+        }
+    }
+
+    private void publishLoginOtpEmail(String email) {
+        if (!asyncNotificationsEnabled) {
+            log.warn("Notifications async desactivees: mail OTP login non publie (email={})", email);
+            return;
+        }
+        NotificationEmailRequest event = new NotificationEmailRequest(
+                UUID.randomUUID().toString(),
+                email,
+                internalApiKey,
+                email,
+                "LOGIN_OTP",
+                Map.of("email", email),
+                LocalDateTime.now()
+        );
+        try {
+            notificationPublisher.publishEmail(event);
+        } catch (Exception ex) {
+            log.error("Publication RabbitMQ OTP login echouee (email={})", email, ex);
+            throw new IllegalStateException("Impossible de publier la notification OTP", ex);
+        }
     }
 
     @Override
     public String verifyOtp(String email, String otpCode) throws Exception {
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() -> new Exception("Utilisateur introuvable"));
 
-        if (user.getOtpCode() == null || !user.getOtpCode().equals(otpCode)) {
-            throw new Exception("Code OTP invalide");
+        try {
+            notificationClient.verifyLoginOtp(email, otpCode.trim());
+        } catch (IllegalArgumentException ex) {
+            throw new Exception(ex.getMessage());
         }
-
-        if (user.getOtpExpiration().isBefore(LocalDateTime.now())) {
-            throw new Exception("Code OTP expiré");
-        }
-
-        // Invalider l'OTP après usage
-        user.setOtpCode(null);
-        user.setOtpExpiration(null);
-        userRepository.save(user);
 
         return jwtUtil.generateToken(user.getId(), user.getEmail(), user.getRole());
     }
@@ -138,23 +178,27 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("Passwords not match");
         }
 
-        User user = userRepository.findByActivationToken(token)
-                .orElseThrow(() -> new RuntimeException("Token invalide"));
+        NotificationServiceClient.ActivationResolve resolved;
+        try {
+            resolved = notificationClient.resolveActivation(token);
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
+
+        User user = userRepository.findById(resolved.userId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
 
         if (user.getStatus() != AccountStatus.CREATED) {
             throw new RuntimeException("Déjà activé");
         }
 
-        if (user.getTokenExpiration().isBefore(LocalDateTime.now())) {
-            throw new RuntimeException("Token expiré");
-        }
-
         user.setPassword(passwordEncoder.encode(newPassword));
         user.setStatus(AccountStatus.ACTIVE);
-        user.setActivationToken(UUID.randomUUID().toString());
-        user.setTokenExpiration(LocalDateTime.now().plusHours(24));
-
-        return userRepository.save(user);
+        user.setActivationToken(null);
+        user.setTokenExpiration(null);
+        User saved = userRepository.save(user);
+        notificationClient.consumeActivation(token);
+        return saved;
     }
 
     // ======================
@@ -162,8 +206,14 @@ public class UserServiceImpl implements UserService {
     // ======================
     @Override
     public User findByToken(String token) {
-        return userRepository.findByActivationToken(token)
-                .orElseThrow(() -> new RuntimeException("Token invalide"));
+        NotificationServiceClient.ActivationResolve resolved;
+        try {
+            resolved = notificationClient.resolveActivation(token);
+        } catch (IllegalArgumentException ex) {
+            throw new RuntimeException(ex.getMessage());
+        }
+        return userRepository.findById(resolved.userId())
+                .orElseThrow(() -> new RuntimeException("Utilisateur introuvable"));
     }
 
     // ======================
@@ -194,12 +244,12 @@ public class UserServiceImpl implements UserService {
     @Override
     public CreatedClientResponse createClientForBnpl(CreateClientRequest request) {
 
-        if (userRepository.findByEmail(request.email().trim()).isPresent()) {
+        if (userRepository.findByEmailIgnoreCase(normalizeEmail(request.email())).isPresent()) {
             throw new RuntimeException("Email déjà utilisé");
         }
 
         User client = new User();
-        client.setEmail(request.email().trim());
+        client.setEmail(normalizeEmail(request.email()));
         client.setNom(trimToNull(request.nom()));
         client.setPrenom(trimToNull(request.prenom()));
         client.setCin(trimToNull(request.cin()));
@@ -226,12 +276,12 @@ public class UserServiceImpl implements UserService {
             throw new RuntimeException("L'utilisateur " + clientId + " n'est pas un client");
         }
 
-        String email = request.email() != null ? request.email().trim() : null;
+        String email = normalizeEmail(request.email());
         if (email == null || email.isBlank()) {
             throw new RuntimeException("Email client obligatoire");
         }
 
-        userRepository.findByEmail(email).ifPresent(existing -> {
+        userRepository.findByEmailIgnoreCase(email).ifPresent(existing -> {
             if (!existing.getId().equals(clientId)) {
                 throw new RuntimeException("Email déjà utilisé");
             }
@@ -315,7 +365,14 @@ public class UserServiceImpl implements UserService {
         return userRepository.save(user);
     }
     public User findByEmail(String email) {
-        return userRepository.findByEmail(email)
+        return userRepository.findByEmailIgnoreCase(normalizeEmail(email))
             .orElseThrow(() -> new RuntimeException("User not found"));
+    }
+
+    private static String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

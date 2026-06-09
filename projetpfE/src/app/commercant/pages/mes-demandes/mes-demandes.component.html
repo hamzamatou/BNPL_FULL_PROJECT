@@ -1,89 +1,146 @@
-<section class="page">
-  <h2 class="title">Mes demandes BNPL</h2>
-
-  <div class="stat-grid" *ngIf="!loading && !errorMessage">
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-blue">📋</div>
-      <div>
-        <div class="stat-val">{{ totalCount }}</div>
-        <div class="stat-lbl">Total demandes</div>
-      </div>
+<section class="list-page">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Mes demandes BNPL</h1>
+      <p class="page-sub">Gérez et suivez vos dossiers de financement</p>
     </div>
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-amber">⏳</div>
-      <div>
+    <a routerLink="/commercant" class="primary-btn">
+      <span class="plus-ico">+</span>
+      Nouvelle demande
+    </a>
+  </header>
+
+  @if (!loading && !errorMessage) {
+    <div class="stats-row">
+      <button
+        type="button"
+        class="stat-card"
+        [class.active]="statusFilter === 'ALL'"
+        (click)="setStatusFilter('ALL')"
+      >
+        <div class="stat-val">{{ totalCount }}</div>
+        <div class="stat-lbl">Demandes totales</div>
+      </button>
+      <button
+        type="button"
+        class="stat-card stat-wait"
+        [class.active]="statusFilter === 'CONSENTEMENT' || statusFilter === 'CREE' || statusFilter === 'EN_ATTENTE_CONSENTEMENT'"
+        (click)="setStatusFilter('CONSENTEMENT')"
+      >
         <div class="stat-val">{{ waitingCount }}</div>
         <div class="stat-lbl">Consentement</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-blue2">🔍</div>
-      <div>
+      </button>
+      <button
+        type="button"
+        class="stat-card stat-analysis"
+        [class.active]="statusFilter === 'EN_ANALYSE'"
+        (click)="setStatusFilter('EN_ANALYSE')"
+      >
         <div class="stat-val">{{ analysisCount }}</div>
         <div class="stat-lbl">En analyse</div>
-      </div>
-    </div>
-    <div class="stat-card">
-      <div class="stat-icon stat-icon-green">✅</div>
-      <div>
+      </button>
+      <button
+        type="button"
+        class="stat-card stat-sent"
+        [class.active]="statusFilter === 'SOUMISE'"
+        (click)="setStatusFilter('SOUMISE')"
+      >
         <div class="stat-val">{{ acceptedCount }}</div>
-        <div class="stat-lbl">Acceptées</div>
+        <div class="stat-lbl">Soumises</div>
+      </button>
+      <button
+        type="button"
+        class="stat-card stat-cancelled"
+        [class.active]="statusFilter === 'ANNULEE'"
+        (click)="setStatusFilter('ANNULEE')"
+      >
+        <div class="stat-val">{{ annuleesCount }}</div>
+        <div class="stat-lbl">Annulées</div>
+      </button>
+    </div>
+  }
+
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="search-box">
+        <span class="search-ico" aria-hidden="true">⌕</span>
+        <input
+          type="text"
+          placeholder="Rechercher (client, référence, produit)…"
+          [(ngModel)]="searchTerm"
+        />
       </div>
+      <select class="filter-select" [(ngModel)]="sortBy">
+        <option value="date_desc">Date (récentes)</option>
+        <option value="date_asc">Date (anciennes)</option>
+        <option value="montant_desc">Montant (décroissant)</option>
+        <option value="montant_asc">Montant (croissant)</option>
+        <option value="client_asc">Client (A-Z)</option>
+      </select>
+    </div>
+
+    <div class="status-filters" role="group" aria-label="Filtrer par statut">
+      @for (f of statusFilters; track f.value) {
+        <button
+          type="button"
+          class="status-chip"
+          [class.active]="statusFilter === f.value"
+          (click)="setStatusFilter(f.value)"
+        >
+          {{ f.label }}
+          <span class="chip-count">{{ countForFilter(f.value) }}</span>
+        </button>
+      }
     </div>
   </div>
 
-  <div class="toolbar">
-    <div class="search-box">
-      <span>🔍</span>
-      <input type="text" placeholder="Rechercher (client, reference, statut)..." [(ngModel)]="searchTerm" />
-    </div>
-    <select class="filter-select" [(ngModel)]="sortBy">
-      <option value="date_desc">Date (recentes)</option>
-      <option value="date_asc">Date (anciennes)</option>
-      <option value="montant_desc">Montant (desc)</option>
-      <option value="montant_asc">Montant (asc)</option>
-      <option value="client_asc">Client (A-Z)</option>
-    </select>
-    <a routerLink="/commercant" class="new-btn">+ Nouvelle demande</a>
-  </div>
+  <div class="card table-card">
+    <div class="section-title">Liste des demandes</div>
 
-  <div class="table">
-    <div class="thead">
-      <div>Reference</div>
-      <div>Client</div>
-      <div>Montant</div>
-      <div>Statut</div>
-      <div>Date</div>
-      <div>Action</div>
-    </div>
-
-    @if (loading) {
-      <div class="tr">
-        <div class="empty-row">Chargement des demandes...</div>
-      </div>
-    } @else if (errorMessage) {
-      <div class="tr">
-        <div class="empty-row">Erreur: {{ errorMessage }}</div>
-      </div>
-    } @else if (displayedDemandes.length === 0) {
-      <div class="tr">
-        <div class="empty-row">Aucune demande trouvee (verifie recherche/tri).</div>
-      </div>
-    } @else {
-    @for (demande of displayedDemandes; track demande.id) {
-      <div class="tr">
-        <div><strong>{{ demande.reference }}</strong></div>
-        <div>{{ demande.client }}</div>
-        <div>{{ demande.montant }}</div>
-        <div>
-          <span class="badge" [class.wait]="demande.statut === 'EN_ATTENTE_CONSENTEMENT' || demande.statut === 'CREE'" [class.analysis]="demande.statut === 'EN_ANALYSE'" [class.sent]="demande.statut === 'SOUMISE'">
-            {{ demande.statut === 'CREE' ? 'Créée' : (demande.statut === 'EN_ATTENTE_CONSENTEMENT' ? 'Consentement' : (demande.statut === 'EN_ANALYSE' ? 'En analyse' : 'Soumise')) }}
-          </span>
+    <div class="table-wrap">
+      <div class="table">
+        <div class="thead">
+          <div>Référence</div>
+          <div>Client</div>
+          <div>Montant</div>
+          <div>Statut</div>
+          <div>Date</div>
+          <div class="col-action">Action</div>
         </div>
-        <div>{{ demande.date }}</div>
-        <div><button class="details" (click)="openDetails(demande)">Details</button></div>
+
+        @if (loading) {
+          <div class="table-state">
+            <span class="spinner" aria-hidden="true"></span>
+            Chargement des demandes…
+          </div>
+        } @else if (errorMessage) {
+          <div class="table-state table-state--error">{{ errorMessage }}</div>
+        } @else if (displayedDemandes.length === 0) {
+          <div class="table-state">Aucune demande ne correspond à vos critères.</div>
+        } @else {
+          @for (demande of displayedDemandes; track demande.id) {
+            <div class="tr">
+              <div class="ref-cell">
+                <strong>{{ demande.reference }}</strong>
+              </div>
+              <div class="client-cell">{{ demande.client }}</div>
+              <div class="amount-cell">{{ demande.montant }}</div>
+              <div>
+                <span class="status-badge" [ngClass]="badgeClass(demande.statut)">
+                  {{ statutLabel(demande.statut) }}
+                </span>
+              </div>
+              <div class="date-cell">{{ demande.date }}</div>
+              <div class="row-actions">
+                <button class="detail-btn" type="button" (click)="openDetails(demande)">
+                  Détails
+                  <span class="detail-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          }
+        }
       </div>
-    }
-    }
+    </div>
   </div>
 </section>

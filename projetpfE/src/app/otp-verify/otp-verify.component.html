@@ -46,6 +46,8 @@
     maxlength="1"
     [value]="digits[i]"
     [class.filled]="digits[i] !== ''"
+    [class.expired]="timerExpired"
+    [disabled]="timerExpired"
     (input)="onDigitInput($event, i)"
     (keydown)="onKeyDown($event, i)"
     autocomplete="one-time-code"
@@ -54,17 +56,22 @@
       <div *ngIf="errorMessage" class="error-msg">{{ errorMessage }}</div>
 
       <div class="timer-row">
-        <span class="timer-text">
-          Expire dans <span class="timer-count">{{ formattedTimer }}</span>
+        <span class="timer-text" [class.timer-expired]="timerExpired">
+          <ng-container *ngIf="!timerExpired; else expiredTimer">
+            Expire dans <span class="timer-count">{{ formattedTimer }}</span>
+          </ng-container>
+          <ng-template #expiredTimer>
+            Code expiré — renvoyez un nouveau code
+          </ng-template>
         </span>
-        <button class="resend-link" [class.active]="resendCooldown === 0"
-          [disabled]="resendCooldown > 0" (click)="resendOtp()">
-          Renvoyer le code
+        <button class="resend-link" [class.active]="resendCooldown === 0 && !loading"
+          [disabled]="resendCooldown > 0 || loading" (click)="resendOtp()">
+          {{ resendCooldown > 0 ? 'Renvoi dans ' + resendCooldown + 's' : 'Renvoyer le code' }}
         </button>
       </div>
 
       <button class="btn-submit" (click)="verifyOtp()"
-        [disabled]="loading || otpCode.length < 6">
+        [disabled]="loading || otpCode.length < 6 || timerExpired">
         {{ loading ? 'Vérification…' : 'Valider le code' }}
       </button>
 

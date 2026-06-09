@@ -1,5 +1,7 @@
 package tn.uib.bnpl.gestion_demande.services;
 
+import com.fasterxml.jackson.core.JsonProcessingException;
+import com.fasterxml.jackson.core.type.TypeReference;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import io.minio.GetPresignedObjectUrlArgs;
 import io.minio.MinioClient;
@@ -11,11 +13,15 @@ import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import tn.uib.bnpl.gestion_demande.camunda.CamundaWorkflowService;
+import tn.uib.bnpl.gestion_demande.camunda.PrescoringWorkflowHelper;
 import tn.uib.bnpl.gestion_demande.classes.*;
 import tn.uib.bnpl.gestion_demande.config.ScoringFeignClient;
 import tn.uib.bnpl.gestion_demande.dto.*;
+import tn.uib.bnpl.gestion_demande.client.ReportingArchivageClient;
 import tn.uib.bnpl.gestion_demande.repository.*;
 import tn.uib.bnpl.gestion_demande.security.SecurityUtils;
+import tn.uib.bnpl.gestion_demande.web.DemandeDtoMapper;
 
 import java.io.InputStream;
 import java.math.BigDecimal;
@@ -24,13 +30,14 @@ import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.concurrent.TimeUnit;
 
 /**
  * Service de gestion des demandes — flux corrigé avec IA pré-création.
  *
  * Flux création :
- *  1. POST /analyse-ia (côté front) — cohérence + recommandations, sans BDD
+ *  1. POST /analyse (front) — cohérence + reco si OK, sans BDD
  *  2. POST /creation-complete — persistance + email (reco déjà calculées)
  *  3. Client → POST /consentement/confirm → prescoring
  */
@@ -50,6 +57,13 @@ public class DemandeServiceImpl implements DemandeService {
     private final ScoringFeignClient            scoringClient;
     private final MinioClient                   minioClient;
     private final ObjectMapper                  objectMapper;
+    private final Optional<CamundaWorkflowService> camundaWorkflowService;
+    private final PrescoringWorkflowHelper      prescoringWorkflowHelper;
+    private final DemandeHistoriqueService      historiqueService;
+    private final PriseEnChargeRepository         priseEnChargeRepository;
+    private final DemandeDtoMapper                demandeDtoMapper;
+    private final ReportingArchivageClient        reportingArchivageClient;
+    private final AnnulationWorkflowHelper        annulationWorkflowHelper;
 
     @Value("${minio.bucket:bnpl-documents}")
     private String bucket;
@@ -65,7 +79,14 @@ public class DemandeServiceImpl implements DemandeService {
                               ActionClientService          actionClientService,
                               ScoringFeignClient           scoringClient,
                               MinioClient                  minioClient,
-                              ObjectMapper                 objectMapper) {
+                              ObjectMapper                 objectMapper,
+                              Optional<CamundaWorkflowService> camundaWorkflowService,
+                              PrescoringWorkflowHelper prescoringWorkflowHelper,
+                              DemandeHistoriqueService historiqueService,
+                              PriseEnChargeRepository priseEnChargeRepository,
+                              DemandeDtoMapper demandeDtoMapper,
+                              ReportingArchivageClient reportingArchivageClient,
+                              AnnulationWorkflowHelper annulationWorkflowHelper) {
         this.dossierRepo         = dossierRepo;
         this.demandeRepo         = demandeRepo;
         this.documentRepo        = documentRepo;
@@ -76,6 +97,104 @@ public class DemandeServiceImpl implements DemandeService {
         this.scoringClient       = scoringClient;
         this.minioClient         = minioClient;
         this.objectMapper        = objectMapper;
+        this.camundaWorkflowService = camundaWorkflowService;
+        this.prescoringWorkflowHelper = prescoringWorkflowHelper;
+        this.historiqueService = historiqueService;
+        this.priseEnChargeRepository = priseEnChargeRepository;
+        this.demandeDtoMapper = demandeDtoMapper;
+        this.reportingArchivageClient = reportingArchivageClient;
+        this.annulationWorkflowHelper = annulationWorkflowHelper;
+    }
+
+    @Override
+    public void archiverEtSupprimer(Long demandeId, String statutFinal, Long archiveParUserId) {
+        DemandeFinancement demande = demandeRepo.findById(demandeId)
+                .orElseThrow(() -> new IllegalArgumentException("Demande introuvable: " + demandeId));
+
+        if (!"ACCEPTEE".equalsIgnoreCase(statutFinal) && !"REFUSEE".equalsIgnoreCase(statutFinal)) {
+            throw new IllegalStateException(
+                    "Archivage autorisé uniquement pour ACCEPTEE/REFUSEE, reçu: " + statutFinal);
+        }
+
+        DemandeCompleteResponse complete = demandeDtoMapper.toComplete(demande);
+        DemandeCompleteResponse.ClientLiteDto client = complete.client();
+        DossierClient dossier = demande.getDossierClient();
+        LocalDateTime dateCloture = LocalDateTime.now();
+
+        historiqueService.enregistrer(
+                demandeId,
+                "CLOTURE",
+                "Demande clôturée",
+                "Archivage après décision " + statutFinal,
+                statutFinal,
+                StatutDemande.CLOTUREE,
+                archiveParUserId,
+                null,
+                "SYSTEME",
+                dateCloture
+        );
+
+        ArchivageDemandeRequest request = new ArchivageDemandeRequest(
+                demandeId,
+                statutFinal,
+                demande.getReferenceDemande(),
+                client != null ? client.id() : (dossier != null ? dossier.getClientId() : null),
+                client != null ? client.cin() : null,
+                demande.getMontant(),
+                demande.getDureeMois(),
+                demande.getTypeProduit(),
+                toJson(complete),
+                buildDocumentsMetadataJson(dossier),
+                archiveParUserId,
+                dateCloture
+        );
+
+        reportingArchivageClient.archiverDemande(request);
+        log.info("Demande archivée dans reporting-archivage — id={} statut={}", demandeId, statutFinal);
+
+        supprimerDemandeActive(demande);
+        log.info("Demande supprimée de gestion-demande — id={}", demandeId);
+    }
+
+    private void supprimerDemandeActive(DemandeFinancement demande) {
+        Long demandeId = demande.getId();
+        priseEnChargeRepository.deleteByDemandeId(demandeId);
+        if (demande.getPrescoringScore() != null) {
+            prescoringScoreRepo.delete(demande.getPrescoringScore());
+        }
+        if (demande.getRecommandation() != null) {
+            recommandationRepo.delete(demande.getRecommandation());
+        }
+        demandeRepo.delete(demande);
+    }
+
+    private String toJson(Object value) {
+        try {
+            return objectMapper.writeValueAsString(value);
+        } catch (JsonProcessingException ex) {
+            throw new IllegalStateException("Snapshot archivage JSON invalide", ex);
+        }
+    }
+
+    private String buildDocumentsMetadataJson(DossierClient dossier) {
+        if (dossier == null || dossier.getDocuments() == null || dossier.getDocuments().isEmpty()) {
+            return null;
+        }
+        List<Map<String, Object>> docs = dossier.getDocuments().stream()
+                .map(this::mapDocumentMeta)
+                .toList();
+        return toJson(docs);
+    }
+
+    private Map<String, Object> mapDocumentMeta(DocumentDossier doc) {
+        Map<String, Object> meta = new LinkedHashMap<>();
+        meta.put("id", doc.getId());
+        meta.put("typeDocument", doc.getTypeDocument());
+        meta.put("objectKey", doc.getObjectKey());
+        meta.put("nomFichier", doc.getNomFichier());
+        meta.put("contentType", doc.getContentType());
+        meta.put("tailleOctets", doc.getTailleOctets());
+        return meta;
     }
 
     // =========================================================================
@@ -85,7 +204,8 @@ public class DemandeServiceImpl implements DemandeService {
     @Override
     public DemandeFinancement creerDemandeComplete(
             CreationDemandeCompleteRequest request,
-            String recommandationsJson
+            String recommandationsJson,
+            String processInstanceId
     ) {
         String recoJson = (recommandationsJson != null && !recommandationsJson.isBlank())
                 ? recommandationsJson
@@ -137,23 +257,60 @@ public class DemandeServiceImpl implements DemandeService {
             montant, request.getDureeMois(),
             "CREE", now, now, request.getTypeProduit()
         );
+        if (processInstanceId != null && !processInstanceId.isBlank()) {
+            demande.setProcessInstanceId(processInstanceId);
+        }
         demande = demandeRepo.save(demande);
+
+        if (processInstanceId != null && !processInstanceId.isBlank()) {
+            final String camundaInstanceId = processInstanceId;
+            final Long demandeIdFinal = demande.getId();
+            camundaWorkflowService.ifPresent(camunda ->
+                    camunda.soumettreDemandeCommercant(camundaInstanceId, demandeIdFinal));
+        }
 
         // ── Persistance des recommandations (calculées par le micro IA) ───────
         Recommandation reco = Recommandation.of(demande, recoJson);
         recommandationRepo.save(reco);
         demande.setRecommandation(reco);
 
+        List<String> recommandations = parseRecommandationsList(recoJson);
+        historiqueService.enregistrer(
+                demande.getId(),
+                "RECOMMANDATION",
+                "Recommandations IA générées",
+                recommandations.size() + " proposition(s) de financement",
+                null,
+                demande.getStatut(),
+                commercantUserId,
+                SecurityUtils.getCurrentUserEmail(),
+                "COMMERCANT",
+                now,
+                HistoriqueIaDetails.recommandations(recommandations)
+        );
+
         // ── Upload documents MinIO ────────────────────────────────────────────
         uploadDocuments(request, clientId, dossier);
 
         // ── Envoi email consentement au client ────────────────────────────────
-        actionClientService.createActionLink(
+        actionClientService.requestConsentementEmail(
             demande.getId(), request.getEmail(),
             TypeActionClient.CONSENTEMENT, frontBaseUrl
         );
 
         demande = demandeRepo.findById(demande.getId()).orElse(demande);
+        historiqueService.enregistrer(
+                demande.getId(),
+                "CREATION",
+                "Demande créée",
+                "Dossier BNPL enregistré — documents joints",
+                null,
+                demande.getStatut(),
+                commercantUserId,
+                SecurityUtils.getCurrentUserEmail(),
+                "COMMERCANT",
+                now
+        );
         log.info("Demande créée — ref={} statut={}", demande.getReferenceDemande(), demande.getStatut());
         return demande;
     }
@@ -169,11 +326,32 @@ public class DemandeServiceImpl implements DemandeService {
         DemandeFinancement demande = demandeRepo.findById(demandeId)
             .orElseThrow(() -> new IllegalArgumentException("Demande introuvable : " + demandeId));
 
+        String avant = demande.getStatut();
+        LocalDateTime now = LocalDateTime.now();
         demande.setStatut("SOUMISE");
-        demande.setDateDerniereMiseAJour(LocalDateTime.now());
+        demande.setDateDerniereMiseAJour(now);
         demande = demandeRepo.save(demande);
+        historiqueService.enregistrer(
+                demande.getId(),
+                "CONSENTEMENT_VALIDE",
+                "Consentement client validé",
+                "La demande est soumise pour traitement",
+                avant,
+                "SOUMISE",
+                demande.getDossierClient() != null ? demande.getDossierClient().getClientId() : null,
+                null,
+                "CLIENT",
+                now
+        );
 
-        lancerPrescoring(demande);
+        String processInstanceId = demande.getProcessInstanceId();
+        if (camundaWorkflowService.isPresent()) {
+            if (processInstanceId != null && !processInstanceId.isBlank()) {
+                camundaWorkflowService.get().validerConsentementClient(processInstanceId);
+            }
+        } else {
+            prescoringWorkflowHelper.executerPrescoring(demande.getId());
+        }
 
         log.info("Demande soumise après consentement — ref={}", demande.getReferenceDemande());
         return demande;
@@ -192,6 +370,24 @@ public class DemandeServiceImpl implements DemandeService {
     }
 
     @Override
+    public List<DemandeSummaryResponse> listerDemandesParCommercant(Long commercantId) {
+        Long authId = SecurityUtils.getCurrentUserId();
+        if (!authId.equals(commercantId)) {
+            throw new IllegalStateException("L'id ne correspond pas à l'utilisateur authentifié");
+        }
+        return demandeRepo.findByCommercantUserId(commercantId).stream()
+                .map(this::mapSummaryWithClient)
+                .toList();
+    }
+
+    @Override
+    public List<DemandeSummaryResponse> listerDemandesEnCoursPourAdmin() {
+        return demandeRepo.findAllWithDossierForAdmin().stream()
+                .map(this::mapSummaryWithClient)
+                .toList();
+    }
+
+    @Override
     public DemandeFinancement getDemandeParIdPourCommercant(Long demandeId) {
         Long authId = SecurityUtils.getCurrentUserId();
         DemandeFinancement demande = demandeRepo.findCompleteById(demandeId)
@@ -199,6 +395,70 @@ public class DemandeServiceImpl implements DemandeService {
         if (!authId.equals(demande.getCommercantUserId()))
             throw new IllegalStateException("Cette demande n'appartient pas au commerçant authentifié");
         return demande;
+    }
+
+    @Override
+    public DemandeFinancement annulerDemande(Long demandeId) {
+        DemandeFinancement demande = getDemandeParIdPourCommercant(demandeId);
+        if ("ANNULEE".equalsIgnoreCase(demande.getStatut())) {
+            return demande;
+        }
+        annulationWorkflowHelper.verifierAnnulable(demande);
+
+        Long acteurUserId = SecurityUtils.getCurrentUserId();
+        String acteurEmail = SecurityUtils.getCurrentUserEmail();
+        String acteurRole = "COMMERCANT";
+
+        String instanceId = demande.getProcessInstanceId();
+        if (camundaWorkflowService.isPresent() && instanceId != null && !instanceId.isBlank()) {
+            camundaWorkflowService.get().declencherAnnulationCommercant(
+                    instanceId, demandeId, acteurUserId, acteurEmail, acteurRole);
+            return demandeRepo.findById(demandeId)
+                    .orElseThrow(() -> new IllegalArgumentException("Demande introuvable : " + demandeId));
+        }
+
+        return annulationWorkflowHelper.appliquerAnnulation(
+                demandeId, acteurUserId, acteurEmail, acteurRole);
+    }
+
+    @Override
+    public DemandeFinancement renvoyerMailConsentement(Long demandeId) {
+        DemandeFinancement demande = getDemandeParIdPourCommercant(demandeId);
+        if (!"EN_ATTENTE_CONSENTEMENT".equalsIgnoreCase(demande.getStatut())) {
+            throw new IllegalStateException("Renvoi autorisé uniquement au statut EN_ATTENTE_CONSENTEMENT");
+        }
+
+        DossierClient dossier = demande.getDossierClient();
+        if (dossier == null || dossier.getClientId() == null) {
+            throw new IllegalStateException("Client introuvable pour cette demande");
+        }
+
+        ClientIdentityDto client = clientRemoteService.getClientIdentity(dossier.getClientId());
+        if (client == null || client.email() == null || client.email().isBlank()) {
+            throw new IllegalStateException("Adresse e-mail client introuvable");
+        }
+
+        actionClientService.requestConsentementEmail(
+                demande.getId(),
+                client.email(),
+                TypeActionClient.CONSENTEMENT,
+                frontBaseUrl
+        );
+
+        historiqueService.enregistrer(
+                demande.getId(),
+                "RENVOI_CONSENTEMENT",
+                "Consentement renvoyé",
+                "Nouvel e-mail envoyé au client",
+                demande.getStatut(),
+                demande.getStatut(),
+                SecurityUtils.getCurrentUserId(),
+                SecurityUtils.getCurrentUserEmail(),
+                "COMMERCANT",
+                LocalDateTime.now()
+        );
+
+        return demandeRepo.findById(demande.getId()).orElse(demande);
     }
 
     @Override
@@ -234,32 +494,6 @@ public class DemandeServiceImpl implements DemandeService {
     // =========================================================================
     // Helpers privés
     // =========================================================================
-
-    private void lancerPrescoring(DemandeFinancement demande) {
-        DossierClient d = demande.getDossierClient();
-        try {
-            PrescoringResultDto dto = scoringClient.prescore(
-                str(d.getRevenuMensuelNet()),
-                str(d.getRevenuAnnuel()),
-                str(d.getChargesMensuelles()),
-                str(demande.getMontant()),
-                str(demande.getDureeMois()),
-                str(d.getAncienneteEmploiMois()),
-                d.getTypeContrat()
-            );
-            String explicationsJson = objectMapper.writeValueAsString(
-                dto.explications() != null ? dto.explications() : List.of());
-            String zoneCode = dto.zone() != null ? dto.zone().code() : "inconnu";
-
-            PrescoringScore score = PrescoringScore.of(demande, dto.pdPct(), dto.score(), zoneCode, explicationsJson);
-            prescoringScoreRepo.save(score);
-            demande.setPrescoringScore(score);
-
-            log.info("Prescoring OK — demande={} score={} zone={}", demande.getId(), dto.score(), zoneCode);
-        } catch (Exception ex) {
-            log.error("Prescoring échoué — demande={} : {}", demande.getId(), ex.getMessage());
-        }
-    }
 
     private Long resolveOrCreateClient(CreationDemandeCompleteRequest request) {
         try {
@@ -308,5 +542,21 @@ public class DemandeServiceImpl implements DemandeService {
     private static int        safeInt(Integer v)   { return v == null ? 0 : v; }
     private static String     str(Object v)        { return v == null ? null : v.toString(); }
     private static String     genererRef(String p) { return p + "-" + System.currentTimeMillis(); }
+
+    private DemandeSummaryResponse mapSummaryWithClient(DemandeFinancement d) {
+        return demandeDtoMapper.toSummary(d);
+    }
+
+    private List<String> parseRecommandationsList(String recoJson) {
+        if (recoJson == null || recoJson.isBlank()) {
+            return List.of();
+        }
+        try {
+            List<String> list = objectMapper.readValue(recoJson, new TypeReference<List<String>>() {});
+            return list != null ? list : List.of();
+        } catch (JsonProcessingException ex) {
+            return List.of(recoJson.trim());
+        }
+    }
 
 }

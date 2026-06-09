@@ -1,0 +1,73 @@
+<section class="list-page">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Journal des accès</h1>
+      <p class="page-sub">Connexions, déconnexions et accès suspects plateforme</p>
+    </div>
+    <a routerLink="/admin/demandes/en-cours" class="btn-secondary-link">
+      <admin-icon name="trace" /> Traçabilité complète
+    </a>
+  </header>
+
+  <div class="card filters-card">
+    <div class="filters-row">
+      <input class="filter-input" type="number" placeholder="ID utilisateur" [(ngModel)]="filterUserId" />
+      <label class="checkbox-label">
+        <input type="checkbox" [(ngModel)]="filterSuspectOnly" />
+        Suspects uniquement
+      </label>
+      <button type="button" class="btn-search" (click)="search()">
+        <admin-icon name="search" /> Rechercher
+      </button>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="table-state"><span class="spinner"></span> Chargement…</div>
+  } @else {
+    <div class="card table-card">
+      <div class="table-wrap">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th>Date</th>
+              <th>Utilisateur</th>
+              <th>Type</th>
+              <th>IP</th>
+              <th>Suspect</th>
+            </tr>
+          </thead>
+          <tbody>
+            @for (row of acces; track row.id) {
+              <tr [class.row-suspect]="row.suspect">
+                <td>{{ asApiDate(row.dateAcces) | date:'short' }}</td>
+                <td>{{ row.userEmail || row.userId || '—' }}</td>
+                <td>{{ libelleAcces(row.typeAcces) }}</td>
+                <td>{{ row.adresseIp || '—' }}</td>
+                <td>{{ row.suspect ? 'Oui' : 'Non' }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="table-empty-cell">Aucun accès enregistré.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </div>
+
+    @if (totalElements > pageSize) {
+      <div class="pagination">
+        <button type="button" class="page-btn" [disabled]="currentPage === 0" (click)="prevPage()">
+          <admin-icon name="chevron-left" /> Précédent
+        </button>
+        <span>Page {{ currentPage + 1 }}</span>
+        <button type="button" class="page-btn" [disabled]="(currentPage + 1) * pageSize >= totalElements" (click)="nextPage()">
+          Suivant <admin-icon name="chevron-right" />
+        </button>
+      </div>
+    }
+  }
+</section>

@@ -15,8 +15,21 @@
   font-size: 12px;
 }
 
-.doc-hint span {
-  color: #c8102e;
+.doc-hint > span:first-of-type {
+  color: var(--uib-red);
+  font-weight: 700;
+}
+
+.doc-hint__tag {
+  display: inline-block;
+  margin-top: 6px;
+  margin-right: 8px;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #fff;
+  border: 1px solid #f2c6ce;
+  color: #7a1b2b;
+  font-size: 11px;
   font-weight: 700;
 }
 
@@ -29,7 +42,7 @@
 }
 
 .req {
-  color: #d3121f;
+  color: var(--uib-red);
   font-weight: 700;
 }
 
@@ -60,14 +73,14 @@
 }
 
 .drop-zone span {
-  color: #c8102e;
+  color: var(--uib-red);
   font-weight: 700;
   text-decoration: underline;
 }
 
 .drop-zone:not(.disabled):hover {
   background: #fff0f3;
-  border-color: #c8102e;
+  border-color: var(--uib-red);
   transform: translateY(-1px);
 }
 

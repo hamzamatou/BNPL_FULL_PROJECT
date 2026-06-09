@@ -17,6 +17,7 @@ public record DemandeSummaryResponse(
         Long          clientId,
         String        clientNom,
         String        clientPrenom,
-        String        clientCin
+        String        clientCin,
+        Long          commercantUserId
 ) {}
  

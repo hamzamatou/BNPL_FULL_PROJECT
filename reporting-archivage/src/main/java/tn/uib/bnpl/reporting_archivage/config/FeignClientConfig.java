@@ -15,6 +15,16 @@ public class FeignClientConfig {
     @Bean
     RequestInterceptor feignJwtInterceptor(@Value("${internal.api.key}") String internalApiKey) {
         return requestTemplate -> {
+            String path = requestTemplate.path();
+            boolean internalCall = path != null && path.startsWith("/api/internal/");
+
+            if (internalCall) {
+                // KPI inter-services : clé INTERNAL uniquement (pas le JWT admin)
+                requestTemplate.header("X-Internal-Api-Key", internalApiKey);
+                requestTemplate.removeHeader(HttpHeaders.AUTHORIZATION);
+                return;
+            }
+
             requestTemplate.header("X-Internal-Api-Key", internalApiKey);
             Authentication auth = SecurityContextHolder.getContext().getAuthentication();
             if (auth instanceof JwtAuthenticationToken jwtAuth) {

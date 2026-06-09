@@ -3,6 +3,8 @@ package tn.uib.bnpl.reporting_archivage.repository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import tn.uib.bnpl.reporting_archivage.classes.ActionDemandeHistorique;
 import tn.uib.bnpl.reporting_archivage.classes.TypeActionDemande;
 
@@ -22,4 +24,49 @@ public interface ActionDemandeHistoriqueRepository extends JpaRepository<ActionD
     long countByDateActionAfter(LocalDateTime depuis);
 
     List<ActionDemandeHistorique> findTop10ByOrderByDateActionDesc();
+
+    boolean existsByDemandeId(Long demandeId);
+
+    List<ActionDemandeHistorique> findByDemandeIdOrderByDateActionAsc(Long demandeId);
+
+    long countByActeurUserIdAndTypeAction(Long acteurUserId, TypeActionDemande typeAction);
+
+    @Query("select count(distinct a.demandeId) from ActionDemandeHistorique a")
+    long countDistinctDemandeId();
+
+    @Query("""
+            select count(distinct a.demandeId)
+            from ActionDemandeHistorique a
+            where a.typeAction = tn.uib.bnpl.reporting_archivage.classes.TypeActionDemande.CREATION
+              and a.dateAction >= :since
+            """)
+    long countDistinctCreationsSince(@Param("since") LocalDateTime since);
+
+    @Query("""
+            select count(distinct a.demandeId)
+            from ActionDemandeHistorique a
+            where a.typeAction = tn.uib.bnpl.reporting_archivage.classes.TypeActionDemande.ROUTAGE
+            """)
+    long countDistinctDemandesRoutees();
+
+    List<ActionDemandeHistorique> findByTypeAction(TypeActionDemande typeAction);
+
+    @Query(value = """
+            SELECT CAST(date_action AS date) AS jour, COUNT(DISTINCT demande_id)
+            FROM action_demande_historique
+            WHERE type_action = 'CREATION' AND date_action >= :since
+            GROUP BY CAST(date_action AS date)
+            ORDER BY jour
+            """, nativeQuery = true)
+    List<Object[]> countCreationsGroupedByDay(@Param("since") LocalDateTime since);
+
+    @Query("""
+            select a.acteurUserId, count(distinct a.demandeId)
+            from ActionDemandeHistorique a
+            where a.typeAction = tn.uib.bnpl.reporting_archivage.classes.TypeActionDemande.CREATION
+              and a.acteurUserId is not null
+            group by a.acteurUserId
+            order by count(distinct a.demandeId) desc
+            """)
+    List<Object[]> countCreationsGroupedByActeurUserId();
 }

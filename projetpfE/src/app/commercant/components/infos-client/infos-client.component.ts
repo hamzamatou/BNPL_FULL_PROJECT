@@ -35,11 +35,22 @@ export class InfosClientComponent implements OnChanges {
   situationFamiliale: SituationFamilialeCode | '' = '';
   nombreEnfants: number | null = 0;
 
-  formError = '';
+  nomError = '';
+  prenomError = '';
+  emailError = '';
   telephoneError = '';
   cinError = '';
+  adresseError = '';
+  sexeError = '';
+  professionError = '';
+  employeurError = '';
+  typeContratError = '';
+  situationFamilialeError = '';
+  nombreEnfantsError = '';
   ancienneteError = '';
   dateNaissanceError = '';
+
+  private static readonly AGE_MINIMUM_ANNEES = 20;
 
   @Output() nextStep = new EventEmitter<any>();
 
@@ -73,13 +84,21 @@ export class InfosClientComponent implements OnChanges {
     if (str('employeur')) this.employeur = str('employeur')!;
     if (str('typeContrat')) this.typeContrat = str('typeContrat') as 'CDI' | 'CDD' | '';
     if (str('dateNaissance')) this.dateNaissance = str('dateNaissance')!;
-    if (str('situationFamiliale')) {
-      this.situationFamiliale = str('situationFamiliale') as SituationFamilialeCode;
+    const situation = str('situationFamiliale');
+    if (situation === 'CELIBATAIRE' || situation === 'MARIE' || situation === 'DIVORCE') {
+      this.situationFamiliale = situation;
     }
     const anc = num('ancienneteEmploiMois');
     if (anc !== undefined) this.ancienneteEmploiMois = anc;
     const ne = num('nombreEnfants');
     if (ne !== undefined) this.nombreEnfants = ne;
+  }
+
+  /** Date max. sélectionnable : aujourd’hui moins 20 ans (âge minimum). */
+  get dateNaissanceMax(): string {
+    const d = this.dateLimiteNaissanceMax();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
   }
 
   libelleSituation(): string {
@@ -92,69 +111,116 @@ export class InfosClientComponent implements OnChanges {
     const map: Record<string, string> = {
       CELIBATAIRE: 'sit-badge sit-badge--celib',
       MARIE: 'sit-badge sit-badge--marie',
-      PACSE: 'sit-badge sit-badge--pacse',
       DIVORCE: 'sit-badge sit-badge--divorce',
-      VEUF: 'sit-badge sit-badge--veuf',
-      CONCUBINAGE: 'sit-badge sit-badge--concubinage',
     };
     return map[c] ?? 'sit-badge';
   }
 
-  next() {
-    this.formError = '';
+  private clearErrors(): void {
+    this.nomError = '';
+    this.prenomError = '';
+    this.emailError = '';
     this.telephoneError = '';
     this.cinError = '';
+    this.adresseError = '';
+    this.sexeError = '';
+    this.professionError = '';
+    this.employeurError = '';
+    this.typeContratError = '';
+    this.situationFamilialeError = '';
+    this.nombreEnfantsError = '';
     this.ancienneteError = '';
     this.dateNaissanceError = '';
+  }
 
-    const requiredMissing =
-      !this.nom.trim() ||
-      !this.prenom.trim() ||
-      !this.email.trim() ||
-      !this.telephone.trim() ||
-      !this.cin.trim() ||
-      !this.adresse.trim() ||
-      !this.sexe.trim() ||
-      !this.profession.trim() ||
-      !this.employeur.trim() ||
-      !this.typeContrat ||
-      !this.dateNaissance ||
-      !this.situationFamiliale;
+  private dateLimiteNaissanceMax(): Date {
+    const today = new Date();
+    return new Date(
+      today.getFullYear() - InfosClientComponent.AGE_MINIMUM_ANNEES,
+      today.getMonth(),
+      today.getDate(),
+    );
+  }
 
-    if (requiredMissing) {
-      this.formError = 'Veuillez remplir tous les champs obligatoires.';
-      return;
+  private validerDateNaissance(): boolean {
+    if (!this.dateNaissance) {
+      this.dateNaissanceError = 'Champ obligatoire.';
+      return false;
     }
+    const dateN = new Date(this.dateNaissance);
+    if (Number.isNaN(dateN.getTime())) {
+      this.dateNaissanceError = 'Date de naissance invalide.';
+      return false;
+    }
+    const today = new Date();
+    today.setHours(23, 59, 59, 999);
+    if (dateN > today) {
+      this.dateNaissanceError = 'La date de naissance ne peut pas être dans le futur.';
+      return false;
+    }
+    if (dateN > this.dateLimiteNaissanceMax()) {
+      this.dateNaissanceError = `Le client doit avoir au moins ${InfosClientComponent.AGE_MINIMUM_ANNEES} ans.`;
+      return false;
+    }
+    return true;
+  }
 
-    const cinDigits = this.cin.trim();
-    if (!/^\d{8}$/.test(cinDigits)) {
+  next() {
+    this.clearErrors();
+
+    if (!this.nom.trim()) this.nomError = 'Champ obligatoire.';
+    if (!this.prenom.trim()) this.prenomError = 'Champ obligatoire.';
+    if (!this.email.trim()) {
+      this.emailError = 'Champ obligatoire.';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(this.email.trim())) {
+      this.emailError = 'Adresse e-mail invalide.';
+    }
+    if (!this.telephone.trim()) {
+      this.telephoneError = 'Champ obligatoire.';
+    } else if (!/^[2549]\d{7}$/.test(this.telephone.trim())) {
+      this.telephoneError = '8 chiffres, commençant par 2, 5, 9 ou 4.';
+    }
+    if (!this.cin.trim()) {
+      this.cinError = 'Champ obligatoire.';
+    } else if (!/^\d{8}$/.test(this.cin.trim())) {
       this.cinError = 'Le CIN doit contenir exactement 8 chiffres.';
-      return;
     }
+    if (!this.adresse.trim()) this.adresseError = 'Champ obligatoire.';
+    if (!this.sexe.trim()) this.sexeError = 'Champ obligatoire.';
+    if (!this.profession.trim()) this.professionError = 'Champ obligatoire.';
+    if (!this.employeur.trim()) this.employeurError = 'Champ obligatoire.';
+    if (!this.typeContrat) this.typeContratError = 'Champ obligatoire.';
+    if (!this.situationFamiliale) this.situationFamilialeError = 'Champ obligatoire.';
 
-    const telDigits = this.telephone.trim();
-    if (!/^[2549]\d{7}$/.test(telDigits)) {
-      this.telephoneError = 'Le téléphone doit contenir 8 chiffres et commencer par 2, 5, 9 ou 4.';
-      return;
-    }
+    this.validerDateNaissance();
 
     const anciennete = Number(this.ancienneteEmploiMois);
     if (!Number.isInteger(anciennete) || anciennete < 0) {
-      this.ancienneteError = "L'ancienneté doit être un entier en mois (>= 0).";
-      return;
-    }
-
-    const dateN = new Date(this.dateNaissance);
-    if (!this.dateNaissance || Number.isNaN(dateN.getTime()) || dateN > new Date()) {
-      this.dateNaissanceError = 'Date de naissance invalide.';
-      return;
+      this.ancienneteError = "L'ancienneté doit être un entier en mois (≥ 0).";
     }
 
     const ne = Number(this.nombreEnfants);
     if (this.shouldShowNombreEnfants && (!Number.isInteger(ne) || ne < 0)) {
-      this.formError = 'Le nombre d’enfants doit être un entier >= 0.';
-      return;
+      this.nombreEnfantsError = 'Nombre d’enfants invalide (entier ≥ 0).';
     }
+
+    const hasError =
+      !!this.nomError ||
+      !!this.prenomError ||
+      !!this.emailError ||
+      !!this.telephoneError ||
+      !!this.cinError ||
+      !!this.adresseError ||
+      !!this.sexeError ||
+      !!this.professionError ||
+      !!this.employeurError ||
+      !!this.typeContratError ||
+      !!this.situationFamilialeError ||
+      !!this.dateNaissanceError ||
+      !!this.ancienneteError ||
+      !!this.nombreEnfantsError;
+
+    if (hasError) return;
 
     // On émet toutes les données au parent
     this.nextStep.emit({

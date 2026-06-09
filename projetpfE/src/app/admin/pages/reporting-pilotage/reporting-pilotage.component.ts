@@ -1,6 +1,8 @@
 import { Component, OnInit } from '@angular/core';
-import { DatePipe, JsonPipe, NgFor, NgIf } from '@angular/common';
+import { CommonModule } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { AuthService } from '../../../services/auth-service.service';
 import { ReportingArchivageService } from '../../../services/reporting-archivage.service';
 import {
   AccesPlateformeHistoriqueDto,
@@ -21,9 +23,10 @@ type ReportingTab = 'dashboard' | 'actions-demandes' | 'actions-documents' | 'ac
 @Component({
   selector: 'app-reporting-pilotage',
   standalone: true,
-  imports: [NgIf, NgFor, FormsModule, DatePipe, JsonPipe],
+  imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './reporting-pilotage.component.html',
-  styleUrls: ['./reporting-pilotage.component.css'],
+  styleUrls: ['./reporting-pilotage.component.css', '../../../shared/styles/uib-list-page.css'],
+  host: { class: 'page-host' },
 })
 export class ReportingPilotageComponent implements OnInit {
   activeTab: ReportingTab = 'dashboard';
@@ -40,7 +43,7 @@ export class ReportingPilotageComponent implements OnInit {
 
   totalElements = 0;
   currentPage = 0;
-  pageSize = 15;
+  pageSize = 20;
 
   filterDemandeId: number | null = null;
   filterType = '';
@@ -57,13 +60,69 @@ export class ReportingPilotageComponent implements OnInit {
   readonly libelleActionDocument = libelleTypeActionDocument;
   readonly libelleAcces = libelleTypeAcces;
 
-  constructor(private readonly reportingService: ReportingArchivageService) {}
+  /** Espace banque : pas d’audit admin plateforme (accès utilisateurs, KPI globaux). */
+  readonly isBanqueScope: boolean;
+  /** Admin : traçabilité dédiée (dashboard sur /admin/dashboard). */
+  readonly isTraceabiliteOnly: boolean;
+
+  constructor(
+    private readonly reportingService: ReportingArchivageService,
+    private readonly authService: AuthService,
+    private readonly route: ActivatedRoute,
+    private readonly router: Router
+  ) {
+    const scope = route.snapshot.data['scope'] as string | undefined;
+    const role = this.authService.getRole()?.toUpperCase();
+    this.isBanqueScope =
+      scope === 'banque' || role === 'ANALYSTE_BANCAIRE' || role === 'BANQUE';
+    this.isTraceabiliteOnly =
+      scope === 'traceabilite' || route.snapshot.routeConfig?.path === 'traceabilite';
+  }
 
   ngOnInit(): void {
-    this.loadTabData();
+    this.route.queryParamMap.subscribe((qp) => {
+      this.applyRouteQuery(qp);
+      this.loadTabData();
+    });
+  }
+
+  clearDemandeFilter(): void {
+    void this.router.navigate(['/admin/traceabilite'], {
+      queryParams: { tab: this.activeTab },
+    });
+  }
+
+  private applyRouteQuery(qp: { get: (k: string) => string | null }): void {
+    const tab = qp.get('tab') as ReportingTab | null;
+    const demandeIdRaw = qp.get('demandeId');
+    if (demandeIdRaw) {
+      const id = Number(demandeIdRaw);
+      this.filterDemandeId = !Number.isNaN(id) ? id : null;
+    } else if (this.isTraceabiliteOnly) {
+      this.filterDemandeId = null;
+    }
+    if (tab && this.canShowTab(tab)) {
+      this.activeTab = tab;
+      return;
+    }
+    if (!tab) {
+      if (this.isBanqueScope) this.activeTab = 'decisions';
+      else if (this.isTraceabiliteOnly) this.activeTab = 'actions-demandes';
+    }
+  }
+
+  canShowTab(tab: ReportingTab): boolean {
+    if (this.isBanqueScope) {
+      return tab !== 'acces' && tab !== 'dashboard';
+    }
+    if (this.isTraceabiliteOnly) {
+      return tab !== 'dashboard';
+    }
+    return true;
   }
 
   setTab(tab: ReportingTab): void {
+    if (!this.canShowTab(tab)) return;
     this.activeTab = tab;
     this.currentPage = 0;
     this.errorMessage = '';

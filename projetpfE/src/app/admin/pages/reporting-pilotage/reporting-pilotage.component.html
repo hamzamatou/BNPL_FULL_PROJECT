@@ -1,14 +1,48 @@
-<div class="reporting-portal">
-  <div class="reporting-header">
-    <h1>Pilotage &amp; audit</h1>
-    <p class="subtitle">Reporting, traçabilité et archivage (US3.4 – US3.8)</p>
-  </div>
+<section class="list-page reporting-portal" [class.reporting-portal--banque]="isBanqueScope" [class.reporting-portal--admin]="isTraceabiliteOnly" translate="no">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">
+        @if (isBanqueScope) {
+          Suivi & traçabilité
+        } @else if (isTraceabiliteOnly) {
+          Journal & traçabilité
+        } @else {
+          Pilotage & audit
+        }
+      </h1>
+      <p class="page-sub">
+        @if (isBanqueScope) {
+          Historique des dossiers, décisions et pièces consultées.
+        } @else if (isTraceabiliteOnly) {
+          Historique des actions, documents, accès, décisions et archives.
+        } @else {
+          Reporting, traçabilité et archivage plateforme.
+        }
+      </p>
+    </div>
+    @if (isTraceabiliteOnly) {
+      <div class="header-actions-row">
+        <a routerLink="/admin/demandes/en-cours" class="btn-secondary-link">← Demandes en cours</a>
+      </div>
+    }
+  </header>
+
+  @if (isTraceabiliteOnly && filterDemandeId) {
+    <div class="journal-banner card">
+      <span class="journal-banner__label">Filtre actif — dossier <strong>#{{ filterDemandeId }}</strong></span>
+      <button type="button" class="journal-banner__clear" (click)="clearDemandeFilter()">Voir tout le journal</button>
+    </div>
+  }
 
   <div class="reporting-tabs">
-    <span class="tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">Tableau de bord</span>
+    @if (canShowTab('dashboard')) {
+      <span class="tab" [class.active]="activeTab === 'dashboard'" (click)="setTab('dashboard')">Tableau de bord</span>
+    }
     <span class="tab" [class.active]="activeTab === 'actions-demandes'" (click)="setTab('actions-demandes')">Actions demandes</span>
     <span class="tab" [class.active]="activeTab === 'actions-documents'" (click)="setTab('actions-documents')">Actions documents</span>
-    <span class="tab" [class.active]="activeTab === 'acces'" (click)="setTab('acces')">Accès plateforme</span>
+    @if (canShowTab('acces')) {
+      <span class="tab" [class.active]="activeTab === 'acces'" (click)="setTab('acces')">Accès plateforme</span>
+    }
     <span class="tab" [class.active]="activeTab === 'decisions'" (click)="setTab('decisions')">Décisions</span>
     <span class="tab" [class.active]="activeTab === 'archives'" (click)="setTab('archives')">Archives</span>
   </div>
@@ -17,36 +51,38 @@
   <div class="loading" *ngIf="loading">Chargement…</div>
 
   <!-- Filtres (hors dashboard) -->
-  <div class="filters" *ngIf="activeTab !== 'dashboard' && !loading">
-    <label *ngIf="activeTab === 'actions-demandes' || activeTab === 'actions-documents' || activeTab === 'decisions'">
-      ID demande
+  <div class="card filters-card" *ngIf="activeTab !== 'dashboard' && !loading">
+    <div class="filters-row filters">
+    <label class="filter-field" *ngIf="activeTab === 'actions-demandes' || activeTab === 'actions-documents' || activeTab === 'decisions'">
+      <span class="filter-label">N° demande</span>
       <input type="number" [(ngModel)]="filterDemandeId" placeholder="ex. 42" />
     </label>
-    <label *ngIf="activeTab === 'actions-documents'">
-      Clé document (MinIO)
+    <label class="filter-field" *ngIf="activeTab === 'actions-documents'">
+      <span class="filter-label">Clé document</span>
       <input type="text" [(ngModel)]="filterObjectKey" placeholder="objectKey" />
     </label>
-    <label *ngIf="activeTab === 'acces'">
-      ID utilisateur
+    <label class="filter-field" *ngIf="activeTab === 'acces'">
+      <span class="filter-label">N° utilisateur</span>
       <input type="number" [(ngModel)]="filterUserId" />
     </label>
-    <label *ngIf="activeTab === 'acces'" class="checkbox-label">
+    <label *ngIf="activeTab === 'acces'" class="checkbox-label filter-field">
       <input type="checkbox" [(ngModel)]="filterSuspectOnly" />
-      Suspects uniquement
+      <span class="filter-label">Suspects uniquement</span>
     </label>
-    <label *ngIf="activeTab !== 'archives'">
-      Type
+    <label class="filter-field" *ngIf="activeTab !== 'archives'">
+      <span class="filter-label">Type d'événement</span>
       <input type="text" [(ngModel)]="filterType" placeholder="ex. ACCEPTEE" />
     </label>
-    <label>
-      Du
+    <label class="filter-field">
+      <span class="filter-label">Date début</span>
       <input type="datetime-local" [(ngModel)]="filterDebut" />
     </label>
-    <label>
-      Au
+    <label class="filter-field">
+      <span class="filter-label">Date fin</span>
       <input type="datetime-local" [(ngModel)]="filterFin" />
     </label>
     <button type="button" class="btn-search" (click)="search()">Rechercher</button>
+    </div>
   </div>
 
   <!-- Dashboard -->
@@ -144,7 +180,12 @@
             <td>{{ row.acteurEmail || '—' }}</td>
             <td>{{ row.libelle }}</td>
           </tr>
-          <tr *ngIf="!actionsDemandes.length"><td colspan="6" class="empty">Aucun résultat</td></tr>
+          <tr *ngIf="!actionsDemandes.length"><td colspan="6" class="empty">
+            Aucune action enregistrée.
+            @if (isTraceabiliteOnly) {
+              <span class="empty-hint"> Vérifiez que le service reporting-archivage tourne (port 8083).</span>
+            }
+          </td></tr>
         </tbody>
       </table>
     </div>
@@ -277,4 +318,4 @@
     <span>Page {{ currentPage + 1 }} — {{ totalElements }} élément(s)</span>
     <button type="button" (click)="nextPage()" [disabled]="(currentPage + 1) * pageSize >= totalElements">Suivant</button>
   </div>
-</div>
+</section>

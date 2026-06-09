@@ -1,0 +1,271 @@
+@import '../../../shared/styles/uib-admin.css';
+
+.lifecycle-card {
+  padding: 24px 28px 32px;
+}
+
+.lifecycle-header {
+  display: flex;
+  align-items: center;
+  gap: 20px;
+  margin-bottom: 28px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.lifecycle-brand {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex-shrink: 0;
+  min-width: 100px;
+}
+
+.lifecycle-logo {
+  height: 38px;
+  width: auto;
+  max-width: 120px;
+  object-fit: contain;
+  display: block;
+}
+
+.lifecycle-brand-fallback {
+  font-size: 22px;
+  font-weight: 800;
+  color: #0f1824;
+  letter-spacing: 0.04em;
+}
+
+.lifecycle-brand-sub {
+  font-size: 9px;
+  font-weight: 700;
+  color: var(--uib-red);
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+}
+
+.lifecycle-title {
+  margin: 0;
+  font-size: 18px;
+  font-weight: 700;
+  color: #0f1824;
+}
+
+.lifecycle-desc {
+  margin: 4px 0 0;
+  font-size: 13px;
+  color: #64748b;
+}
+
+.lifecycle-timeline {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.timeline-item {
+  display: grid;
+  grid-template-columns: 36px 1fr;
+  gap: 16px;
+  position: relative;
+  padding-bottom: 22px;
+}
+
+.timeline-item:not(.timeline-item--last)::before {
+  content: '';
+  position: absolute;
+  left: 17px;
+  top: 22px;
+  bottom: 0;
+  width: 2px;
+  background: #e2e8f0;
+}
+
+.timeline-item--last .timeline-dot {
+  background: var(--uib-red);
+  color: var(--uib-red);
+  box-shadow: 0 0 0 2px #fff, 0 0 0 4px #fecaca;
+}
+
+.timeline-rail {
+  display: flex;
+  justify-content: center;
+  padding-top: 6px;
+}
+
+.timeline-dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 999px;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 2px #cbd5e1;
+  flex-shrink: 0;
+  z-index: 1;
+  background: #94a3b8;
+}
+
+.icon-action,
+.icon-document,
+.icon-decision {
+  background: #64748b;
+  box-shadow: 0 0 0 2px #fff, 0 0 0 3px #cbd5e1;
+}
+
+.icon-decision {
+  background: #475569;
+}
+
+.timeline-card {
+  background: #fafbfc;
+  border: 1px solid #e8edf2;
+  border-radius: 12px;
+  padding: 16px 18px;
+}
+
+.timeline-card:hover {
+  border-color: #dce3eb;
+  background: #fff;
+}
+
+.timeline-card__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  margin-bottom: 10px;
+}
+
+.timeline-card__meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.timeline-type {
+  font-size: 12px;
+  font-weight: 600;
+  color: #64748b;
+}
+
+.timeline-date {
+  font-size: 12px;
+  font-weight: 600;
+  color: #94a3b8;
+  white-space: nowrap;
+}
+
+.timeline-libelle {
+  margin: 0 0 12px;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f1824;
+  line-height: 1.35;
+}
+
+.timeline-details {
+  display: grid;
+  gap: 6px;
+}
+
+.detail-row {
+  display: grid;
+  grid-template-columns: 90px 1fr;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.detail-label {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.detail-value {
+  color: #334155;
+  font-weight: 500;
+}
+
+.detail-value--mono {
+  font-family: ui-monospace, monospace;
+  font-size: 12px;
+  color: #64748b;
+}
+
+.detail-row--transition {
+  margin-top: 4px;
+  padding-top: 8px;
+  border-top: 1px dashed #eef2f6;
+}
+
+.timeline-ia {
+  margin-top: 12px;
+  padding-top: 12px;
+  border-top: 1px dashed #eef2f6;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.ia-block {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+.ia-score-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.ia-chip {
+  display: inline-flex;
+  align-items: center;
+  padding: 4px 10px;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.ia-chip--zone {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.ia-list {
+  margin: 0;
+  padding-left: 18px;
+  color: #334155;
+  font-size: 13px;
+  line-height: 1.5;
+}
+
+.ia-list li + li {
+  margin-top: 6px;
+}
+
+.cat-badge {
+  display: inline-block;
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-size: 11px;
+  font-weight: 700;
+}
+
+.cat-action,
+.cat-document,
+.cat-decision {
+  background: #f1f5f9;
+  color: #475569;
+}
+
+@media print {
+  .header-actions-row,
+  .btn-back,
+  .btn-print {
+    display: none !important;
+  }
+}

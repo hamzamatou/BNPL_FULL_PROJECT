@@ -12,15 +12,14 @@ import java.util.Map;
 /**
  * Réponse de POST /coherence/check (service Python).
  *
- * Cas succès  : { score_coherence, anomalies: [], corrections: {} }
- * Cas anomalie: { score_coherence, anomalies: [{code, niveau, message}], corrections }
- * Cas bloquant: { score_coherence: 0, anomalies: [{niveau:"BLOQUANT",…}], corrections: {} }
+ * Cas succès  : { anomalies: [], corrections: {} }
+ * Cas anomalie: { anomalies: [{code, niveau, message}], corrections }
+ * Cas bloquant: { anomalies: [{niveau:"BLOQUANT",…}], corrections: {} }
  * Cas docs manquants : { message, documents_manquants: [] }
  */
 @JsonIgnoreProperties(ignoreUnknown = true)
 public record CoherenceResultDto(
 
-        @JsonProperty("score_coherence")    Integer scoreCoherence,
         @JsonProperty("anomalies")          List<AnomalieDto> anomalies,
         @JsonProperty("corrections")        Map<String, Object> corrections,
 
@@ -64,8 +63,9 @@ public record CoherenceResultDto(
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record AnomalieDto(
-            @JsonProperty("code")    String code,
-            @JsonProperty("niveau")  String niveau,
-            @JsonProperty("message") String message
+            @JsonProperty("code")     String code,
+            @JsonProperty("niveau")   String niveau,
+            @JsonProperty("message")  String message,
+            @JsonProperty("details")  Map<String, Object> details
     ) {}
 }

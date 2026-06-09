@@ -12,14 +12,14 @@
       </div>
     </div>
 
-    <div class="status-badge" *ngIf="status === 'completed'">
-      <span>✔</span> Complété
-    </div>
+    @if (status === 'completed') {
+      <div class="status-badge">
+        <span>✔</span> Complété
+      </div>
+    }
   </div>
 
   <div class="card-body">
-    <div class="form-error fin-span-full" *ngIf="formError">{{ formError }}</div>
-
     <div class="fin-layout">
       <!-- Revenus -->
       <div class="fin-col fin-col--revenus">
@@ -30,19 +30,25 @@
           <div class="field">
             <label>Revenu mensuel net (TND)</label>
             <input type="number" min="0" [(ngModel)]="revenu" (ngModelChange)="onRevenuMensuelChanged()" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="revenuError">{{ revenuError }}</div>
+            @if (revenuError) {
+              <div class="field-error">{{ revenuError }}</div>
+            }
           </div>
 
           <div class="field">
             <label>Autres revenus mensuels (TND)</label>
             <input type="number" min="0" [(ngModel)]="autresRevenus" (ngModelChange)="onAutresRevenusChanged()" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="autresRevenusError">{{ autresRevenusError }}</div>
+            @if (autresRevenusError) {
+              <div class="field-error">{{ autresRevenusError }}</div>
+            }
           </div>
 
           <div class="field">
             <label>Revenus annuels (TND)</label>
             <input type="number" min="0" [(ngModel)]="revenuAnnuel" (ngModelChange)="onRevenuAnnuelChanged()" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="revenuAnnuelError">{{ revenuAnnuelError }}</div>
+            @if (revenuAnnuelError) {
+              <div class="field-error">{{ revenuAnnuelError }}</div>
+            }
           </div>
         </div>
       </div>
@@ -81,11 +87,15 @@
             </div>
           </div>
 
-          <div class="field" *ngIf="aUnLoyer">
-            <label>Loyer mensuel (TND)</label>
-            <input type="number" min="0" [(ngModel)]="loyer" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="loyerError">{{ loyerError }}</div>
-          </div>
+          @if (aUnLoyer) {
+            <div class="field">
+              <label>Loyer mensuel (TND)</label>
+              <input type="number" min="0" [(ngModel)]="loyer" [disabled]="status === 'completed'" />
+              @if (loyerError) {
+                <div class="field-error">{{ loyerError }}</div>
+              }
+            </div>
+          }
 
           <div class="field">
             <label>Avez-vous des crédits en cours ?</label>
@@ -115,22 +125,28 @@
             </div>
           </div>
 
-          <div class="field" *ngIf="aDesCredits">
-            <label>Crédits en cours — encours (TND)</label>
-            <input type="number" min="0" [(ngModel)]="credits" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="creditsError">{{ creditsError }}</div>
-          </div>
+          @if (aDesCredits) {
+            <div class="field">
+              <label>Crédits en cours — encours (TND)</label>
+              <input type="number" min="0" [(ngModel)]="credits" [disabled]="status === 'completed'" />
+              @if (creditsError) {
+                <div class="field-error">{{ creditsError }}</div>
+              }
+            </div>
 
-          <div class="field" *ngIf="aDesCredits">
-            <label>Mensualité crédit (TND)</label>
-            <input
-              type="number"
-              min="0"
-              [(ngModel)]="mensualitesCredits"
-              [disabled]="status === 'completed'"
-            />
-            <div class="field-error" *ngIf="mensualitesCreditsError">{{ mensualitesCreditsError }}</div>
-          </div>
+            <div class="field">
+              <label>Mensualité crédit (TND)</label>
+              <input
+                type="number"
+                min="0"
+                [(ngModel)]="mensualitesCredits"
+                [disabled]="status === 'completed'"
+              />
+              @if (mensualitesCreditsError) {
+                <div class="field-error">{{ mensualitesCreditsError }}</div>
+              }
+            </div>
+          }
 
           <div class="field">
             <label>Autres charges fixes (TND)</label>
@@ -140,7 +156,9 @@
               [(ngModel)]="autresChargesFixes"
               [disabled]="status === 'completed'"
             />
-            <div class="field-error" *ngIf="autresChargesFixesError">{{ autresChargesFixesError }}</div>
+            @if (autresChargesFixesError) {
+              <div class="field-error">{{ autresChargesFixesError }}</div>
+            }
           </div>
         </div>
 
@@ -155,25 +173,43 @@
           <div class="field">
             <label>Montant demandé (TND)</label>
             <input type="number" min="0" [(ngModel)]="montant" [disabled]="status === 'completed'" />
-            <div class="field-error" *ngIf="montantError">{{ montantError }}</div>
+            @if (montantError) {
+              <div class="field-error">{{ montantError }}</div>
+            }
           </div>
 
           <div class="field">
-            <label>Durée (mois)</label>
-            <select [(ngModel)]="dureeMois" [disabled]="status === 'completed'">
-              <option [ngValue]="12">12 mois</option>
-              <option [ngValue]="24">24 mois</option>
-              <option [ngValue]="36">36 mois</option>
-            </select>
+            <label>Durée de remboursement (mois)</label>
+            <input
+              type="number"
+              min="3"
+              max="36"
+              step="1"
+              [(ngModel)]="dureeMois"
+              placeholder="Ex: 12"
+              [disabled]="status === 'completed'"
+            />
+            <p class="field-hint">Entre 3 et 36 mois (saisie libre).</p>
+            @if (dureeMoisError) {
+              <div class="field-error">{{ dureeMoisError }}</div>
+            }
           </div>
 
           <div class="field">
             <label>Type de financement</label>
             <input type="text" [(ngModel)]="objet" [disabled]="status === 'completed'" />
+            @if (objetError) {
+              <div class="field-error">{{ objetError }}</div>
+            }
           </div>
 
           <div class="debt-box debt-box--horizontal">
             <div class="debt-box__title">Taux d’endettement estimé</div>
+            <div class="debt-detail">
+              <span>Mensualités crédits : {{ mensualitesCreditsMois | number:'1.0-0' }} TND</span>
+              <span>Mensualité BNPL : {{ mensualiteBnpl | number:'1.0-0' }} TND</span>
+              <span>Revenus nets mensuels : {{ revenuTotal | number:'1.0-0' }} TND</span>
+            </div>
             <div class="debt-box__row">
               <div class="debt-bar">
                 <div
@@ -183,25 +219,30 @@
                 ></div>
               </div>
               <span class="debt-pct" [class.debt-pct--ok]="sousSeuilEndettement" [class.debt-pct--warn]="!sousSeuilEndettement">
-                {{ tauxEndettementPct }}%
+                {{ tauxEndettementPct | number:'1.0-1' }}%
               </span>
             </div>
             <div class="debt-foot" [class.debt-foot--ok]="sousSeuilEndettement" [class.debt-foot--warn]="!sousSeuilEndettement">
               {{
                 sousSeuilEndettement
-                  ? 'En dessous du seuil indicatif de 40 % (charges / revenus).'
-                  : 'Au-dessus du seuil indicatif de 40 % — vérifiez la cohérence des montants.'
+                  ? 'En dessous du seuil indicatif de 40 %.'
+                  : 'Au-dessus du seuil indicatif de 40 % — vérifiez montant et durée.'
               }}
-              <span *ngIf="showEnfants"> Charge enfants incluse depuis profil client ({{ nombreEnfants }} x 250 TND).</span>
+              Formule : (mensualités crédits + mensualité BNPL) ÷ revenus nets mensuels × 100.
             </div>
           </div>
         </div>
       </div>
     </div>
 
-    <div class="actions" *ngIf="status === 'active'">
-      <button type="button" class="btn" (click)="prev()">← Retour</button>
-      <button type="button" class="btn btn-red" (click)="next()">Suivant →</button>
-    </div>
+    @if (status === 'active') {
+      <div class="actions">
+        <button type="button" class="btn" (click)="prev()">← Retour</button>
+        <button type="button" class="btn btn-red btn-next" (click)="next()">
+          Suivant
+          <span class="btn-next-arrow" aria-hidden="true">›</span>
+        </button>
+      </div>
+    }
   </div>
 </div>

@@ -1,1 +1,83 @@
-<p>anomalies-panel works!</p>
+@if (modalOpen && anomalies.length) {
+  <div class="confirm-overlay" (click)="closeOnBackdrop($event)">
+    <div
+      class="insight-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="anomalies-title"
+      (click)="$event.stopPropagation()"
+    >
+      <button type="button" class="insight-modal__close" (click)="close()" aria-label="Fermer">×</button>
+
+      <header class="insight-modal__head">
+        <div class="insight-card__icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z"/>
+            <line x1="12" y1="9" x2="12" y2="13"/>
+            <line x1="12" y1="17" x2="12.01" y2="17"/>
+          </svg>
+        </div>
+        <div>
+          <h2 id="anomalies-title" class="insight-modal__title">Anomalies détectées</h2>
+          <p class="insight-modal__sub">
+            {{ anomalies.length }} incohérence{{ anomalies.length > 1 ? 's' : '' }} —
+            corrigez le dossier avant de continuer
+          </p>
+        </div>
+      </header>
+
+      <div class="insight-modal__body">
+        <ul class="insight-card__list insight-card--danger">
+          @for (item of anomalies; track $index) {
+            <li class="insight-card__item insight-card__item--stack">
+              <span class="insight-card__marker" aria-hidden="true"></span>
+              <div class="insight-card__item-body">
+                <p class="insight-card__item-label">{{ libelleChamp(item.code) }}</p>
+
+                @if (isRevenuAnomaly(item)) {
+                  <div class="insight-compare">
+                    <div class="insight-compare__row">
+                      <span class="insight-compare__key">Revenu déclaré</span>
+                      <span class="insight-compare__val insight-compare__val--decl">
+                        {{ formatTnd(item.details?.revenu_declare) }}
+                      </span>
+                    </div>
+                    <div class="insight-compare__row">
+                      <span class="insight-compare__key">Revenu extrait (fiches)</span>
+                      <span class="insight-compare__val insight-compare__val--doc">
+                        {{ formatTnd(item.details?.revenu_extrait) }}
+                      </span>
+                    </div>
+                    <div class="insight-compare__row insight-compare__row--highlight">
+                      <span class="insight-compare__key">Fourchette déclarable</span>
+                      <span class="insight-compare__val">
+                        {{ formatTnd(item.details?.fourchette_declarable_min) }}
+                        –
+                        {{ formatTnd(item.details?.fourchette_declarable_max) }}
+                      </span>
+                    </div>
+                    <p class="insight-compare__hint">
+                      Tolérance ±{{ item.details?.tolerance_pct ?? 10 }} % calculée à partir du revenu extrait des documents.
+                    </p>
+                  </div>
+                }
+
+                <p class="insight-card__item-text">{{ item.message }}</p>
+              </div>
+            </li>
+          }
+        </ul>
+      </div>
+
+      <footer class="insight-modal__foot">
+        <p class="insight-modal__note">
+          Modifiez le formulaire ou les documents, puis relancez l'analyse de cohérence.
+        </p>
+        <div class="insight-modal__actions">
+          <button type="button" class="modal-btn" (click)="close()">Fermer</button>
+          <button type="button" class="modal-btn danger" (click)="onModifier()">Modifier le formulaire</button>
+        </div>
+      </footer>
+    </div>
+  </div>
+}

@@ -1,0 +1,66 @@
+@import '../../styles/insight-panels.css';
+@import '../../styles/insight-modal.css';
+
+:host {
+  display: block;
+}
+
+.insight-modal__head .insight-card__icon {
+  background: #fff8f8;
+  color: var(--uib-red);
+}
+
+.insight-modal__body .insight-card__num {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #fff8f8;
+  color: var(--uib-red);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.insight-card__list--conforme {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+
+.insight-card__check {
+  width: 26px;
+  height: 26px;
+  border-radius: 999px;
+  background: #16a34a;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.insight-card__item--conforme .insight-card__item-text {
+  color: #14532d;
+  font-weight: 600;
+}
+
+.insight-modal__empty--conforme {
+  background: #f0fdf4;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 16px;
+  color: #166534;
+  line-height: 1.5;
+}
+
+.insight-modal__empty--conforme strong {
+  display: block;
+  margin-bottom: 6px;
+  font-size: 15px;
+}

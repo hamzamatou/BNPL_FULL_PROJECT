@@ -1,0 +1,141 @@
+/**
+ * UIB Portal — commercant & pages internes (navbar shell)
+ * Rouge brand : var(--uib-red) — jamais de dégradé sur le rouge.
+ */
+
+app-mes-demandes,
+app-nouvelle-demande,
+app-demande-detail {
+  display: block;
+  width: 100%;
+  min-height: 100%;
+  color: var(--text);
+  font-family: 'DM Sans', 'Segoe UI', Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+}
+
+app-mes-demandes .list-page,
+app-nouvelle-demande .create-page,
+app-demande-detail .detail-page {
+  width: min(1340px, calc(100% - 48px));
+  margin: 28px auto 48px;
+}
+
+app-mes-demandes .page-header,
+app-nouvelle-demande .page-header,
+app-demande-detail .page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 20px;
+  margin-bottom: 24px;
+  padding-bottom: 20px;
+  border-bottom: 1px solid var(--uib-border-strong);
+}
+
+app-mes-demandes .page-title,
+app-nouvelle-demande .page-title,
+app-demande-detail .page-title {
+  margin: 0;
+  font-family: 'Syne', 'DM Sans', sans-serif;
+  font-size: 24px;
+  font-weight: 800;
+  color: var(--uib-ink);
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+}
+
+app-mes-demandes .page-sub,
+app-nouvelle-demande .page-sub,
+app-demande-detail .page-sub {
+  margin: 6px 0 0;
+  font-size: 13px;
+  color: var(--uib-subtle);
+  font-weight: 500;
+}
+
+app-mes-demandes .card,
+app-mes-demandes .card-panel,
+app-nouvelle-demande .card-panel,
+app-demande-detail .card,
+app-demande-detail .card-panel {
+  background: var(--card);
+  border: 1px solid var(--uib-border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-card);
+}
+
+app-mes-demandes .primary-btn,
+app-nouvelle-demande .btn.primary,
+app-demande-detail .primary-btn,
+app-demande-detail .btn-red {
+  background: var(--uib-red);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  transition: background 150ms ease, box-shadow 150ms ease, transform 150ms ease;
+}
+
+app-mes-demandes .primary-btn:hover,
+app-nouvelle-demande .btn.primary:hover,
+app-demande-detail .primary-btn:hover,
+app-demande-detail .btn-red:hover {
+  background: var(--uib-red-dark);
+  box-shadow: 0 8px 20px rgba(211, 18, 31, 0.16);
+}
+
+app-mes-demandes .back-link,
+app-nouvelle-demande .back-link,
+app-demande-detail .back-link,
+app-demande-detail .back-icon-btn {
+  border: 1px solid var(--uib-border-strong);
+  background: #fff;
+  color: #4a5568;
+  border-radius: 10px;
+  transition: border-color 150ms ease, color 150ms ease;
+}
+
+app-mes-demandes .back-link:hover,
+app-nouvelle-demande .back-link:hover,
+app-demande-detail .back-link:hover,
+app-demande-detail .back-icon-btn:hover {
+  border-color: var(--uib-red);
+  color: var(--uib-red);
+}
+
+/* Wizard steps — cartes commercant */
+app-nouvelle-demande .card {
+  border: 1px solid var(--uib-border);
+  border-radius: 12px;
+  box-shadow: var(--shadow-card);
+}
+
+app-nouvelle-demande .snum {
+  background: var(--uib-red);
+}
+
+app-nouvelle-demande .section-title,
+app-nouvelle-demande .fin-col-band {
+  border-left-color: var(--uib-red);
+}
+
+app-nouvelle-demande .field input:focus,
+app-nouvelle-demande .field select:focus {
+  border-color: var(--uib-red);
+  box-shadow: 0 0 0 3px rgba(211, 18, 31, 0.12);
+}
+
+app-nouvelle-demande .btn-red,
+app-nouvelle-demande .btn-red.btn-next:hover {
+  background: var(--uib-red);
+}
+
+app-nouvelle-demande .btn-red:hover:not(:disabled) {
+  background: var(--uib-red-dark);
+}
+
+app-nouvelle-demande .form-error,
+app-nouvelle-demande .field-error {
+  color: var(--uib-red);
+}

@@ -1,15 +1,16 @@
 import { Component, Input, Output, EventEmitter } from '@angular/core';
 import { DocumentMultipart } from '../../../services/demande.service';
-import { NgFor, NgIf } from '@angular/common';
 
 @Component({
   selector: 'app-documents',
   standalone: true,
-  imports: [NgIf, NgFor],
   templateUrl: './documents.component.html',
   styleUrls: ['./documents.component.css']
 })
 export class DocumentsComponent {
+
+  /** Seuil métier : devis obligatoire si montant du financement > 12 000 TND. */
+  static readonly DEVIS_SEUIL_TND = 12000;
 
   @Input() status: 'pending' | 'active' | 'completed' = 'pending';
   @Input() aUnLoyer = false;
@@ -42,7 +43,7 @@ export class DocumentsComponent {
   }
 
   get requiresDevis(): boolean {
-    return Number(this.montant) > 10000;
+    return Number(this.montant) > DocumentsComponent.DEVIS_SEUIL_TND;
   }
 
   get requiredDocumentTypes(): string[] {

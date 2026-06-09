@@ -11,7 +11,7 @@ export class RoleGuard implements CanActivate, CanActivateChild {
     private readonly router: Router
   ) {}
 
-  canActivate(route: ActivatedRouteSnapshot, _state: RouterStateSnapshot): boolean | UrlTree {
+  canActivate(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {
     const requiredRoles = route.data?.['roles'] as string[] | undefined;
     const requiredRole = (route.data?.['role'] as string | undefined)?.toUpperCase();
 
@@ -21,16 +21,27 @@ export class RoleGuard implements CanActivate, CanActivateChild {
     if (requiredRoles?.length) {
       const allowed = requiredRoles.map((r) => r.toUpperCase());
       if (allowed.includes(role)) return true;
-      return this.router.parseUrl('/login');
+      return this.homeForRole(role, state.url);
     }
 
     if (!requiredRole) return true;
     if (role === requiredRole) return true;
-    return this.router.parseUrl('/login');
+    return this.homeForRole(role, state.url);
   }
 
   canActivateChild(route: ActivatedRouteSnapshot, state: RouterStateSnapshot): boolean | UrlTree {
     return this.canActivate(route, state);
   }
-}
 
+  private homeForRole(role: string, attemptedUrl: string): UrlTree {
+    if (role === 'ADMIN') return this.router.parseUrl('/admin/dashboard');
+    if (role === 'ANALYSTE_BANCAIRE' || role === 'BANQUE') {
+      if (attemptedUrl.includes('/admin') || attemptedUrl.includes('/reporting')) {
+        return this.router.parseUrl('/banque/pilotage');
+      }
+      return this.router.parseUrl('/banque/demandes');
+    }
+    if (role === 'COMMERCANT') return this.router.parseUrl('/mes-demandes');
+    return this.router.parseUrl('/login');
+  }
+}

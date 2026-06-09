@@ -1,0 +1,364 @@
+/* Panneaux analyse IA — alignés detail-page / mes-demandes (UIB) */
+
+.insight-card {
+  margin: 16px 0 0;
+  background: #fff;
+  border: 1px solid #eef2f6;
+  border-radius: 14px;
+  box-shadow: 0 1px 3px rgba(26, 37, 54, 0.02), 0 2px 8px rgba(26, 37, 54, 0.04);
+  overflow: hidden;
+}
+
+.insight-card__head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 16px 20px;
+  border-bottom: 1px solid #eef2f6;
+}
+
+.insight-card__head-left {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  min-width: 0;
+}
+
+.insight-card__icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.insight-card__title {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #0f1824;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+}
+
+.insight-card__sub {
+  margin: 4px 0 0;
+  font-size: 13px;
+  font-weight: 500;
+  color: #718096;
+  line-height: 1.45;
+}
+
+.insight-card__badge {
+  flex-shrink: 0;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: 999px;
+  font-size: 12px;
+  font-weight: 700;
+  display: inline-flex;
+  align-items: center;
+}
+
+.insight-card__body {
+  padding: 8px 0;
+}
+
+.insight-card__list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.insight-card__item {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 12px 20px;
+  border-bottom: 1px solid #f4f6f9;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #1a2536;
+}
+
+.insight-card__item:last-child {
+  border-bottom: none;
+}
+
+.insight-card__item:hover {
+  background: #fafbfc;
+}
+
+.insight-card__marker {
+  width: 3px;
+  min-height: 20px;
+  border-radius: 99px;
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.insight-card__item-text {
+  margin: 0;
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-card__item--stack {
+  align-items: flex-start;
+}
+
+.insight-card__item-body {
+  flex: 1;
+  min-width: 0;
+}
+
+.insight-card__item-label {
+  margin: 0 0 8px;
+  font-size: 11px;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #b91c1c;
+}
+
+.insight-compare {
+  margin: 0 0 10px;
+  padding: 12px 14px;
+  background: #fffbfb;
+  border: 1px solid #fecaca;
+  border-radius: 10px;
+}
+
+.insight-compare__row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 4px 0;
+  font-size: 13px;
+}
+
+.insight-compare__row--highlight {
+  margin-top: 6px;
+  padding-top: 8px;
+  border-top: 1px dashed #fecaca;
+  font-weight: 700;
+}
+
+.insight-compare__key {
+  color: #718096;
+  font-weight: 500;
+}
+
+.insight-compare__val {
+  color: #0f1824;
+  font-weight: 700;
+  text-align: right;
+}
+
+.insight-compare__val--decl {
+  color: #b91c1c;
+}
+
+.insight-compare__val--doc {
+  color: #1a2536;
+}
+
+.insight-compare__hint {
+  margin: 8px 0 0;
+  font-size: 12px;
+  font-weight: 500;
+  color: #718096;
+  line-height: 1.45;
+}
+
+.insight-card__foot {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 12px 20px;
+  border-top: 1px solid #eef2f6;
+  background: #fafbfc;
+  font-size: 12px;
+  font-weight: 500;
+  color: #718096;
+  line-height: 1.5;
+}
+
+/* Variantes */
+.insight-card--danger .insight-card__icon {
+  background: #fef2f2;
+  color: var(--uib-red);
+}
+
+.insight-card--danger .insight-card__badge {
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
+.insight-card--danger .insight-card__marker {
+  background: var(--uib-red);
+}
+
+.insight-card--warning .insight-card__icon {
+  background: #fff8eb;
+  color: #b45309;
+}
+
+.insight-card--warning .insight-card__badge {
+  background: #fff8eb;
+  color: #92400e;
+}
+
+.insight-card--warning .insight-card__marker {
+  background: #ea580c;
+}
+
+.insight-card--success .insight-card__icon {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.insight-card--success .insight-card__marker {
+  background: #16a34a;
+}
+
+.insight-card--reco .insight-card__icon {
+  background: #fff8f8;
+  color: var(--uib-red);
+}
+
+.insight-card--reco .insight-card__badge {
+  background: #fff8f8;
+  color: var(--uib-red);
+}
+
+.insight-card--reco .insight-card__marker {
+  background: var(--uib-red);
+}
+
+.insight-card--reco-neutral .insight-card__icon {
+  background: #f0fdf4;
+  color: #16a34a;
+}
+
+.reco-empty-body {
+  padding: 16px 20px 20px;
+}
+
+.reco-empty-text {
+  margin: 0;
+  font-size: 14px;
+  line-height: 1.55;
+  color: #4a5568;
+}
+
+.insight-card--reco .insight-card__num {
+  width: 26px;
+  height: 26px;
+  border-radius: 8px;
+  background: #fff8f8;
+  color: var(--uib-red);
+  font-size: 12px;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+/* Bannières step analyse */
+.ia-banner {
+  display: flex;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 14px 18px;
+  border-radius: 14px;
+  border: 1px solid #eef2f6;
+  font-size: 14px;
+  line-height: 1.55;
+  margin: 16px 0 0;
+}
+
+.ia-banner__icon {
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.ia-banner--info {
+  background: #f8fafc;
+  border-color: #e2e8f0;
+  color: #4a5568;
+}
+
+.ia-banner--info .ia-banner__icon {
+  background: #eef2f6;
+  color: #4a5568;
+}
+
+.ia-banner--success {
+  background: #f0fdf4;
+  border-color: #bbf7d0;
+  color: #14532d;
+}
+
+.ia-banner--success .ia-banner__icon {
+  background: #dcfce7;
+  color: #16a34a;
+}
+
+.ia-banner--error {
+  background: #fef2f2;
+  border-color: #fecaca;
+  border-left: 4px solid var(--uib-red);
+  color: #7f1d1d;
+}
+
+.ia-banner--error .ia-banner__icon {
+  background: #fee2e2;
+  color: var(--uib-red);
+}
+
+.ia-banner strong {
+  display: block;
+  font-weight: 700;
+  color: inherit;
+  margin-bottom: 2px;
+}
+
+.ia-banner-link {
+  margin: 0;
+  padding: 0;
+  border: none;
+  background: none;
+  color: var(--uib-red);
+  font-size: inherit;
+  font-weight: 700;
+  text-decoration: underline;
+  cursor: pointer;
+}
+
+.ia-banner-link:hover {
+  color: #ab0f19;
+}
+
+.ia-results-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+  margin-top: 8px;
+}
+
+.ia-results-stack > :first-child {
+  margin-top: 0;
+}

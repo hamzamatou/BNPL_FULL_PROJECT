@@ -2,15 +2,28 @@ package tn.uib.bnpl.gestion_demande.web;
 
 import org.springframework.stereotype.Component;
 import tn.uib.bnpl.gestion_demande.classes.*;
+import tn.uib.bnpl.gestion_demande.dto.ClientIdentityDto;
 import tn.uib.bnpl.gestion_demande.dto.*;
+import tn.uib.bnpl.gestion_demande.services.ClientRemoteService;
+import tn.uib.bnpl.gestion_demande.services.DemandeHistoriqueService;
 
 import java.util.List;
 
 @Component
 public class DemandeDtoMapper {
 
+    private final ClientRemoteService clientRemoteService;
+    private final DemandeHistoriqueService historiqueService;
+
+    public DemandeDtoMapper(ClientRemoteService clientRemoteService,
+                            DemandeHistoriqueService historiqueService) {
+        this.clientRemoteService = clientRemoteService;
+        this.historiqueService = historiqueService;
+    }
+
     public DemandeSummaryResponse toSummary(DemandeFinancement d) {
         DossierClient dos = d.getDossierClient();
+        ClientIdentityDto client = fetchClientIdentity(dos);
         return new DemandeSummaryResponse(
                 d.getId(),
                 d.getReferenceDemande(),
@@ -21,13 +34,16 @@ public class DemandeDtoMapper {
                 d.getDateDerniereMiseAJour(),
                 d.getTypeProduit(),
                 dos != null ? dos.getClientId() : null,
-                null,
-                null,
-                null
+                client != null ? client.nom() : null,
+                client != null ? client.prenom() : null,
+                client != null ? client.cin() : null,
+                d.getCommercantUserId()
         );
     }
 
     public DemandeCompleteResponse toComplete(DemandeFinancement d) {
+        DossierClient dossier = d.getDossierClient();
+        ClientIdentityDto client = fetchClientIdentity(dossier);
         return new DemandeCompleteResponse(
                 d.getId(),
                 d.getReferenceDemande(),
@@ -37,10 +53,18 @@ public class DemandeDtoMapper {
                 d.getDateCreation(),
                 d.getDateDerniereMiseAJour(),
                 d.getTypeProduit(),
-                null,
-                mapDossier(d.getDossierClient()),
+                client != null ? new DemandeCompleteResponse.ClientLiteDto(
+                        client.id(),
+                        client.nom(),
+                        client.prenom(),
+                        client.cin(),
+                        client.telephone(),
+                        client.email()
+                ) : null,
+                mapDossier(dossier),
                 mapRecommandation(d.getRecommandation()),
-                mapPrescoring(d.getPrescoringScore())
+                mapPrescoring(d.getPrescoringScore()),
+                historiqueService.listerPourDemande(d)
         );
     }
 
@@ -108,5 +132,14 @@ public class DemandeDtoMapper {
                 ps.getExplicationsJson(),
                 ps.getComputedAt()
         );
+    }
+
+    private ClientIdentityDto fetchClientIdentity(DossierClient dossier) {
+        if (dossier == null || dossier.getClientId() == null) return null;
+        try {
+            return clientRemoteService.getClientIdentity(dossier.getClientId());
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 }

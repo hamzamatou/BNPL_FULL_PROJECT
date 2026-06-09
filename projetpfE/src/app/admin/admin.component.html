@@ -1,83 +1,16 @@
-<div class="admin-portal">
-  <div class="admin-header">
-    <h1>Admin Portail</h1>
-    <p class="welcome">Bienvenue, administrateur</p>
-  </div>
-
-  <div class="admin-tabs">
-    <span class="tab" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Vue d'ensemble</span>
-    <span class="tab" [class.active]="activeTab === 'requests'" (click)="setTab('requests')">Demandes</span>
-    <a class="tab link-tab" routerLink="/admin/reporting">Pilotage &amp; audit</a>
-    <span class="tab" [class.active]="activeTab === 'users'" (click)="setTab('users')">Utilisateurs</span>
-  </div>
-
-  <!-- Overview Tab -->
-  <div *ngIf="activeTab === 'overview'">
-    <div class="kpi-grid">
-      <div class="kpi-card">
-        <div class="kpi-label">Demandes en attente</div>
-        <div class="kpi-value">12</div>
-      </div>
-      <div class="kpi-card">
-        <div class="kpi-label">Volume total (TND)</div>
-        <div class="kpi-value">45.8K</div>
-      </div>
+<section class="list-page admin-utilisateurs">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Utilisateurs</h1>
+      <p class="page-sub">Gestion des comptes commerçants et analystes</p>
     </div>
+    <a routerLink="/admin/utilisateurs/creer" class="btn-add-user">
+      <admin-icon name="user-plus" /> Ajouter utilisateur
+    </a>
+  </header>
 
-    <div class="charts-row">
-      <div class="chart-card">
-        <h3>Tendance mensuelle des demandes</h3>
-        <div class="chart-line-container">
-          <div class="chart-line-bars">
-            <div class="line-bar-wrap" *ngFor="let m of ['Jan', 'Feb', 'Mar', 'Apr', 'May']">
-              <div class="line-bar" [style.height.%]="60 + (m.length * 5)"></div>
-              <span class="line-label">{{ m }}</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div class="chart-card">
-        <h3>Statut des dossiers</h3>
-        <div class="chart-bars">
-          <div class="bar-row">
-            <span class="bar-label">Approuvées</span>
-            <div class="bar-track"><div class="bar-fill" style="width: 75%"></div></div>
-            <span class="bar-value">75%</span>
-          </div>
-          <div class="bar-row">
-            <span class="bar-label">En cours</span>
-            <div class="bar-track"><div class="bar-fill" style="width: 40%; background: #666;"></div></div>
-            <span class="bar-value">40%</span>
-          </div>
-        </div>
-      </div>
-    </div>
-  </div>
-
-  <div *ngIf="activeTab === 'users'">
-
-  <!-- Header section -->
-  <div class="section-header modern">
-    <div>
-      <h2>Gestion des utilisateurs</h2>
-      <p>Gérez les comptes du système facilement</p>
-    </div>
-
-    <!-- Bouton Add -->
-    <button class="btn-add-user" (click)="openAddUser()">
-      <span>＋</span> Ajouter utilisateur
-    </button>
-  </div>
-
-  <!-- Affichage dynamique du composant -->
-  <app-add-user 
-    *ngIf="showAddUser" 
-    (close)="closeAddUser()" 
-    (refresh)="loadUsers()">
-  </app-add-user>
-
-    <div class="table-container">
+  <div class="card table-card">
+    <div class="table-wrap user-table-wrap">
       <table class="user-table">
         <thead>
           <tr>
@@ -88,47 +21,53 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let user of users">
-            <td>
-              <div class="user-info">
-                <span class="user-name">{{ user.nom }}</span>
-                <span class="user-email">{{ user.email }}</span>
-              </div>
-            </td>
-            <td><span class="role-tag">{{ user.role }}</span></td>
-            <td>
-  <span class="badge" 
-        [ngClass]="{
-          'created': user.status === 'CREATED',
-          'active': user.status === 'ACTIVE',
-          'blocked': user.status === 'BLOCKED'
-        }">
-    {{ user.status === 'CREATED' ? 'Non activé' : (user.status === 'ACTIVE' ? 'Actif' : 'Bloqué') }}
-  </span>
-</td>
-            <td class="actions-cell">
-  <div class="action-group">
-
-    <button class="btn btn-block" (click)="toggleBlockUser(user)">
-      <span class="icon">⛔</span>
-      {{ user.status === 'BLOCKED' ? 'Débloquer' : 'Bloquer' }}
-    </button>
-
-    <button class="btn btn-delete" (click)="deleteUser(user)">
-      <span class="icon">🗑</span>
-      Supprimer
-    </button>
-
-    <button class="btn btn-view" (click)="viewUser(user)">
-      <span class="icon">👁</span>
-      Consulter
-    </button>
-
-  </div>
-</td>
-          </tr>
+          @for (user of users; track user.id) {
+            <tr>
+              <td>
+                <div class="user-info">
+                  <span class="user-name">{{ user.nom }}</span>
+                  <span class="user-email">{{ user.email }}</span>
+                </div>
+              </td>
+              <td><span class="role-tag">{{ user.role }}</span></td>
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-badge--created]="user.status === 'CREATED'"
+                  [class.status-badge--active]="user.status === 'ACTIVE'"
+                  [class.status-badge--blocked]="user.status === 'BLOCKED'"
+                >
+                  {{
+                    user.status === 'CREATED'
+                      ? 'Non activé'
+                      : user.status === 'ACTIVE'
+                        ? 'Actif'
+                        : 'Bloqué'
+                  }}
+                </span>
+              </td>
+              <td class="actions-cell">
+                <div class="action-group">
+                  <button type="button" class="btn btn-block" (click)="toggleBlockUser(user)">
+                    <admin-icon [name]="user.status === 'BLOCKED' ? 'unlock' : 'lock'" />
+                    {{ user.status === 'BLOCKED' ? 'Débloquer' : 'Bloquer' }}
+                  </button>
+                  <button type="button" class="btn btn-delete" (click)="deleteUser(user)">
+                    <admin-icon name="trash" /> Supprimer
+                  </button>
+                  <button type="button" class="btn btn-view" (click)="viewUser(user)">
+                    <admin-icon name="eye" /> Consulter
+                  </button>
+                </div>
+              </td>
+            </tr>
+          } @empty {
+            <tr>
+              <td colspan="4" class="table-empty-cell">Aucun utilisateur.</td>
+            </tr>
+          }
         </tbody>
       </table>
     </div>
   </div>
-</div>
+</section>

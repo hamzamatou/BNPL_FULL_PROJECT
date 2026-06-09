@@ -20,8 +20,19 @@ public record DemandeCompleteResponse(
         ClientLiteDto       client,
         DossierClientDto    dossierClient,
         RecommandationRDto  recommandation,
-        PrescoringScoreRDto prescoringScore
+        PrescoringScoreRDto prescoringScore,
+        List<HistoriqueEvenementDto> historique
 ) {
+
+    @JsonInclude(JsonInclude.Include.NON_NULL)
+    public record HistoriqueEvenementDto(
+            String type,
+            String libelle,
+            String detail,
+            String statutAvant,
+            String statutApres,
+            LocalDateTime dateEvenement
+    ) {}
     // ── Sous-DTOs inline ────────────────────────────────────────────────────
  
     @JsonInclude(JsonInclude.Include.NON_NULL)

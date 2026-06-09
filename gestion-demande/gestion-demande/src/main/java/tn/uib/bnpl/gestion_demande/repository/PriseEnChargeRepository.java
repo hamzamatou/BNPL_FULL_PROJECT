@@ -1,6 +1,7 @@
 package tn.uib.bnpl.gestion_demande.repository;
 
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import tn.uib.bnpl.gestion_demande.classes.DemandeFinancement;
@@ -16,12 +17,18 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, Lo
 
     Optional<PriseEnCharge> findByDemandeIdAndBanqueUserIdAndStatut(Long demandeId, Long banqueUserId, String statut);
 
+    /**
+     * Verrou actif : fenêtre 48 h (decision null + dateExpiration) ou instruction en cours (EN_COURS).
+     */
     @Query("""
             select count(p)
             from PriseEnCharge p
             where p.demande.id = :demandeId
               and p.statut = 'VERROUILLEE'
-              and p.dateExpiration > :now
+              and (
+                  (p.decision is null and p.dateExpiration > :now)
+                  or p.decision = 'EN_COURS'
+              )
             """)
     long countActiveVerrouillages(
             @Param("demandeId") Long demandeId,
@@ -29,18 +36,24 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, Lo
     );
 
     @Query("""
-            select p.demande
+            select distinct d
             from PriseEnCharge p
+            join p.demande d
+            left join fetch d.dossierClient dc
             where p.banqueUserId = :banqueUserId
               and p.statut = 'ROUTE'
-              and p.demande.statut = 'SOUMISE'
+              and d.statut = 'SOUMISE'
               and not exists (
                   select 1
                   from PriseEnCharge v
-                  where v.demande.id = p.demande.id
+                  where v.demande.id = d.id
                     and v.statut = 'VERROUILLEE'
-                    and v.dateExpiration > :now
+                    and (
+                        (v.decision is null and v.dateExpiration > :now)
+                        or v.decision = 'EN_COURS'
+                    )
               )
+            order by d.dateDerniereMiseAJour desc
             """)
     List<DemandeFinancement> findDemandesBanqueNonVerrouillees(
             @Param("banqueUserId") Long banqueUserId,
@@ -53,7 +66,10 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, Lo
             where p.demande.id = :demandeId
               and p.banqueUserId = :banqueUserId
               and p.statut = 'VERROUILLEE'
-              and p.dateExpiration > :now
+              and (
+                  (p.decision is null and p.dateExpiration > :now)
+                  or p.decision = 'EN_COURS'
+              )
             """)
     Optional<PriseEnCharge> findActiveVerrouillage(
             @Param("demandeId") Long demandeId,
@@ -62,11 +78,17 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, Lo
     );
 
     @Query("""
-            select distinct p.demande
+            select distinct d
             from PriseEnCharge p
+            join p.demande d
+            left join fetch d.dossierClient dc
             where p.banqueUserId = :banqueUserId
               and p.statut = 'VERROUILLEE'
-              and p.dateExpiration > :now
+              and (
+                  (p.decision is null and p.dateExpiration > :now)
+                  or p.decision = 'EN_COURS'
+              )
+            order by d.dateDerniereMiseAJour desc
             """)
     List<DemandeFinancement> findDemandesAffecteesVerrouilleesPourBanque(
             @Param("banqueUserId") Long banqueUserId,
@@ -83,4 +105,22 @@ public interface PriseEnChargeRepository extends JpaRepository<PriseEnCharge, Lo
               and p.statut = 'ROUTE'
             """)
     long countRouteBanksNotRefused(@Param("demandeId") Long demandeId);
+
+    @Query("""
+            select p
+            from PriseEnCharge p
+            where p.demande.id = :demandeId
+              and p.statut = 'VERROUILLEE'
+              and p.decision is null
+              and p.dateExpiration is not null
+              and p.dateExpiration <= :now
+            """)
+    Optional<PriseEnCharge> findFenetre48hExpiree(
+            @Param("demandeId") Long demandeId,
+            @Param("now") LocalDateTime now
+    );
+
+    @Modifying
+    @Query("delete from PriseEnCharge p where p.demande.id = :demandeId")
+    void deleteByDemandeId(@Param("demandeId") Long demandeId);
 }

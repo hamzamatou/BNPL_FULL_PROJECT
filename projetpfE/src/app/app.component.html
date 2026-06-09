@@ -1,10 +1,16 @@
 @if (showShell) {
-  <div class="layout">
-    <div class="main">
+  @if (isAdminArea) {
+    <router-outlet />
+  } @else {
+    <div class="app-shell app-shell--with-nav">
       <app-navbar></app-navbar>
-      <router-outlet></router-outlet>
+      <main class="main-content">
+        <router-outlet />
+      </main>
     </div>
-  </div>
+  }
 } @else {
-  <router-outlet></router-outlet>
+  <main class="main-content main-content--auth">
+    <router-outlet />
+  </main>
 }

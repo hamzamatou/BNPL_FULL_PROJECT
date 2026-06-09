@@ -12,6 +12,13 @@ services:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+      - ./docker/postgres-init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U uib_user -d uib_gestion_demande"]
+      interval: 5s
+      timeout: 5s
+      retries: 12
+      start_period: 15s
     networks:
       - uib-network
 
@@ -61,6 +68,26 @@ services:
       - rabbitmq_data:/var/lib/rabbitmq
     networks:
       - uib-network
+  camunda:
+    image: camunda/camunda-bpm-platform:7.22.0
+    container_name: uib-camunda
+    restart: unless-stopped
+    depends_on:
+      postgres:
+        condition: service_healthy
+    environment:
+      DB_DRIVER: org.postgresql.Driver
+      DB_URL: jdbc:postgresql://postgres:5432/uib_camunda
+      DB_USERNAME: uib_user
+      DB_PASSWORD: uib_password
+      WAIT_FOR: postgres:5432
+      WAIT_FOR_TIMEOUT: 120
+    ports:
+      # Camunda écoute sur 8080 dans le conteneur (évite le conflit avec gestion-utilisateur :8080)
+      - "8087:8080"
+    networks:
+      - uib-network
+
 
 networks:
   uib-network:

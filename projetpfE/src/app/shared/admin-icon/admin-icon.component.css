@@ -1,0 +1,17 @@
+:host {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  line-height: 0;
+}
+
+:host svg {
+  width: 15px;
+  height: 15px;
+}
+
+:host(.admin-icon--md) svg {
+  width: 17px;
+  height: 17px;
+}

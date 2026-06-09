@@ -20,6 +20,9 @@ export class DemandeDetailComponent implements OnInit {
   loading = false;
   errorMessage = '';
   demande: DemandeCompleteDto | null = null;
+  demandeId: number | null = null;
+  actionLoading = false;
+  showCancelConfirm = false;
 
   docDockOpen = false;
   dockLoading = false;
@@ -43,8 +46,13 @@ export class DemandeDetailComponent implements OnInit {
       this.errorMessage = 'Identifiant de demande invalide.';
       return;
     }
+    this.demandeId = id;
+    this.loadDemande(id);
+  }
 
+  private loadDemande(id: number): void {
     this.loading = true;
+    this.errorMessage = '';
     this.demandeService.getDemandeDetailById(id).subscribe({
       next: (row) => {
         this.demande = row;
@@ -58,17 +66,68 @@ export class DemandeDetailComponent implements OnInit {
     });
   }
 
+  get canCancel(): boolean {
+    const s = (this.demande?.statut || '').toUpperCase();
+    return s === 'CREE' || s === 'EN_ATTENTE_CONSENTEMENT' || s === 'EN_COURS_PRESCORING';
+  }
+
+  get canResendConsent(): boolean {
+    const s = (this.demande?.statut || '').toUpperCase();
+    return s === 'EN_ATTENTE_CONSENTEMENT';
+  }
+
+  cancelDemande(): void {
+    if (!this.demandeId || this.actionLoading || !this.canCancel) return;
+    this.showCancelConfirm = true;
+  }
+
+  closeCancelConfirm(): void {
+    if (this.actionLoading) return;
+    this.showCancelConfirm = false;
+  }
+
+  confirmCancelDemande(): void {
+    if (!this.demandeId || this.actionLoading || !this.canCancel) return;
+    this.actionLoading = true;
+    this.demandeService.annulerDemande(this.demandeId).subscribe({
+      next: () => {
+        this.actionLoading = false;
+        this.showCancelConfirm = false;
+        this.loadDemande(this.demandeId!);
+      },
+      error: () => {
+        this.actionLoading = false;
+        this.showCancelConfirm = false;
+      },
+    });
+  }
+
+  resendConsent(): void {
+    if (!this.demandeId || this.actionLoading || !this.canResendConsent) return;
+    this.actionLoading = true;
+    this.demandeService.renvoyerConsentement(this.demandeId).subscribe({
+      next: () => {
+        this.actionLoading = false;
+        this.loadDemande(this.demandeId!);
+      },
+      error: () => {
+        this.actionLoading = false;
+      },
+    });
+  }
+
   get statusLabel(): string {
     const s = (this.demande?.statut || '').toUpperCase();
     if (!s) return '-';
     // Un seul statut backend avant validation client
     if (s === 'CREE') return 'Créée';
-    if (s.includes('EN_ATTENTE_CONSENTEMENT')) return 'En attente consentement';
+    if (s.includes('EN_ATTENTE_CONSENTEMENT')) return 'Consentement client';
     if (s.includes('EN_ATTENTE') || s.includes('BROUILLON')) return 'En attente';
     if (s.includes('SOUMISE')) return 'Soumise';
     if (s.includes('EN_ANALYSE') || s.includes('ANALYSE') || s.includes('EN_COURS')) return 'En analyse';
     if (s.includes('REFUSEE') || s.includes('REFUSE')) return 'Décision';
     if (s.includes('ACCEPTEE')) return 'Financement';
+    if (s === 'ANNULEE' || s.includes('ANNULE')) return 'Annulée';
     return this.demande?.statut || '-';
   }
 
@@ -190,27 +249,50 @@ export class DemandeDetailComponent implements OnInit {
   }
 
   get historyItems(): { title: string; detail: string; date: string }[] {
-    if (!this.demande) return [];
-    const docsCount = this.demande.dossierClient?.documents?.length ?? 0;
-    const dep = this.formatDateShort(this.demande.dateCreation);
-    const maj = this.formatDateShort(this.demande.dateDerniereMiseAJour);
-    return [
-      {
-        title: 'Dossier pris en charge',
-        detail: 'Analyse UIB assignée',
-        date: dep,
-      },
-      {
-        title: 'Documents vérifiés',
-        detail: `${docsCount} document(s) soumis`,
-        date: maj,
-      },
-      {
-        title: 'Dossier soumis',
-        detail: 'Dossier complet envoyé pour décision',
-        date: maj,
-      },
-    ];
+    const rows = this.demande?.historique ?? [];
+    return [...rows]
+      .sort(
+        (a, b) =>
+          new Date(b.dateEvenement).getTime() - new Date(a.dateEvenement).getTime()
+      )
+      .map((e) => ({
+        title: e.libelle,
+        detail: e.detail || this.formatStatutTransition(e.statutAvant, e.statutApres),
+        date: this.formatDateTime(e.dateEvenement),
+      }));
+  }
+
+  private formatStatutTransition(avant?: string, apres?: string): string {
+    if (avant && apres && avant !== apres) {
+      return `${this.libelleStatut(avant)} → ${this.libelleStatut(apres)}`;
+    }
+    if (apres) return this.libelleStatut(apres);
+    return '';
+  }
+
+  private libelleStatut(statut: string): string {
+    const s = (statut || '').toUpperCase();
+    if (s === 'CREE') return 'Créée';
+    if (s.includes('EN_ATTENTE_CONSENTEMENT')) return 'Consentement client';
+    if (s.includes('SOUMISE')) return 'Soumise';
+    if (s.includes('EN_COURS_ANALYSE')) return 'En analyse';
+    if (s.includes('ACCEPTEE')) return 'Acceptée';
+    if (s.includes('REFUSEE')) return 'Refusée';
+    if (s.includes('ANNULEE')) return 'Annulée';
+    return statut;
+  }
+
+  formatDateTime(date?: string): string {
+    if (!date) return '-';
+    const d = new Date(date);
+    if (!Number.isFinite(d.getTime())) return '-';
+    return d.toLocaleString('fr-FR', {
+      day: '2-digit',
+      month: '2-digit',
+      year: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
   }
 
   formatMoney(value?: number): string {

@@ -1,1 +1,80 @@
-<p>recommandations-modal works!</p>
+@if (modalOpen) {
+  <div class="confirm-overlay" (click)="closeOnBackdrop($event)">
+    <div
+      class="insight-modal"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="reco-title"
+      (click)="$event.stopPropagation()"
+    >
+      <button type="button" class="insight-modal__close" (click)="close()" aria-label="Fermer">×</button>
+
+      <header class="insight-modal__head">
+        <div class="insight-card__icon" aria-hidden="true">
+          <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M9 18h6"/><path d="M10 22h4"/>
+            <path d="M12 2a7 7 0 017 7 7 7 0 01-3.5 6.05V17a1 1 0 01-1 1h-5a1 1 0 01-1-1v-1.95A7 7 0 015 9a7 7 0 017-7z"/>
+          </svg>
+        </div>
+        <div>
+          <h2 id="reco-title" class="insight-modal__title">
+            @if (demandeConforme) {
+              Dossier conforme
+            } @else {
+              Recommandations
+            }
+          </h2>
+          @if (demandeConforme) {
+            <p class="insight-modal__sub">Aucune anomalie IA — vérifiez les dates des fiches de paie avant de poursuivre</p>
+          } @else if (recommandations.length > 0) {
+            <p class="insight-modal__sub">
+              {{ recommandations.length }} conseil{{ recommandations.length > 1 ? 's' : '' }} pour optimiser le financement
+            </p>
+          } @else {
+            <p class="insight-modal__sub">Analyse du financement BNPL</p>
+          }
+        </div>
+      </header>
+
+      <div class="insight-modal__body">
+        @if (recommandations.length > 0) {
+          <ul class="insight-card__list" [class.insight-card__list--conforme]="demandeConforme">
+            @for (texte of recommandations; track $index) {
+              <li class="insight-card__item" [class.insight-card__item--conforme]="demandeConforme">
+                @if (demandeConforme) {
+                  <span class="insight-card__check" aria-hidden="true">✓</span>
+                } @else {
+                  <span class="insight-card__num">{{ $index + 1 }}</span>
+                }
+                <p class="insight-card__item-text">{{ texte }}</p>
+              </li>
+            }
+          </ul>
+        } @else {
+          <p class="insight-modal__empty insight-modal__empty--conforme">
+            <strong>Dossier conforme.</strong>
+            Il faut juste vérifier les dates des fiches de paie, s'il vous plaît.
+          </p>
+        }
+      </div>
+
+      <footer class="insight-modal__foot">
+        <p class="insight-modal__note">
+          @if (demandeConforme || recommandations.length === 0) {
+            Vous pouvez poursuivre vers le consentement client.
+          } @else {
+            Conseils sur le montant ou la durée uniquement — pas de pièces supplémentaires à joindre.
+          }
+        </p>
+        <div class="insight-modal__actions">
+          @if (showActions) {
+            <button type="button" class="modal-btn" (click)="onModifier()">Modifier le formulaire</button>
+            <button type="button" class="modal-btn primary" (click)="onContinuer()">Continuer</button>
+          } @else {
+            <button type="button" class="modal-btn primary" (click)="close()">Fermer</button>
+          }
+        </div>
+      </footer>
+    </div>
+  </div>
+}

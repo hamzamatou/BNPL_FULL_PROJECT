@@ -8,14 +8,57 @@
 
 /* --- SECTION GAUCHE --- */
 .brand-section {
-  flex: 0 0 50%; /* Exactement la moitié */
-  background-color: #C8102E; /* Le rouge UIB officiel */
+  position: relative;
+  flex: 0 0 50%;
+  background-color: var(--uib-red);
   color: white;
   display: flex;
   padding: 60px;
+  overflow: hidden;
+}
+
+/* Deux cercles qui se croisent en arrière-plan */
+.brand-bg-circles {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  z-index: 0;
+}
+
+.brand-circle {
+  position: absolute;
+  border-radius: 50%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.2) 0%,
+    rgba(255, 255, 255, 0.09) 40%,
+    transparent 68%
+  );
+}
+
+.brand-circle--top {
+  width: min(94vw, 590px);
+  height: min(94vw, 590px);
+  top: -26%;
+  right: -22%;
+}
+
+.brand-circle--bottom {
+  width: min(90vw, 550px);
+  height: min(90vw, 550px);
+  bottom: -30%;
+  left: -20%;
+  background: radial-gradient(
+    circle at center,
+    rgba(255, 255, 255, 0.17) 0%,
+    rgba(255, 255, 255, 0.07) 42%,
+    transparent 70%
+  );
 }
 
 .brand-content {
+  position: relative;
+  z-index: 1;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
@@ -47,24 +90,55 @@
   font-weight: 600;
 }
 
+.logo-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 10px;
+}
+
+.logo-top-row {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 18px;
+}
+
+.login-logo-img {
+  display: block;
+  width: auto;
+  max-width: 200px;
+  max-height: 72px;
+  height: auto;
+  object-fit: contain;
+  margin-bottom: 0;
+  flex-shrink: 0;
+}
+
 .logo-main {
   font-size: 3rem;
   font-weight: 800;
   margin: 0;
   letter-spacing: -1px;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .logo-sub {
   font-size: 0.85rem;
   letter-spacing: 2px;
-  margin-top: 5px;
+  margin: 0;
   opacity: 0.9;
+  max-width: 100%;
 }
 
 .platform-title {
-  font-size: 2rem;
-  font-weight: 600;
+  font-family: 'Syne', 'DM Sans', sans-serif;
+  font-size: 2.35rem;
+  font-weight: 700;
+  line-height: 1.15;
   margin-bottom: 15px;
+  letter-spacing: -0.02em;
 }
 
 .platform-subtitle {
@@ -116,18 +190,61 @@
   font-size: 1rem;
   background-color: #fff;
   transition: border-color 0.2s;
+  box-sizing: border-box;
+}
+
+.password-input-wrap {
+  position: relative;
+}
+
+.password-input-wrap input {
+  padding-right: 48px;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 4px;
+  top: 50%;
+  transform: translateY(-50%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  padding: 0;
+  border: none;
+  border-radius: 6px;
+  background: transparent;
+  color: #888;
+  cursor: pointer;
+  transition: color 0.2s, background-color 0.2s;
+}
+
+.password-toggle:hover {
+  color: var(--uib-red);
+  background-color: rgba(200, 16, 46, 0.06);
+}
+
+.password-toggle:focus-visible {
+  outline: 2px solid var(--uib-red);
+  outline-offset: 2px;
+}
+
+.password-toggle-icon {
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .input-group input:focus {
   outline: none;
-  border-color: #C8102E;
+  border-color: var(--uib-red);
 }
 
 /* --- BOUTON --- */
 .btn-submit {
   width: 100%;
   padding: 15px;
-  background-color: #C8102E;
+  background-color: var(--uib-red);
   color: white;
   border: none;
   border-radius: 6px;
@@ -157,7 +274,10 @@
   .login-container { flex-direction: column; }
   .brand-section { flex: 0 0 30%; padding: 30px; }
   .brand-content { justify-content: center; gap: 20px; }
+  .logo-top-row { gap: 12px; }
+  .login-logo-img { max-width: 120px; max-height: 48px; }
   .logo-main { font-size: 2rem; }
+  .logo-sub { font-size: 0.7rem; letter-spacing: 1px; }
   .platform-title { font-size: 1.2rem; }
   .platform-subtitle { display: none; }
 }

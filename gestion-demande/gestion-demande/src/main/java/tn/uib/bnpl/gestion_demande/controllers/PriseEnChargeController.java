@@ -30,20 +30,12 @@ public class PriseEnChargeController {
 
     @GetMapping("/demandes/disponibles")
     public ResponseEntity<List<DemandeSummaryResponse>> listerDemandesDisponibles() {
-        return ResponseEntity.ok(
-                priseEnChargeService.listerDemandesDisponiblesPourBanque().stream()
-                        .map(demandeDtoMapper::toSummary)
-                        .toList()
-        );
+        return ResponseEntity.ok(priseEnChargeService.listerDemandesDisponiblesResumePourBanque());
     }
 
     @GetMapping("/demandes/verrouillees")
     public ResponseEntity<List<DemandeSummaryResponse>> listerDemandesVerrouillees() {
-        return ResponseEntity.ok(
-                priseEnChargeService.listerDemandesVerrouilleesPourBanque().stream()
-                        .map(demandeDtoMapper::toSummary)
-                        .toList()
-        );
+        return ResponseEntity.ok(priseEnChargeService.listerDemandesVerrouilleesResumePourBanque());
     }
 
     @GetMapping("/demandes/{demandeId}/detail")
@@ -54,10 +46,24 @@ public class PriseEnChargeController {
         );
     }
 
+    @GetMapping("/demandes/{demandeId}/recap")
+    public ResponseEntity<DemandeCompleteResponse> getRecap(@PathVariable Long demandeId) {
+        return ResponseEntity.ok(
+                demandeDtoMapper.toComplete(
+                        priseEnChargeService.getRecapDemandePourBanque(demandeId))
+        );
+    }
+
     @PostMapping("/demandes/{demandeId}/se-saisir")
     public ResponseEntity<PriseEnCharge> seSaisir(@PathVariable Long demandeId) {
-        PriseEnCharge pec = priseEnChargeService.seSaisirEtDemarrerAnalyse(demandeId);
+        PriseEnCharge pec = priseEnChargeService.seSaisir(demandeId);
         return ResponseEntity.status(HttpStatus.CREATED).body(pec);
+    }
+
+    @PostMapping("/demandes/{demandeId}/demarrer-analyse")
+    public ResponseEntity<PriseEnCharge> demarrerAnalyse(@PathVariable Long demandeId) {
+        PriseEnCharge pec = priseEnChargeService.demarrerAnalyse(demandeId);
+        return ResponseEntity.ok(pec);
     }
 
     @PostMapping("/demandes/{demandeId}/accepter")
@@ -94,6 +100,18 @@ public class PriseEnChargeController {
         return ResponseEntity.ok(
                 demandeDtoMapper.toComplete(
                         priseEnChargeService.demanderComplements(demandeId, commentaire))
+        );
+    }
+
+    @PostMapping("/demandes/{demandeId}/complements-recus")
+    public ResponseEntity<DemandeCompleteResponse> complementsRecus(
+            @PathVariable Long demandeId,
+            @RequestBody(required = false) DecisionRequest req
+    ) {
+        String detail = req != null ? req.commentaire() : null;
+        return ResponseEntity.ok(
+                demandeDtoMapper.toComplete(
+                        priseEnChargeService.receptionnerComplements(demandeId, detail))
         );
     }
 

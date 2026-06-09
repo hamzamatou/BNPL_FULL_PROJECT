@@ -1,0 +1,31 @@
+@if (alertes.length) {
+  <section class="insight-card insight-card--warning">
+    <header class="insight-card__head">
+      <div class="insight-card__head-left">
+        <div class="insight-card__icon" aria-hidden="true">
+          <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="10"/>
+            <line x1="12" y1="8" x2="12" y2="12"/>
+            <line x1="12" y1="16" x2="12.01" y2="16"/>
+          </svg>
+        </div>
+        <div>
+          <h3 class="insight-card__title">Écarts signalés</h3>
+          <p class="insight-card__sub">
+            Points d'attention issus de l'analyse — le dossier peut rester poursuivable
+          </p>
+        </div>
+      </div>
+      <span class="insight-card__badge">{{ alertes.length }}</span>
+    </header>
+
+    <ul class="insight-card__body insight-card__list">
+      @for (texte of alertes; track $index) {
+        <li class="insight-card__item">
+          <span class="insight-card__marker" aria-hidden="true"></span>
+          <p class="insight-card__item-text">{{ texte }}</p>
+        </li>
+      }
+    </ul>
+  </section>
+}

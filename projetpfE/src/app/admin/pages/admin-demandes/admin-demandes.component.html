@@ -1,0 +1,67 @@
+<section class="list-page admin-demandes">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Demandes</h1>
+      <p class="page-sub">Liste des dossiers — journal des actions par demande</p>
+    </div>
+  </header>
+
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="search-box">
+        <span class="search-ico" aria-hidden="true">⌕</span>
+        <input type="text" placeholder="Rechercher référence, libellé, acteur…" [(ngModel)]="searchTerm" />
+      </div>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="table-state"><span class="spinner"></span> Chargement…</div>
+  } @else {
+    <div class="card table-card">
+      <div class="table-wrap">
+        <div class="table table--demandes">
+          <div class="thead">
+            <div>Référence</div>
+            <div>Dernier statut</div>
+            <div>Libellé</div>
+            <div>Dernière activité</div>
+            <div>Acteur</div>
+            <div>Événements</div>
+            <div class="col-action">Traçabilité</div>
+          </div>
+          @for (d of displayedDemandes; track d.demandeId) {
+            <div class="tr">
+              <div><strong>{{ d.reference }}</strong></div>
+              <div>
+                <span class="badge" [ngClass]="decisionBadgeClass(d.dernierType)">
+                  {{ libelleDecision(d.dernierType) }}
+                </span>
+              </div>
+              <div>{{ d.dernierLibelle || '—' }}</div>
+              <div>{{ asApiDate(d.derniereDate) | date:'short' }}</div>
+              <div>{{ d.acteurEmail || '—' }}</div>
+              <div>{{ d.nbEvenements }}</div>
+              <div class="col-action">
+                <button
+                  type="button"
+                  class="btn-journal"
+                  title="Voir la traçabilité de cette demande"
+                  (click)="openTraceabilite(d.demandeId)"
+                >
+                  Traçabilité
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <div class="table-empty">Aucune demande enregistrée.</div>
+          }
+        </div>
+      </div>
+    </div>
+  }
+</section>

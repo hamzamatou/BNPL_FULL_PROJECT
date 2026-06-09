@@ -13,6 +13,8 @@ export type TypeActionDemande =
   | 'CREATION'
   | 'CONSENTEMENT'
   | 'SCORING'
+  | 'ROUTAGE'
+  | 'RECOMMANDATION'
   | 'PRISE_EN_CHARGE'
   | 'ACCEPTION'
   | 'REFUS'
@@ -45,6 +47,25 @@ export interface PageResponse<T> {
   last?: boolean;
 }
 
+export interface BanqueDashboardDto {
+  decisions24h: number;
+  acceptees: number;
+  refusees: number;
+  complements: number;
+  prisesEnCharge: number;
+  repartitionDecisionsParType: Record<string, number>;
+  dernieresDecisions: BanqueDecisionResumeDto[];
+}
+
+export interface BanqueDecisionResumeDto {
+  id: number;
+  demandeId: number;
+  referenceDemande: string | null;
+  typeDecision: string;
+  libelle: string;
+  dateDecision: string;
+}
+
 export interface DashboardReportingDto {
   actionsDemandes24h: number;
   decisionsFinancement24h: number;
@@ -54,6 +75,32 @@ export interface DashboardReportingDto {
   repartitionActionsParType: Record<string, number>;
   repartitionDecisionsParType: Record<string, number>;
   dernieresActions: ActionDemandeResumeDto[];
+  demandesTotal: number;
+  demandesCeMois: number;
+  montantTotalDemande: number;
+  montantMoyenDemande: number;
+  clientsInscrits: number;
+  commercantsPartenaires: number;
+  banquesPartenaires: number;
+  utilisateursActifs: number;
+  utilisateursTotal: number;
+  demandesAcceptees: number;
+  demandesRefusees: number;
+  tauxAcceptationPct: number;
+  demandesEnCoursAnalyse: number;
+  demandesCloturees: number;
+  scoreMoyenPrescoring: number;
+  prescoringRisqueFaible: number;
+  prescoringRisqueMoyen: number;
+  prescoringRisqueEleve: number;
+  demandesRoutees: number;
+  reponsesBancairesRecues: number;
+  tempsMoyenTraitementHeures: number | null;
+  repartitionPrescoringParZone: Record<string, number>;
+  evolutionDemandesParJour: Record<string, number>;
+  repartitionStatuts: Record<string, number>;
+  tauxAcceptationParBanque: Record<string, number>;
+  demandesParCommercant: Record<string, number>;
 }
 
 export interface ActionDemandeResumeDto {
@@ -160,6 +207,7 @@ export interface ReportingListFilters {
   type?: string | null;
   objectKey?: string | null;
   userId?: number | null;
+  acteurUserId?: number | null;
   suspectOnly?: boolean;
   debut?: string | null;
   fin?: string | null;
@@ -185,6 +233,8 @@ export function libelleTypeActionDemande(code: string | null | undefined): strin
     CREATION: 'Création',
     CONSENTEMENT: 'Consentement',
     SCORING: 'Scoring',
+    ROUTAGE: 'Routage banque',
+    RECOMMANDATION: 'Recommandations IA',
     PRISE_EN_CHARGE: 'Prise en charge',
     ACCEPTION: 'Acceptation',
     REFUS: 'Refus',

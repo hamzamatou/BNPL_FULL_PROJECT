@@ -1,30 +1,78 @@
 <header class="header-wrap">
-  <div class="header-row">
-    <div class="brand">
-      <div class="brand-logo"></div>
-      <div>
-        <div class="brand-title">UIB BNPL</div>
-        <div class="brand-sub"></div>
-      </div>
-    </div>
-    <div class="profile-links">
-      <span>
-        Profil ({{ roleLabel || 'Utilisateur' }} · {{ userName || '—' }})
+  <div class="header-accent" aria-hidden="true"></div>
+
+  <div class="header-bar">
+    <a class="brand" [routerLink]="homeLink()" (click)="closeMobileMenu()">
+      <span class="brand-logo-frame">
+        <img
+          class="uib-logo-img"
+          [src]="logoSrc"
+          alt="Union Internationale de Banques"
+          decoding="async"
+        />
       </span>
-      <a href="#" (click)="onLogout($event)">Deconnexion</a>
+      <span class="brand-copy">
+        <span class="brand-tag">Portail BNPL</span>
+        <span class="brand-sub">Union Internationale de Banques</span>
+      </span>
+    </a>
+
+    @if (hasNav) {
+      <button
+        type="button"
+        class="nav-toggle"
+        [class.is-open]="mobileMenuOpen"
+        [attr.aria-expanded]="mobileMenuOpen"
+        aria-controls="main-nav"
+        aria-label="Menu"
+        (click)="toggleMobileMenu()"
+      >
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+        <span class="nav-toggle-bar"></span>
+      </button>
+
+      <nav
+        id="main-nav"
+        class="top-nav"
+        [class.is-open]="mobileMenuOpen"
+        aria-label="Navigation principale"
+      >
+        <div class="top-nav-pill">
+          @for (link of navLinks; track link.route; let i = $index) {
+            <a
+              [routerLink]="link.route"
+              routerLinkActive="active"
+              [routerLinkActiveOptions]="{ exact: link.exact ?? false }"
+              class="top-nav-item"
+              [style.--nav-i]="i"
+              (click)="closeMobileMenu()"
+            >
+              <span class="nav-icon" [class]="'nav-icon--' + link.icon" aria-hidden="true"></span>
+              <span class="nav-label">{{ link.label }}</span>
+            </a>
+          }
+        </div>
+      </nav>
+    }
+
+    <div class="header-actions">
+      <span class="header-divider" aria-hidden="true"></span>
+      <div class="profile-badge" [attr.title]="userName || undefined">
+        <span class="profile-avatar" aria-hidden="true">{{ userInitial }}</span>
+        <span class="profile-meta">
+          <span class="user-role">{{ roleLabel || 'Utilisateur' }}</span>
+          <span class="user-name">{{ userName || '—' }}</span>
+        </span>
+      </div>
+      <button type="button" class="logout-btn" (click)="onLogout($event)">
+        <span class="logout-icon" aria-hidden="true"></span>
+        <span class="logout-label">Déconnexion</span>
+      </button>
     </div>
   </div>
-  <nav class="top-nav">
-    @if (roleLabel === 'Commerçant') {
-      <a routerLink="/mes-demandes" routerLinkActive="active" class="top-nav-item">Mes demandes</a>
-      <a routerLink="/commercant" routerLinkActive="active" class="top-nav-item">Creer une demande</a>
-    } @else if (roleLabel === 'Admin') {
-      <a routerLink="/admin" routerLinkActive="active" class="top-nav-item">Utilisateurs</a>
-      <a routerLink="/admin/reporting" routerLinkActive="active" class="top-nav-item">Pilotage &amp; audit</a>
-    } @else if (roleLabel === 'Banque') {
-      <a routerLink="/banque/demandes" routerLinkActive="active" class="top-nav-item">Demandes banque</a>
-      <a routerLink="/banque/affectees" routerLinkActive="active" class="top-nav-item">Prise en charge</a>
-      <a routerLink="/admin/reporting" routerLinkActive="active" class="top-nav-item">Pilotage &amp; audit</a>
-    }
-  </nav>
 </header>
+
+@if (mobileMenuOpen) {
+  <div class="nav-backdrop" aria-hidden="true" (click)="closeMobileMenu()"></div>
+}

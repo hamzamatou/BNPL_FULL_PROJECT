@@ -1,16 +1,15 @@
-import { Component, OnInit, ViewEncapsulation } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { ActivatedRoute, Router } from '@angular/router';
 import { UserService } from '../../services/user.service';
-import { NgIf, NgClass } from '@angular/common';
 import { FormsModule } from '@angular/forms';
+import { AdminIconComponent } from '../../shared/admin-icon/admin-icon.component';
 
 @Component({
   selector: 'app-user-detail',
   standalone: true,
-  imports: [NgIf, FormsModule],
+  imports: [FormsModule, AdminIconComponent],
   templateUrl: './user-detail.component.html',
   styleUrls: ['./user-detail.component.css'],
-  encapsulation: ViewEncapsulation.None
 })
 export class UserDetailComponent implements OnInit {
 
@@ -65,7 +64,7 @@ export class UserDetailComponent implements OnInit {
   }
 
   goBack() {
-    this.router.navigate(['/admin']);
+    void this.router.navigate(['/admin/utilisateurs']);
   }
 
   formatRef(id: number): string {

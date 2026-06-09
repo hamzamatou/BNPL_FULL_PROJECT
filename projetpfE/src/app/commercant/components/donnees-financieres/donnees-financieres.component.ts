@@ -12,6 +12,7 @@ type DonneesFinancieresPrefill = {
   autresChargesFixes?: number;
   credits?: number;
   montant?: number;
+  dureeMois?: number;
 };
 
 @Component({
@@ -46,7 +47,9 @@ export class DonneesFinancieresComponent implements OnChanges {
   dureeMois!: number;
   objet!: string;
 
-  formError = '';
+  static readonly DUREE_MIN_MOIS = 3;
+  static readonly DUREE_MAX_MOIS = 36;
+
   revenuError = '';
   autresRevenusError = '';
   revenuAnnuelError = '';
@@ -55,6 +58,8 @@ export class DonneesFinancieresComponent implements OnChanges {
   autresChargesFixesError = '';
   creditsError = '';
   montantError = '';
+  dureeMoisError = '';
+  objetError = '';
   nombreEnfants = 0;
 
   @Output() nextStep = new EventEmitter<any>();
@@ -98,10 +103,30 @@ export class DonneesFinancieresComponent implements OnChanges {
     );
   }
 
-  /** Part des revenus absorbée par les charges fixes mensuelles (indicatif). */
+  /** Mensualité estimée du financement BNPL (montant / durée). */
+  get mensualiteBnpl(): number {
+    const m = Number(this.montant);
+    const d = Number(this.dureeMois);
+    if (!Number.isFinite(m) || m <= 0 || !Number.isFinite(d) || d <= 0) return 0;
+    return m / d;
+  }
+
+  get mensualitesCreditsMois(): number {
+    return this.aDesCredits ? Number(this.mensualitesCredits) || 0 : 0;
+  }
+
+  /** Mensualités crédits existantes + mensualité BNPL. */
+  get totalMensualitesCredits(): number {
+    return this.mensualitesCreditsMois + this.mensualiteBnpl;
+  }
+
+  /**
+   * Taux d'endettement = (mensualités crédits ancien + BNPL) / revenus nets mensuels × 100.
+   */
   get tauxEndettementPct(): number {
     if (this.revenuTotal <= 0) return 0;
-    return Math.min(100, Math.round((this.chargesMensuelles / this.revenuTotal) * 100));
+    const pct = (this.totalMensualitesCredits / this.revenuTotal) * 100;
+    return Math.min(100, Math.round(pct * 10) / 10);
   }
 
   get sousSeuilEndettement(): boolean {
@@ -127,6 +152,9 @@ export class DonneesFinancieresComponent implements OnChanges {
       if (p.autresChargesFixes !== undefined) this.autresChargesFixes = p.autresChargesFixes;
       if (p.credits !== undefined) this.credits = p.credits;
       if (p.montant !== undefined) this.montant = p.montant;
+      if (p.dureeMois !== undefined) {
+        this.dureeMois = p.dureeMois;
+      }
       if (p.ancienneteEmploiMois !== undefined) {
         this.ancienneteEmploiMoisClient = p.ancienneteEmploiMois;
       }
@@ -140,7 +168,6 @@ export class DonneesFinancieresComponent implements OnChanges {
   }
 
   next() {
-    this.formError = '';
     this.revenuError = '';
     this.autresRevenusError = '';
     this.revenuAnnuelError = '';
@@ -149,6 +176,8 @@ export class DonneesFinancieresComponent implements OnChanges {
     this.autresChargesFixesError = '';
     this.creditsError = '';
     this.montantError = '';
+    this.dureeMoisError = '';
+    this.objetError = '';
 
     const isFiniteNumber = (v: any): boolean =>
       v !== null && v !== undefined && v !== '' && Number.isFinite(Number(v));
@@ -170,7 +199,7 @@ export class DonneesFinancieresComponent implements OnChanges {
     requireField(this.montant, (m) => (this.montantError = m), 'Champ obligatoire.');
 
     if (!this.objet || !this.objet.trim()) {
-      this.formError = 'Veuillez remplir les champs obligatoires.';
+      this.objetError = 'Champ obligatoire.';
     }
 
     const toNum = (v: any): number => Number(v);
@@ -200,6 +229,18 @@ export class DonneesFinancieresComponent implements OnChanges {
       this.montantError = 'Doit être >= 0.';
     }
 
+    const duree = Number(this.dureeMois);
+    if (!Number.isFinite(duree)) {
+      this.dureeMoisError = 'Champ obligatoire.';
+    } else if (!Number.isInteger(duree)) {
+      this.dureeMoisError = 'Nombre entier de mois requis.';
+    } else if (
+      duree < DonneesFinancieresComponent.DUREE_MIN_MOIS ||
+      duree > DonneesFinancieresComponent.DUREE_MAX_MOIS
+    ) {
+      this.dureeMoisError = `Saisir entre ${DonneesFinancieresComponent.DUREE_MIN_MOIS} et ${DonneesFinancieresComponent.DUREE_MAX_MOIS} mois.`;
+    }
+
     const hasAnyError =
       !!this.revenuError ||
       !!this.autresRevenusError ||
@@ -209,7 +250,8 @@ export class DonneesFinancieresComponent implements OnChanges {
       !!this.autresChargesFixesError ||
       !!this.creditsError ||
       !!this.montantError ||
-      !!this.formError;
+      !!this.dureeMoisError ||
+      !!this.objetError;
 
     if (hasAnyError) return;
 
@@ -220,13 +262,8 @@ export class DonneesFinancieresComponent implements OnChanges {
     const credits = this.aDesCredits ? toNum(this.credits) : 0;
     const chargesMensuelles = loyer + mensualites + toNum(this.autresChargesFixes) + chargeEnfants;
     if (chargesMensuelles > revenuTotal) {
-      this.formError = 'La somme des charges mensuelles ne doit pas dépasser le revenu mensuel.';
-      return;
-    }
-
-    const duree = Number(this.dureeMois);
-    if (!Number.isFinite(duree) || duree < 0) {
-      this.formError = 'Durée invalide.';
+      this.revenuError =
+        'Les charges mensuelles ne doivent pas dépasser le revenu mensuel net.';
       return;
     }
 
@@ -237,8 +274,8 @@ export class DonneesFinancieresComponent implements OnChanges {
       revenu: toNum(this.revenu),
       autresRevenus: isFiniteNumber(this.autresRevenus) ? toNum(this.autresRevenus) : 0,
       revenuAnnuel: toNum(this.revenuAnnuel),
-      aUnLoyer: this.aUnLoyer,
-      aDesCredits: this.aDesCredits,
+      aUnLoyer: this.aUnLoyer === true,
+      aDesCredits: this.aDesCredits === true,
       loyer: loyer,
       mensualitesCredits: mensualites,
       autresChargesFixes: toNum(this.autresChargesFixes),

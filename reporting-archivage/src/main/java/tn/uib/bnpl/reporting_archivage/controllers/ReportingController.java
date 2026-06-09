@@ -7,6 +7,8 @@ import org.springframework.format.annotation.DateTimeFormat;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 import tn.uib.bnpl.reporting_archivage.classes.*;
+import tn.uib.bnpl.reporting_archivage.config.SecurityUtils;
+import tn.uib.bnpl.reporting_archivage.dto.BanqueDashboardDto;
 import tn.uib.bnpl.reporting_archivage.dto.DashboardReportingDto;
 import tn.uib.bnpl.reporting_archivage.services.ReportingService;
 
@@ -24,8 +26,15 @@ public class ReportingController {
     }
 
     @GetMapping("/dashboard")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public DashboardReportingDto dashboard() {
         return reportingService.getDashboard();
+    }
+
+    @GetMapping("/dashboard/banque")
+    @PreAuthorize("hasAnyAuthority('ANALYSTE_BANCAIRE', 'BANQUE')")
+    public BanqueDashboardDto dashboardBanque() {
+        return reportingService.getDashboardBanque(SecurityUtils.getCurrentUserId());
     }
 
     @GetMapping("/actions-demandes")
@@ -53,6 +62,7 @@ public class ReportingController {
     }
 
     @GetMapping("/acces")
+    @PreAuthorize("hasAuthority('ADMIN')")
     public Page<AccesPlateformeHistorique> acces(
             @RequestParam(required = false) Long userId,
             @RequestParam(required = false) Boolean suspectOnly,
@@ -70,9 +80,18 @@ public class ReportingController {
             @RequestParam(required = false) String type,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime debut,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime fin,
+            @RequestParam(required = false) Long acteurUserId,
             @RequestParam(defaultValue = "0") int page,
             @RequestParam(defaultValue = "20") int size) {
-        return reportingService.getDecisions(demandeId, type, debut, fin,
+        Long effectiveActeurId = resolveActeurUserId(acteurUserId);
+        return reportingService.getDecisions(demandeId, type, debut, fin, effectiveActeurId,
                 PageRequest.of(page, size, Sort.by(Sort.Direction.DESC, "dateDecision")));
+    }
+
+    private Long resolveActeurUserId(Long requested) {
+        if (SecurityUtils.isAnalysteBanque()) {
+            return SecurityUtils.getCurrentUserId();
+        }
+        return requested;
     }
 }

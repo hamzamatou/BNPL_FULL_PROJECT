@@ -1,6 +1,6 @@
-﻿<div class="card" [class.completed]="status === 'completed'">
+<div class="card" [class.completed]="status === 'completed'">
   <div class="card-head">
-    <div class="head-left" style="display: flex; align-items: center; gap: 12px;">
+    <div class="head-left">
       <div class="snum" [class.completed]="status === 'completed'">
         @if (status !== 'completed') {
           <span>4</span>
@@ -23,31 +23,39 @@
     </div>
   } @else if (success) {
     <div class="card-body">
-      <div class="info-box success">
-        Votre demande est créée. Un lien de consentement valide 2 h a été envoyé au client par email.
-        Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
+      <div class="success-panel">
+        <div class="success-icon" aria-hidden="true">
+          <svg width="32" height="32" viewBox="0 0 24 24" fill="none"
+               stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <polyline points="20 6 9 17 4 12"/>
+          </svg>
+        </div>
+        <h4>Demande créée avec succès</h4>
+        <div class="info-box success">
+          Un lien de consentement valide 2 h a été envoyé au client par email.
+          Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
+        </div>
       </div>
-      <div class="actions">
+      <div class="actions actions--center">
         <button type="button" class="btn btn-red" (click)="restartFlow()">Nouvelle demande</button>
       </div>
     </div>
   } @else {
     <div class="card-body">
       <div class="info-box">
-        En validant, la demande sera enregistrée et un email de consentement sera envoyé au client.
-        Les recommandations IA ont déjà été consultées à l'étape précédente.
+        En validant, la demande sera enregistrée (statut en attente de consentement) et un email sera envoyé au client.
+        Lorsque le client confirmera son consentement, le statut passera à <strong>Soumise</strong> en base.
       </div>
 
       @if (errorMessage) {
-        <div class="info-box error" style="margin-top: 1rem;">
-          {{ errorMessage }}
-        </div>
+        <div class="form-error">{{ errorMessage }}</div>
       }
 
       <div class="actions">
         <button type="button" class="btn btn-outline" (click)="goBack()">Retour à l'analyse</button>
-        <button type="button" class="btn btn-red" (click)="envoyer()">
+        <button type="button" class="btn btn-red btn-next" (click)="envoyer()">
           Envoyer le consentement
+          <span class="btn-next-arrow" aria-hidden="true">›</span>
         </button>
       </div>
     </div>

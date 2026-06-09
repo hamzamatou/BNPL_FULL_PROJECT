@@ -1,0 +1,6 @@
+@import '../../../shared/styles/uib-admin.css';
+
+.form-card {
+  padding: 0;
+  overflow: hidden;
+}

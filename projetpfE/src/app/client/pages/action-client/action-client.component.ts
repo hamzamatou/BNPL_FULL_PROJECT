@@ -9,6 +9,12 @@ import {
 import { FormsModule } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import { ActionClientService } from '../../../services/action-client.service';
+import {
+  classifyOtpVerifyError,
+  extractHttpErrorMessage,
+  OTP_EXPIRED_MESSAGE,
+  type OtpVerifyErrorKind,
+} from '../../../shared/utils/http-error.util';
 
 type UiStep = 'identity' | 'otp' | 'confirm' | 'done';
 
@@ -36,8 +42,9 @@ export class ActionClientComponent implements OnDestroy {
   errorMessage = '';
   successMessage = '';
   otpInlineError = '';
+  otpErrorKind: OtpVerifyErrorKind | null = null;
 
-  otpSecondsLeft = 120;
+  otpSecondsLeft = 300;
   private otpTimer: ReturnType<typeof setInterval> | null = null;
   otpDigits: string[] = Array(6).fill('');
   otpIndices = [0, 1, 2, 3, 4, 5];
@@ -50,6 +57,14 @@ export class ActionClientComponent implements OnDestroy {
   acceptDataProcessing = false;
   acceptMarketingOptional = false;
   consentError = '';
+
+  readonly flowSteps = [
+    { label: 'Identité' },
+    { label: 'OTP' },
+    { label: 'Consentement' },
+  ] as const;
+
+  private readonly stepOrder: UiStep[] = ['identity', 'otp', 'confirm', 'done'];
 
   constructor(
     private readonly route: ActivatedRoute,
@@ -109,7 +124,7 @@ export class ActionClientComponent implements OnDestroy {
         next: () => {
           this.loading = false;
           this.step = 'otp';
-          this.successMessage = 'OTP envoye par email (valide 10 minutes).';
+          this.successMessage = 'OTP envoye par email (valide 5 minutes).';
           this.startOtpCountdown();
           if (fromResend) {
             this.resendCooldown = true;
@@ -120,8 +135,12 @@ export class ActionClientComponent implements OnDestroy {
         },
         error: (err) => {
           this.loading = false;
-          this.errorMessage =
-            err?.error?.message || err?.error?.error || err?.message || 'Echec envoi OTP.';
+          const msg = extractHttpErrorMessage(err, "Impossible d'envoyer le code OTP. Veuillez réessayer.");
+          if (fromResend || this.step === 'otp') {
+            this.otpInlineError = msg;
+          } else {
+            this.errorMessage = msg;
+          }
         },
       });
   }
@@ -129,6 +148,12 @@ export class ActionClientComponent implements OnDestroy {
   verifyOtp(): void {
     this.consentError = '';
     this.otpInlineError = '';
+    this.otpErrorKind = null;
+    if (this.otpExpired) {
+      this.otpErrorKind = 'expired';
+      this.otpInlineError = OTP_EXPIRED_MESSAGE;
+      return;
+    }
     if (!this.token || !this.otp) {
       this.otpInlineError = 'Code OTP obligatoire.';
       return;
@@ -147,9 +172,12 @@ export class ActionClientComponent implements OnDestroy {
         },
         error: (err) => {
           this.loading = false;
-          this.otpInlineError =
-            err?.error?.message || err?.error?.error || err?.message || 'OTP invalide.';
-          this.clearOtpInputsFocusFirst();
+          const otpError = classifyOtpVerifyError(err);
+          this.otpErrorKind = otpError.kind;
+          this.otpInlineError = otpError.message;
+          if (otpError.kind === 'incorrect') {
+            this.clearOtpInputsFocusFirst();
+          }
         },
       });
   }
@@ -163,7 +191,12 @@ export class ActionClientComponent implements OnDestroy {
     this.consentError = '';
     this.errorMessage = '';
 
-    if (!this.acceptCGF || !this.acceptCentraleRisques || !this.acceptDataProcessing) {
+    if (
+      !this.acceptCGF ||
+      !this.acceptCentraleRisques ||
+      !this.acceptDataProcessing ||
+      !this.acceptMarketingOptional
+    ) {
       this.consentError =
         'Vous devez cocher toutes les cases obligatoires pour confirmer le consentement.';
       return;
@@ -180,17 +213,20 @@ export class ActionClientComponent implements OnDestroy {
       },
       error: (err) => {
         this.loading = false;
-        this.errorMessage =
-          err?.error?.message ||
-          err?.error?.error ||
-          err?.message ||
-          'Echec confirmation consentement.';
+        this.consentError = extractHttpErrorMessage(
+          err,
+          'Impossible de confirmer le consentement. Veuillez réessayer.'
+        );
       },
     });
   }
 
   onOtpDigitInput(index: number, value: string): void {
+    if (this.otpExpired) {
+      return;
+    }
     this.otpInlineError = '';
+    this.otpErrorKind = null;
     const v = (value ?? '').toString().replace(/\D/g, '').slice(0, 1);
     this.otpDigits[index] = v;
     this.otp = this.otpDigits.join('');
@@ -203,6 +239,10 @@ export class ActionClientComponent implements OnDestroy {
   }
 
   onOtpKeydown(index: number, ev: KeyboardEvent): void {
+    if (this.otpExpired) {
+      ev.preventDefault();
+      return;
+    }
     if (ev.key === 'Backspace' && !this.otpDigits[index] && index > 0) {
       ev.preventDefault();
       this.otpDigits[index - 1] = '';
@@ -214,7 +254,11 @@ export class ActionClientComponent implements OnDestroy {
 
   onOtpPaste(ev: ClipboardEvent): void {
     ev.preventDefault();
+    if (this.otpExpired) {
+      return;
+    }
     this.otpInlineError = '';
+    this.otpErrorKind = null;
     const text = (ev.clipboardData?.getData('text') ?? '').replace(/\D/g, '').slice(0, 6);
     const cells = this.otpCells.toArray();
     for (let i = 0; i < 6; i++) {
@@ -241,9 +285,11 @@ export class ActionClientComponent implements OnDestroy {
 
   private startOtpCountdown(): void {
     this.stopOtpCountdown();
-    this.otpSecondsLeft = 120;
+    this.otpSecondsLeft = 300;
     this.otpDigits = Array(6).fill('');
     this.otp = '';
+    this.otpInlineError = '';
+    this.otpErrorKind = null;
     this.resendCooldown = false;
 
     this.otpTimer = setInterval(() => {
@@ -276,15 +322,50 @@ export class ActionClientComponent implements OnDestroy {
     return this.otpDigits.every((d) => d.length === 1);
   }
 
+  get otpExpired(): boolean {
+    return this.otpSecondsLeft <= 0;
+  }
+
   get canResendOtp(): boolean {
-    return this.otpSecondsLeft <= 0 && !this.resendCooldown && !this.loading;
+    return this.otpExpired && !this.resendCooldown && !this.loading;
   }
 
   backToIdentity(): void {
     this.stopOtpCountdown();
     this.step = 'identity';
     this.otpInlineError = '';
+    this.otpErrorKind = null;
     this.otpDigits = Array(6).fill('');
     this.otp = '';
+  }
+
+  currentStepNumber(): number {
+    if (this.step === 'done') {
+      return this.flowSteps.length;
+    }
+    const idx = this.stepOrder.indexOf(this.step);
+    return idx >= 0 ? idx + 1 : 1;
+  }
+
+  stepState(index: number): 'done' | 'active' | 'pending' {
+    const current = this.stepOrder.indexOf(this.step);
+    if (index < current) {
+      return 'done';
+    }
+    if (index === current) {
+      return 'active';
+    }
+    return 'pending';
+  }
+
+  progressPercent(): number {
+    if (this.step === 'done') {
+      return 100;
+    }
+    const current = this.stepOrder.indexOf(this.step);
+    if (current <= 0) {
+      return 12;
+    }
+    return Math.min(100, ((current + 0.5) / this.flowSteps.length) * 100);
   }
 }

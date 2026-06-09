@@ -1,6 +1,6 @@
 """
 Prescoring BNPL : bundle joblib (train_GBMlight + merge train_GBMlight_isoforest + SHAP).
-Reutilise preprocess_full et alertes metier (bnpl-data-pipeline). Reponse JSON volontairement courte.
+Reutilise preprocess_full (bnpl-data-pipeline). Reponse JSON volontairement courte.
 """
 from __future__ import annotations
 
@@ -118,95 +118,63 @@ def _zone_selon_pd(p: float) -> dict[str, Any]:
     }
 
 
+_DISCLAIMER = (
+    "Indicateur statistique base sur l'historique d'entrainement — "
+    "a croiser avec pieces et politique interne ; pas un motif juridique de refus seul."
+)
+
+
 def _explications_texte_analyste(
     foret: dict[str, Any] | None,
-    zone: dict[str, Any],
-    top: list[dict[str, Any]] | None,
-    row_dict: dict[str, Any],
-    p: float,
-    pred: int,
-    threshold: float,
-    score_1000: int,
-    shap_ok: bool,
+    leviers: str | None,
+    *,
+    shap_lib_ok: bool = True,
 ) -> list[str]:
-    """Phrases continues pour affichage analyste (foret, zone, synthese SHAP predict_manual)."""
-    from predict_manual import (  # noqa: WPS433
-        _analyst_credit_lines,
-        interpret_risk,
-    )
-
+    """Texte analyste : forêt, leviers du score (court), note conformite."""
     lines: list[str] = []
     if foret is not None:
         if foret.get("atypique"):
             lines.append(
-                "Foret d'isolation : le dossier est classe ATYPIQUE (eloigne des profils "
-                "courants du jeu d'ajustement — a croiser avec pieces et coherence)."
+                "Foret d'isolation : dossier atypique, eloigne des profils habituels "
+                "— a croiser avec pieces et coherence."
             )
         else:
             lines.append(
-                "Foret d'isolation : le dossier est classe TYPIQUE (proche des profils "
-                "habituels du jeu d'ajustement)."
+                "Foret d'isolation : dossier typique, proche des profils habituels."
             )
-        lines.append(
-            f"Indicateur technique foret (score echantillon sklearn) : {foret.get('score_echantillon')}."
-        )
     else:
         lines.append(
-            "Foret d'isolation : non presente dans le bundle modele — aucun signal atypie/automatique associe."
+            "Foret d'isolation : non presente dans le bundle modele — "
+            "aucun signal atypie/automatique associe."
         )
 
-    lines.append(
-        f"Repere score / zone PD : {score_1000}/1000 points — {zone.get('libelle', '')} "
-        f"(code {zone.get('code', '')}), PD estimee {p:.1%}, seuil operationnel {threshold:.1%}."
-    )
-    q_title, q_detail, vs_seuil = interpret_risk(p, threshold)
-    lines.append(f"Niveau de risque qualitatif : {q_title}. {q_detail}")
-    lines.append(f"Lecture par rapport au seuil : {vs_seuil}")
-
-    if shap_ok and top:
-        lines.append("Principaux leviers du modele sur cette decision (SHAP, classe defaut = 1) :")
-        for ln in _analyst_credit_lines(top, row_dict, p, pred, threshold, score_1000, k_summary=5):
-            s = ln.strip()
-            if not s:
-                continue
-            # Eviter de repeter l'en-tete decoratif et les lignes deja couvertes ci-dessus
-            if s.startswith("---"):
-                continue
-            if s.startswith("Decision modele"):
-                continue
-            if "Les indicateurs ci-dessous" in s or "et bornage sur l'historique" in s:
-                continue
-            if s.startswith("[Precision]"):
-                continue
-            if s.startswith("A croiser :"):
-                continue
-            if s.startswith("[Note]"):
-                lines.append("Note : explication statistique sur historique d'entrainement — pas un motif juridique de refus seul.")
-                continue
-            lines.append(s)
-    elif shap_ok:
+    if leviers:
+        lines.append(leviers)
+    elif not shap_lib_ok:
         lines.append(
-            "Detail SHAP : explainer present mais aucun facteur retourne (cas technique improbable)."
+            "Leviers du score : non disponibles (librairie shap absente du service)."
         )
     else:
-        lines.append(
-            "Detail des contributions SHAP : non disponible (explainer absent du bundle ou librairie shap non installee)."
-        )
+        lines.append("Leviers du score : non disponibles pour ce dossier.")
 
+    lines.append(_DISCLAIMER)
     return lines
 
 
 def prescore_dossier(body: dict[str, Any]) -> dict[str, Any]:
     """
-    Ordre JSON : foret, pd_pct, score, zone (vert/orange/rouge selon PD %), alertes, explications (liste de phrases analyste),
-    puis defaut et seuil_pd_pct.
+    Ordre JSON : foret, pd_pct, score, zone, explications, defaut, seuil_pd_pct.
     """
     meta = _load_meta()
     row_dict = _parse_row(body)
 
-    from predict_manual import _business_alerts  # noqa: WPS433
-    from shap_tools import SHAP_AVAILABLE, top_shap_tree
     from test_rest_dataset import preprocess_full
+
+    from app.services.prescoring_explanations import (
+        compute_shap_values_dict,
+        generate_leviers_score,
+        shap_available,
+    )
 
     model = meta["model"]
     threshold = float(meta.get("threshold", 0.5))
@@ -231,18 +199,21 @@ def prescore_dossier(body: dict[str, Any]) -> dict[str, Any]:
     p = float(model.predict_proba(X)[0, 1])
     pred = int(p >= threshold)
     score_1000 = int(round(1000.0 * (1.0 - float(np.clip(p, 0.0, 1.0)))))
-    alerts = _business_alerts(row_dict)
     zone = _zone_selon_pd(p)
 
-    top: list[dict[str, Any]] | None = None
-    shap_ok = bool(meta.get("shap_explainer") is not None and SHAP_AVAILABLE)
-    if shap_ok:
-        expl = meta["shap_explainer"]
-        feats = meta.get("features") or list(X.columns)
-        top = top_shap_tree(expl, X, feats, k=5)
+    feats = meta.get("features") or list(X.columns)
+    shap_dict = compute_shap_values_dict(
+        model,
+        X,
+        list(feats),
+        bundle_explainer=meta.get("shap_explainer"),
+    )
+    leviers = generate_leviers_score(shap_dict) if shap_dict else None
 
     explications = _explications_texte_analyste(
-        foret, zone, top, row_dict, p, pred, threshold, score_1000, shap_ok
+        foret,
+        leviers,
+        shap_lib_ok=shap_available(),
     )
 
     # Ordre des cles = ordre de lecture souhaite
@@ -251,7 +222,6 @@ def prescore_dossier(body: dict[str, Any]) -> dict[str, Any]:
         "pd_pct": round(p * 100.0, 2),
         "score": score_1000,
         "zone": zone,
-        "alertes": alerts,
         "explications": explications,
         "defaut": bool(pred),
         "seuil_pd_pct": round(threshold * 100.0, 2),

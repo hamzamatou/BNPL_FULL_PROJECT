@@ -32,6 +32,10 @@ public class DemandeFinancement {
     @Column(nullable = false)
     private String statut;
 
+    /** Instance Camunda Process_BNPL (optionnel). */
+    @Column(name = "process_instance_id", length = 64)
+    private String processInstanceId;
+
     private LocalDateTime dateCreation;
     private LocalDateTime dateDerniereMiseAJour;
     private String typeProduit;
@@ -70,6 +74,9 @@ public class DemandeFinancement {
 
     public String getStatut()                              { return statut; }
     public void setStatut(String v)                        { this.statut = v; }
+
+    public String getProcessInstanceId()                   { return processInstanceId; }
+    public void setProcessInstanceId(String v)             { this.processInstanceId = v; }
 
     public LocalDateTime getDateCreation()                 { return dateCreation; }
     public void setDateCreation(LocalDateTime v)           { this.dateCreation = v; }

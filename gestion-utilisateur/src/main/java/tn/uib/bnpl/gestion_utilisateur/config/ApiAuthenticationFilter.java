@@ -39,20 +39,15 @@ public class ApiAuthenticationFilter extends OncePerRequestFilter implements Ord
                                     HttpServletResponse response,
                                     FilterChain filterChain) throws ServletException, IOException {
 
-        String path = normalizeApiPath(request);
-
-        // 🚫 skip authentication for public routes
-        if (path.startsWith("/api/users/login")
-                || path.startsWith("/api/users/register")
-                || path.startsWith("/api/users/verify-otp")
-                || path.startsWith("/api/users/activate")) {
-
+        if (isPublicUserRoute(request)) {
             filterChain.doFilter(request, response);
             return;
         }
 
+        String path = normalizeApiPath(request);
+
         // Inter-services (gestion-demande Feign, reporting, etc.) : @PreAuthorize("INTERNAL")
-        if (path.startsWith("/api/internal/")) {
+        if (path.startsWith("/api/internal/") || (request.getRequestURI() != null && request.getRequestURI().contains("/api/internal/"))) {
             applyInternalApiKeyAuth(request, response, filterChain);
             return;
         }
@@ -135,6 +130,23 @@ public class ApiAuthenticationFilter extends OncePerRequestFilter implements Ord
 
         String role = raw.toString().trim();
         return role.isEmpty() ? null : role;
+    }
+
+    private static boolean isPublicUserRoute(HttpServletRequest request) {
+        String path = normalizeApiPath(request);
+        String uri = request.getRequestURI() != null ? request.getRequestURI() : "";
+        return matchesPublicUserPath(path) || matchesPublicUserPath(uri);
+    }
+
+    private static boolean matchesPublicUserPath(String value) {
+        if (value == null || value.isBlank()) {
+            return false;
+        }
+        return value.contains("/api/users/login")
+                || value.contains("/api/users/register")
+                || value.contains("/api/users/verify-otp")
+                || value.contains("/api/users/resend-otp")
+                || value.contains("/api/users/activate");
     }
 
     private static String normalizeApiPath(HttpServletRequest request) {

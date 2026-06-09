@@ -2,11 +2,12 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  background: white;
-  padding: 20px 30px;
-  border-radius: 8px;
-  border: 1px solid #eee;
-  width: 100%; /* Prend toute la largeur */
+  background: #fff;
+  padding: 20px 24px;
+  border-radius: 14px;
+  border: 1px solid #eef2f6;
+  box-shadow: 0 1px 3px rgba(26, 37, 54, 0.02), 0 2px 8px rgba(26, 37, 54, 0.04);
+  width: 100%;
 }
 
 .step {
@@ -30,7 +31,7 @@
 
 /* Couleurs selon l'état */
 .sc.curr, .sc.done {
-  background: #CC0000;
+  background: var(--uib-red);
   color: white;
 }
 
@@ -52,7 +53,7 @@
 }
 
 .step.active .stitle {
-  color: #CC0000;
+  color: var(--uib-red);
 }
 
 .ssub {
@@ -70,5 +71,5 @@
 }
 
 .sline.done {
-  background: #CC0000;
+  background: var(--uib-red);
 }

@@ -19,12 +19,14 @@ import tn.uib.bnpl.gestion_utilisateur.classes.CreateAnalysteRequest;
 import tn.uib.bnpl.gestion_utilisateur.classes.Role;
 import tn.uib.bnpl.gestion_utilisateur.classes.User;
 import tn.uib.bnpl.gestion_utilisateur.config.JwtUtil;
+import tn.uib.bnpl.gestion_utilisateur.dto.AnalysteRoutageDto;
 import tn.uib.bnpl.gestion_utilisateur.dto.ClientIdentityResponse;
 import tn.uib.bnpl.gestion_utilisateur.dto.CreateClientRequest;
 import tn.uib.bnpl.gestion_utilisateur.dto.CreatedClientResponse;
 import tn.uib.bnpl.gestion_utilisateur.dto.OtpVerifyRequest;
 import tn.uib.bnpl.gestion_utilisateur.repository.BanqueRepository;
 import tn.uib.bnpl.gestion_utilisateur.services.AccesAuditService;
+import tn.uib.bnpl.gestion_utilisateur.services.BanqueRoutageService;
 import tn.uib.bnpl.gestion_utilisateur.services.UserService;
 import java.time.LocalDateTime;
 import java.util.HashMap;
@@ -41,16 +43,19 @@ public class ApiController {
     private final JwtUtil jwtUtil;
     private final AccesAuditService accesAuditService;
     private final BanqueRepository banqueRepository;
+    private final BanqueRoutageService banqueRoutageService;
 
     public ApiController(UserService userService,
                          JwtUtil jwtUtil,
                          AccesAuditService accesAuditService,
-                         BanqueRepository banqueRepository) {
+                         BanqueRepository banqueRepository,
+                         BanqueRoutageService banqueRoutageService) {
 
         this.userService = userService;
         this.jwtUtil = jwtUtil;
         this.accesAuditService = accesAuditService;
         this.banqueRepository = banqueRepository;
+        this.banqueRoutageService = banqueRoutageService;
     }
     @PostMapping("/users/login")
     public ResponseEntity<?> login(@RequestBody Map<String, String> body) {
@@ -59,13 +64,17 @@ public class ApiController {
             String email = body.get("email");
             String password = body.get("password");
 
-            User user = userService.findByEmail(email);
+            if (email == null || email.isBlank() || password == null || password.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("error", "Email et mot de passe obligatoires"));
+            }
 
-            if (user.getStatus() == AccountStatus.BLOCKED)
+            userService.login(email.trim(), password);
+
+            User user = userService.findByEmail(email.trim());
+
+            if (user.getStatus() == AccountStatus.BLOCKED) {
                 return ResponseEntity.status(403).body(Map.of("error", "Compte bloqué"));
-
-            // vérifie password + envoie OTP
-            userService.login(email, password);
+            }
 
             // 🔥 AJOUT TOKEN ICI
             String token = jwtUtil.generateToken(
@@ -88,6 +97,22 @@ public class ApiController {
             return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
         }
     }
+    @PostMapping("/users/resend-otp")
+    public ResponseEntity<?> resendOtp(@RequestBody Map<String, String> body) {
+        try {
+            String email = body.get("email");
+            if (email == null || email.isBlank()) {
+                return ResponseEntity.status(400).body(Map.of("error", "Email obligatoire"));
+            }
+
+            userService.sendOtp(email.trim());
+            return ResponseEntity.ok(Map.of("message", "OTP renvoyé"));
+
+        } catch (Exception e) {
+            return ResponseEntity.status(400).body(Map.of("error", e.getMessage()));
+        }
+    }
+
     // Nouveau endpoint : vérifier OTP
     @PostMapping("/users/verify-otp")
     public ResponseEntity<?> verifyOtp(@RequestBody OtpVerifyRequest request, HttpServletRequest httpRequest) {
@@ -214,6 +239,7 @@ public class ApiController {
     public ResponseEntity<ClientIdentityResponse> getClientIdentity(@PathVariable("id") Long id) {
         return ResponseEntity.ok(userService.getClientIdentity(id));
     }
+
     // Récupération de l'id client (rôle CLIENT) depuis le CIN
     @GetMapping("/internal/clients/by-cin")
     @PreAuthorize("hasAuthority('INTERNAL')")
@@ -221,6 +247,15 @@ public class ApiController {
         Long id = userService.getClientIdByCin(cin);
         return ResponseEntity.ok(Map.of("id", id));
     }
+
+    /** Routage BNPL — analystes actifs par {@code Banque.codeBanque} (UIB, EL_AMEN, EL_BARAKA). */
+    @GetMapping("/internal/banques/analystes")
+    @PreAuthorize("hasAuthority('INTERNAL')")
+    public ResponseEntity<List<AnalysteRoutageDto>> listerAnalystesParCodeBanque(
+            @RequestParam("codeBanque") String codeBanque) {
+        return ResponseEntity.ok(banqueRoutageService.listerAnalystesActifsParCodeBanque(codeBanque));
+    }
+
     @PostMapping("/analystes")
     @PreAuthorize("hasAuthority('ADMIN')")
     public ResponseEntity<User> createAnalyste(@RequestBody CreateAnalysteRequest data) {

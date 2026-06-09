@@ -52,13 +52,28 @@ def convertir_int(v: Any) -> int | None:
         return int(m.group(0)) if m else None
 
 
+def _valeur_declaree_float(declared: Dict[str, Any], *cles: str) -> float | None:
+    for cle in cles:
+        v = convertir_float(declared.get(cle))
+        if v is not None:
+            return v
+    return None
+
+
+def _valeur_declaree_int(declared: Dict[str, Any], *cles: str) -> int | None:
+    for cle in cles:
+        v = convertir_int(declared.get(cle))
+        if v is not None:
+            return v
+    return None
+
+
 # =========================
 # ERREUR BLOQUANTE
 # =========================
 
 def erreur_bloquante(code: str, message: str, details: Dict[str, Any] | None = None):
     return {
-        "score_coherence": 0,
         "anomalies": [{
             "code": code,
             "niveau": "BLOQUANT",
@@ -67,6 +82,81 @@ def erreur_bloquante(code: str, message: str, details: Dict[str, Any] | None = N
         }],
         "corrections": {}
     }
+
+
+def _montants_identiques(declared: float | None, extracted: float | None) -> bool:
+    if declared is None or extracted is None:
+        return True
+    return round(declared, 2) == round(extracted, 2)
+
+
+def _fmt_tnd(montant: float) -> str:
+    if float(montant).is_integer():
+        return f"{int(montant)} TND"
+    return f"{montant:.2f} TND"
+
+
+def _revenu_coherent_result(declared: float, extracted: float) -> dict[str, Any] | None:
+    """
+    Cohérence revenu mensuel net (fiches de paie vs formulaire) :
+      - le revenu extrait doit être ≤ au revenu déclaré ;
+      - le revenu extrait doit être ≥ au revenu déclaré × 90 % (tolérance 10 %).
+
+    La fourchette affichée au client est exprimée à partir du revenu **extrait**
+    (ex. extrait 2 500 TND → déclaration admissible 2 250 à 2 778 TND).
+    """
+    tolerance = 0.10
+    min_doc = round(declared * (1 - tolerance), 2)
+    fourchette_min = round(extracted * (1 - tolerance), 2)
+    fourchette_max = round(extracted / (1 - tolerance), 2)
+
+    details: dict[str, Any] = {
+        "revenu_declare": declared,
+        "revenu_extrait": extracted,
+        "tolerance_pct": int(tolerance * 100),
+        "fourchette_declarable_min": fourchette_min,
+        "fourchette_declarable_max": fourchette_max,
+        "revenu_document_minimum": min_doc,
+    }
+
+    if extracted > declared:
+        return {
+            "message": (
+                f"Le revenu extrait des fiches ({_fmt_tnd(extracted)}) dépasse le revenu déclaré "
+                f"({_fmt_tnd(declared)}). Rehaussez la déclaration à au moins {_fmt_tnd(extracted)} "
+                f"ou vérifiez les pièces jointes."
+            ),
+            "details": {**details, "action": "augmenter_declaration"},
+        }
+
+    if extracted < min_doc:
+        if declared > fourchette_max:
+            message = (
+                f"Le revenu déclaré ({_fmt_tnd(declared)}) n’est pas justifié par les fiches de paie "
+                f"({_fmt_tnd(extracted)}). Fourchette de déclaration acceptée : "
+                f"{_fmt_tnd(fourchette_min)} à {_fmt_tnd(fourchette_max)} "
+                f"(±{details['tolerance_pct']} % à partir du revenu extrait)."
+            )
+            action = "baisser_declaration"
+        else:
+            message = (
+                f"Le revenu extrait des fiches ({_fmt_tnd(extracted)}) est inférieur de plus de "
+                f"{details['tolerance_pct']} % au revenu déclaré ({_fmt_tnd(declared)}). "
+                f"Revenu document minimum attendu : {_fmt_tnd(min_doc)}, "
+                f"ou ajustez la déclaration entre {_fmt_tnd(fourchette_min)} et {_fmt_tnd(fourchette_max)}."
+            )
+            action = "verifier_documents"
+        return {
+            "message": message,
+            "details": {**details, "action": action},
+        }
+
+    return None
+
+
+def _revenu_coherent(declared: float, extracted: float) -> str | None:
+    result = _revenu_coherent_result(declared, extracted)
+    return result["message"] if result else None
 
 
 # =========================
@@ -266,63 +356,64 @@ def verifier_coherence_metier(
         corrections["cin"] = cin_ext
 
     # ================= REVENU =================
-    d = convertir_float(declared.get("revenu_mensuel"))
+    d = _valeur_declaree_float(declared, "revenu_mensuel", "revenu_mensuel_net")
     e = convertir_float(extracted.get("revenu_mensuel"))
 
-    if d and e and abs(d - e) / max(d, 1) > 0.2:
-        anomalies.append({
-            "code": "COH_REVENU_DIFF",
-            "niveau": "ALERTE",
-            "message": "Écart revenu > 20%"
-        })
-        corrections["revenu_mensuel"] = e
+    if d is not None and e is not None:
+        rev = _revenu_coherent_result(d, e)
+        if rev:
+            anomalies.append({
+                "code": "COH_REVENU_DIFF",
+                "niveau": "BLOQUANT",
+                "message": rev["message"],
+                "details": rev.get("details") or {},
+            })
+            corrections["revenu_mensuel"] = e
 
     # ================= LOYER =================
-    d = convertir_float(declared.get("loyer_mensuel"))
+    d = _valeur_declaree_float(declared, "loyer_mensuel", "loyerMensuel")
     e = convertir_float(extracted.get("loyer_mensuel"))
 
-    if d and e and abs(d - e) / max(d, 1) > 0.2:
+    if d is not None and e is not None and not _montants_identiques(d, e):
         anomalies.append({
             "code": "COH_LOYER_DIFF",
-            "niveau": "ALERTE",
-            "message": "Écart loyer > 20%"
+            "niveau": "BLOQUANT",
+            "message": f"Loyer déclaré ({d}) différent du document ({e})",
         })
         corrections["loyer_mensuel"] = e
 
     # ================= ANCIENNETE =================
-    d = convertir_int(declared.get("anciennete_emploi_mois"))
+    d = _valeur_declaree_int(declared, "anciennete_emploi_mois", "ancienneteEmploiMois")
     e = convertir_int(extracted.get("anciennete_emploi_mois"))
 
-    if d and e and abs(d - e) > 6:
+    if d is not None and e is not None and d != e:
         anomalies.append({
             "code": "COH_ANCIENNETE_DIFF",
-            "niveau": "ALERTE",
-            "message": "Ancienneté différente"
+            "niveau": "BLOQUANT",
+            "message": f"Ancienneté déclarée ({d} mois) différente du document ({e} mois)",
         })
         corrections["anciennete_emploi_mois"] = e
 
     # ================= DEVIS =================
-    d = convertir_float(declared.get("montant"))
+    d = _valeur_declaree_float(declared, "montant", "montant_financement")
     e = convertir_float(extracted.get("montant_devis"))
 
-    if d and e and abs(d - e) / max(d, 1) > 0.1:
+    if d is not None and e is not None and not _montants_identiques(d, e):
         anomalies.append({
             "code": "COH_DEVIS_DIFF",
-            "niveau": "ALERTE",
-            "message": "Montant devis différent"
+            "niveau": "BLOQUANT",
+            "message": f"Montant déclaré ({d}) différent du devis ({e})",
         })
         corrections["montant"] = e
 
     # ================= RESULT =================
     if anomalies:
         return {
-            "score_coherence": max(0, 100 - len(anomalies) * 10),
             "anomalies": anomalies,
             "corrections": corrections
         }
 
     return {
-        "score_coherence": 100,
         "anomalies": [],
         "corrections": {}
     }

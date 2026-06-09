@@ -42,7 +42,6 @@ def valider_dossier_et_recommander(
 
     if coherence.get("documents_manquants"):
         return {
-            "score_coherence": 0,
             "anomalies": [
                 {
                     "code": "DOCS_MANQUANTS",
@@ -57,11 +56,9 @@ def valider_dossier_et_recommander(
 
     anomalies: List[Dict[str, Any]] = coherence.get("anomalies") or []
     corrections = coherence.get("corrections") or {}
-    score = coherence.get("score_coherence")
 
     if anomalies:
         return {
-            "score_coherence": score,
             "anomalies": anomalies,
             "corrections": corrections,
             "recommandations": [],
@@ -71,7 +68,6 @@ def valider_dossier_et_recommander(
     reco_list = list(reco_result.recommandations or [])
 
     return {
-        "score_coherence": score if score is not None else 100,
         "anomalies": [],
         "corrections": corrections,
         "recommandations": reco_list,

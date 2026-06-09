@@ -4,6 +4,8 @@ public enum TypeActionDemande {
     CREATION,
     CONSENTEMENT,
     SCORING,
+    ROUTAGE,
+    RECOMMANDATION,
     PRISE_EN_CHARGE,
     ACCEPTION,
     REFUS,

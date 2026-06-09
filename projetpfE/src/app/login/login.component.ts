@@ -1,8 +1,16 @@
-import { Component } from '@angular/core';
+import { Component, OnInit } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { NgIf } from '@angular/common';
 import { AuthService } from '../services/auth-service.service';
+
+/** Fichier attendu : src/assets/images/login-logo.png (ou .jpg / .webp) */
+const LOGIN_LOGO_CANDIDATES = [
+  '/assets/images/login-logo.png',
+  '/assets/images/login-logo.jpg',
+  '/assets/images/login-logo.webp',
+  '/assets/images/login-logo.svg',
+];
 
 @Component({
   selector: 'app-login',
@@ -11,28 +19,69 @@ import { AuthService } from '../services/auth-service.service';
   templateUrl: './login.component.html',
   styleUrls: ['./login.component.css']
 })
-export class LoginComponent {
+export class LoginComponent implements OnInit {
   email = '';
   password = '';
+  showPassword = false;
   errorMessage = '';
   loading = false;
-  logoPath: string = 'assets/image.png';
+  loginLogoSrc = LOGIN_LOGO_CANDIDATES[0];
+  loginLogoVisible = true;
 
   constructor(private router: Router, private authService: AuthService) {}
+
+  ngOnInit(): void {
+    void this.resolveLoginLogo();
+  }
+
+  togglePasswordVisibility(): void {
+    this.showPassword = !this.showPassword;
+  }
+
+  onLoginLogoError(): void {
+    const idx = LOGIN_LOGO_CANDIDATES.indexOf(this.loginLogoSrc);
+    const next = LOGIN_LOGO_CANDIDATES[idx + 1];
+    if (next) {
+      this.loginLogoSrc = next;
+      return;
+    }
+    this.loginLogoVisible = false;
+  }
+
+  private async resolveLoginLogo(): Promise<void> {
+    for (const src of LOGIN_LOGO_CANDIDATES) {
+      if (await this.imageExists(src)) {
+        this.loginLogoSrc = src;
+        this.loginLogoVisible = true;
+        return;
+      }
+    }
+    this.loginLogoVisible = false;
+  }
+
+  private imageExists(src: string): Promise<boolean> {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = src;
+    });
+  }
 
   login() {
   this.errorMessage = '';
 
+  const email = this.email.trim().toLowerCase();
+
   // Vérification email
-  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,4}$/;
-  if(!emailRegex.test(this.email)) {
+  const emailRegex = /^[a-zA-Z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}$/i;
+  if(!emailRegex.test(email)) {
     this.errorMessage = 'Veuillez entrer un email valide';
     return;
   }
 
   this.loading = true;
-  this.loading = true;
-  this.authService.login(this.email, this.password).subscribe({
+  this.authService.login(email, this.password).subscribe({
     next: (res) => {
       this.loading = false;
       if (res.otpRequired) {

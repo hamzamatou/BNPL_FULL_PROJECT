@@ -18,19 +18,38 @@ type Demande = {
   typeProduit: string;
 };
 
+export type StatutFiltre =
+  | 'ALL'
+  | 'CONSENTEMENT'
+  | 'CREE'
+  | 'EN_ATTENTE_CONSENTEMENT'
+  | 'EN_ANALYSE'
+  | 'SOUMISE'
+  | 'ANNULEE';
+
 @Component({
   selector: 'app-mes-demandes',
   standalone: true,
   imports: [CommonModule, FormsModule, RouterLink],
   templateUrl: './mes-demandes.component.html',
-  styleUrl: './mes-demandes.component.css'
+  styleUrl: './mes-demandes.component.css',
 })
 export class MesDemandesComponent implements OnInit {
   demandes: Demande[] = [];
   searchTerm = '';
   sortBy: 'date_desc' | 'date_asc' | 'montant_desc' | 'montant_asc' | 'client_asc' = 'date_desc';
+  statusFilter: StatutFiltre = 'ALL';
   loading = false;
   errorMessage = '';
+
+  readonly statusFilters: { value: StatutFiltre; label: string }[] = [
+    { value: 'ALL', label: 'Tous' },
+    { value: 'CREE', label: 'Créée' },
+    { value: 'EN_ATTENTE_CONSENTEMENT', label: 'Consentement' },
+    { value: 'EN_ANALYSE', label: 'En analyse' },
+    { value: 'SOUMISE', label: 'Soumise' },
+    { value: 'ANNULEE', label: 'Annulées' },
+  ];
 
   constructor(
     private readonly demandeService: DemandeService,
@@ -46,8 +65,8 @@ export class MesDemandesComponent implements OnInit {
   }
 
   get waitingCount(): number {
-    return this.demandes.filter((d) =>
-      d.statut === 'EN_ATTENTE_CONSENTEMENT' || d.statut === 'CREE'
+    return this.demandes.filter(
+      (d) => d.statut === 'EN_ATTENTE_CONSENTEMENT' || d.statut === 'CREE'
     ).length;
   }
 
@@ -57,6 +76,69 @@ export class MesDemandesComponent implements OnInit {
 
   get acceptedCount(): number {
     return this.demandes.filter((d) => d.statut === 'SOUMISE').length;
+  }
+
+  get annuleesCount(): number {
+    return this.demandes.filter((d) => d.statut === 'ANNULEE').length;
+  }
+
+  setStatusFilter(filter: StatutFiltre): void {
+    this.statusFilter = filter;
+  }
+
+  countForFilter(filter: StatutFiltre): number {
+    if (filter === 'ALL') return this.demandes.length;
+    if (filter === 'CONSENTEMENT') return this.waitingCount;
+    return this.demandes.filter((d) => d.statut === filter).length;
+  }
+
+  private matchesStatusFilter(d: Demande): boolean {
+    if (this.statusFilter === 'ALL') return true;
+    if (this.statusFilter === 'CONSENTEMENT') {
+      return d.statut === 'CREE' || d.statut === 'EN_ATTENTE_CONSENTEMENT';
+    }
+    return d.statut === this.statusFilter;
+  }
+
+  statutLabel(statut: string): string {
+    switch (statut) {
+      case 'CREE':
+        return 'Créée';
+      case 'EN_ATTENTE_CONSENTEMENT':
+        return 'Consentement';
+      case 'EN_ANALYSE':
+        return 'En analyse';
+      case 'SOUMISE':
+        return 'Soumise';
+      case 'ANNULEE':
+        return 'Annulée';
+      case 'REFUSEE':
+        return 'Refusée';
+      case 'ACCEPTEE':
+        return 'Acceptée';
+      default:
+        return statut;
+    }
+  }
+
+  badgeClass(statut: string): string {
+    switch (statut) {
+      case 'CREE':
+      case 'EN_ATTENTE_CONSENTEMENT':
+        return 'wait';
+      case 'EN_ANALYSE':
+        return 'analysis';
+      case 'SOUMISE':
+        return 'sent';
+      case 'ANNULEE':
+        return 'cancelled';
+      case 'REFUSEE':
+        return 'refused';
+      case 'ACCEPTEE':
+        return 'accepted';
+      default:
+        return 'wait';
+    }
   }
 
   private loadDemandes(): void {
@@ -85,7 +167,12 @@ export class MesDemandesComponent implements OnInit {
     const date = rawDate ? new Date(rawDate).toLocaleDateString('fr-FR') : '-';
     const clientNom = row.clientNom || '';
     const clientPrenom = row.clientPrenom || '';
-    const client = clientNom || clientPrenom ? `${clientNom} ${clientPrenom}`.trim() : row.clientId ? `Client #${row.clientId}` : '-';
+    const client =
+      clientNom || clientPrenom
+        ? `${clientNom} ${clientPrenom}`.trim()
+        : row.clientId
+          ? `Client #${row.clientId}`
+          : '-';
 
     return {
       id: row.id,
@@ -103,21 +190,34 @@ export class MesDemandesComponent implements OnInit {
   }
 
   private normalizeStatut(statut?: string): string {
-    const s = (statut || '').toUpperCase();
-    if (s.includes('ANALYSE') || s.includes('EN_COURS')) return 'EN_ANALYSE';
-    if (s.includes('SOUMISE') || s.includes('ACCEPTEE')) return 'SOUMISE';
+    const s = (statut || '').toUpperCase().trim();
+    if (!s) return 'EN_ATTENTE_CONSENTEMENT';
+    if (s === 'ANNULEE' || s.includes('ANNULE')) return 'ANNULEE';
+    if (s === 'REFUSEE' || s.includes('REFUSE')) return 'REFUSEE';
+    if (s === 'ACCEPTEE' || s.includes('ACCEPTE')) return 'ACCEPTEE';
+    if (s.includes('ANALYSE') || s === 'EN_COURS_ANALYSE' || s.includes('EN_COURS')) {
+      return 'EN_ANALYSE';
+    }
+    if (s === 'SOUMISE') return 'SOUMISE';
     if (s === 'CREE') return 'CREE';
-    return 'EN_ATTENTE_CONSENTEMENT';
+    if (s.includes('EN_ATTENTE_CONSENTEMENT') || s.includes('CONSENTEMENT')) {
+      return 'EN_ATTENTE_CONSENTEMENT';
+    }
+    if (s.includes('EN_ATTENTE') || s.includes('BROUILLON')) return 'EN_ATTENTE_CONSENTEMENT';
+    return s;
   }
 
   get displayedDemandes(): Demande[] {
     const q = this.searchTerm.trim().toLowerCase();
     const filtered = this.demandes.filter((d) => {
+      if (!this.matchesStatusFilter(d)) {
+        return false;
+      }
       if (!q) return true;
       return (
         d.reference.toLowerCase().includes(q) ||
         d.client.toLowerCase().includes(q) ||
-        d.statut.toLowerCase().includes(q) ||
+        this.statutLabel(d.statut).toLowerCase().includes(q) ||
         d.typeProduit.toLowerCase().includes(q)
       );
     });

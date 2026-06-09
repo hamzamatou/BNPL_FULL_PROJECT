@@ -1,0 +1,28 @@
+<section class="list-page">
+
+  <header class="page-header">
+
+    <div class="header-left-side">
+
+      <h1 class="page-title">Créer un utilisateur</h1>
+
+      <p class="page-sub">Commerçant ou analyste bancaire — le compte devra être activé par e-mail</p>
+
+    </div>
+
+    <a routerLink="/admin/utilisateurs" class="btn-back-link">
+      <admin-icon name="arrow-left" /> Retour à la liste
+    </a>
+
+  </header>
+
+
+
+  <div class="card form-card">
+
+    <app-add-user mode="page" (close)="onClose()" (refresh)="onCreated()"></app-add-user>
+
+  </div>
+
+</section>
+

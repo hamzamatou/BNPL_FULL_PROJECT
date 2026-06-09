@@ -1,4 +1,4 @@
+/* Le conteneur est géré par .list-page / .detail-page (aligné commerçant) */
 .banque-shell {
-  padding: 18px 0;
+  min-height: 0;
 }
-

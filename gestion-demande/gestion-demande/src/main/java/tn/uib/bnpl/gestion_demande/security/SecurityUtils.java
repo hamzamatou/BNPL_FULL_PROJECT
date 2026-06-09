@@ -48,4 +48,18 @@ public final class SecurityUtils {
         }
         return null;
     }
+
+    /** Email utilisateur = claim {@code sub} du JWT (gestion-utilisateur). */
+    public static String getCurrentUserEmail() {
+        Authentication auth = SecurityContextHolder.getContext().getAuthentication();
+        if (auth instanceof JwtAuthenticationToken jwtAuth) {
+            String sub = jwtAuth.getToken().getSubject();
+            if (sub != null && !sub.isBlank()) {
+                return sub.trim();
+            }
+            Object email = jwtAuth.getToken().getClaim("email");
+            return email != null ? email.toString().trim() : null;
+        }
+        return null;
+    }
 }

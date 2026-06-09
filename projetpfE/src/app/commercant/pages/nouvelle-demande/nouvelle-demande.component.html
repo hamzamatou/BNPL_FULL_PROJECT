@@ -1,119 +1,146 @@
-<div class="page">
-
-  <h2 class="title">Créer une demande BNPL</h2>
+<section class="create-page">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Créer une demande BNPL</h1>
+      <p class="page-sub">Informations client, données financières, documents et consentement</p>
+    </div>
+    <a routerLink="/mes-demandes" class="back-link">← Mes demandes</a>
+  </header>
 
   <app-stepper [step]="stepperStep"></app-stepper>
 
-  <app-infos-client
-    *ngIf="currentStep === 1"
-    [status]="'active'"
-    [initialData]="infosClientData"
-    (nextStep)="setInfosClient($event)">
-  </app-infos-client>
+  @if (currentStep === 1) {
+    <app-infos-client
+      [status]="'active'"
+      [initialData]="infosClientData"
+      (nextStep)="setInfosClient($event)">
+    </app-infos-client>
+  }
 
-  <app-donnees-financieres
-    *ngIf="currentStep === 2"
-    [status]="'active'"
-    [prefill]="donneesFinancieresPrefill"
-    [situationFamiliale]="clientSituationFamiliale"
-    [nombreEnfantsClient]="clientNombreEnfants"
-    [ancienneteEmploiMoisClient]="clientAncienneteEmploiMois"
-    (nextStep)="setDonneesFinancieres($event)"
-    (prevStep)="prevStep()">
-  </app-donnees-financieres>
+  @if (currentStep === 2) {
+    <app-donnees-financieres
+      [status]="'active'"
+      [prefill]="donneesFinancieresPrefill"
+      [situationFamiliale]="clientSituationFamiliale"
+      [nombreEnfantsClient]="clientNombreEnfants"
+      [ancienneteEmploiMoisClient]="clientAncienneteEmploiMois"
+      (nextStep)="setDonneesFinancieres($event)"
+      (prevStep)="prevStep()">
+    </app-donnees-financieres>
+  }
 
-  <app-documents
-    *ngIf="currentStep === 3"
-    [status]="'active'"
-    (nextStep)="setDocuments($event.documents, $event.typeProduit)"
-    (prevStep)="prevStep()">
-  </app-documents>
+  @if (currentStep === 3) {
+    <app-documents
+      [status]="'active'"
+      [aUnLoyer]="documentsAUnLoyer"
+      [montant]="documentsMontant"
+      (nextStep)="setDocuments($event.documents, $event.typeProduit)"
+      (prevStep)="prevStep()">
+    </app-documents>
+  }
 
-  <div *ngIf="currentStep === 4" class="ia-step">
+  @if (currentStep === 4) {
+    <div class="ia-step card-panel">
 
-    <div *ngIf="isAnalysing" class="ia-loading">
-      <div class="spinner"></div>
-      <p class="ia-loading-text">
-        Analyse de cohérence en cours…<br>
-        Comparaison des données saisies avec les documents OCR.
+      @if (isAnalysing) {
+        <div class="ia-loading">
+          <div class="spinner"></div>
+          <p class="ia-loading-text">
+            Analyse de cohérence en cours…<br>
+            Comparaison des données saisies avec les documents OCR.
+          </p>
+        </div>
+      } @else {
+
+        <div class="ia-results-stack">
+
+          @if (champsCorriges.length > 0) {
+            <div class="ia-banner ia-banner--info">
+              <span class="ia-banner__icon" aria-hidden="true">i</span>
+              <div>
+                <strong>Champs pré-remplis depuis les documents</strong>
+                {{ champsCorriges.join(', ') }} — vérifiez puis relancez l'analyse si besoin.
+              </div>
+            </div>
+          }
+
+          @if (analyseError && anomalies.length === 0) {
+            <div class="ia-banner ia-banner--error">
+              <span class="ia-banner__icon" aria-hidden="true">!</span>
+              <div>{{ analyseError }}</div>
+            </div>
+          }
+
+          <app-anomalies-panel
+            [anomalies]="anomalies"
+            [(modalOpen)]="anomaliesModalOpen"
+            (modifier)="modifierFormulaire()">
+          </app-anomalies-panel>
+
+          <app-alertes-panel [alertes]="alertes"></app-alertes-panel>
+
+          @if (anomalies.length > 0 && !anomaliesModalOpen) {
+            <div class="ia-banner ia-banner--error">
+              <span class="ia-banner__icon" aria-hidden="true">!</span>
+              <div>
+                <strong>Anomalies détectées</strong>
+                {{ anomalies.length }} incohérence{{ anomalies.length > 1 ? 's' : '' }} —
+                <button type="button" class="ia-banner-link" (click)="anomaliesModalOpen = true">
+                  rouvrir le détail
+                </button>
+              </div>
+            </div>
+          }
+
+        </div>
+
+        @if (!coherenceOK) {
+          <div class="actions">
+            <button type="button" class="btn secondary" (click)="prevStep()">Retour aux documents</button>
+            <button type="button" class="btn warning" (click)="modifierFormulaire()">Modifier le formulaire</button>
+            <button type="button" class="btn primary" (click)="lancerAnalyseIA()">Relancer l'analyse</button>
+          </div>
+        }
+
+      }
+    </div>
+  }
+
+  @if (currentStep === 5) {
+    <app-consentement
+      [status]="submitSuccess ? 'completed' : 'active'"
+      [submitting]="isSubmitting"
+      [success]="submitSuccess"
+      [errorMessage]="submitErrorMessage"
+      (prevStep)="prevStep()"
+      (submit)="submitDemande()"
+      (restart)="restartFlow()">
+    </app-consentement>
+  }
+
+  @if (currentStep === 6) {
+    <div class="success-box card-panel">
+      <div class="success-icon">
+        <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
+             stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+          <polyline points="20 6 9 17 4 12"/>
+        </svg>
+      </div>
+      <h3>Demande créée avec succès</h3>
+      <p>
+        Un lien de consentement valide 2 h a été envoyé au client par email.
+        Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
       </p>
+      <button type="button" class="btn primary" (click)="restartFlow()">Nouvelle demande</button>
     </div>
+  }
 
-    <ng-container *ngIf="!isAnalysing">
+  <app-recommandations-modal
+    [recommandations]="recommandations"
+    [(modalOpen)]="recommandationsModalOpen"
+    [showActions]="true"
+    (modifier)="modifierFormulaire()"
+    (continuer)="continuerApresRecommandations()">
+  </app-recommandations-modal>
 
-      <div *ngIf="champsCorriges.length > 0" class="corrections-banner">
-        <strong>Champs pré-remplis depuis les documents</strong>
-        {{ champsCorriges.join(', ') }} — vérifiez puis relancez l'analyse si besoin.
-      </div>
-
-      <app-anomalies-panel [anomalies]="anomalies"></app-anomalies-panel>
-
-      <div *ngIf="analyseError && anomalies.length === 0" class="error-banner">
-        {{ analyseError }}
-      </div>
-
-      <app-alertes-panel [alertes]="alertes"></app-alertes-panel>
-
-      <div *ngIf="coherenceOK" class="coherence-ok-banner">
-        <span>✔</span>
-        <span>Dossier cohérent — consultez les recommandations puis continuez.</span>
-      </div>
-
-      <app-recommandations-modal
-        [recommandations]="recommandations"
-        [(modalOpen)]="recoModalOpen"
-        [showActions]="true"
-        (modifier)="modifierFormulaire()"
-        (continuer)="goToConsent()">
-      </app-recommandations-modal>
-
-      <div class="actions" *ngIf="!coherenceOK">
-        <button type="button" class="btn secondary" (click)="prevStep()">Retour aux documents</button>
-        <button type="button" class="btn warning" (click)="modifierFormulaire()">Modifier le formulaire</button>
-        <button type="button" class="btn primary" (click)="lancerAnalyseIA()">Relancer l'analyse</button>
-      </div>
-
-      <div class="actions" *ngIf="coherenceOK">
-        <button type="button" class="btn secondary" (click)="modifierFormulaire()">Modifier le formulaire</button>
-        <button
-          *ngIf="recommandations.length > 0"
-          type="button"
-          class="btn warning"
-          (click)="recoModalOpen = true">
-          Voir les recommandations
-        </button>
-        <button type="button" class="btn primary" (click)="goToConsent()">
-          Continuer vers le consentement
-        </button>
-      </div>
-
-    </ng-container>
-  </div>
-
-  <app-consentement
-    *ngIf="currentStep === 5"
-    [status]="submitSuccess ? 'completed' : 'active'"
-    [submitting]="isSubmitting"
-    [success]="submitSuccess"
-    [errorMessage]="submitErrorMessage"
-    (prevStep)="prevStep()"
-    (submit)="submitDemande()"
-    (restart)="restartFlow()">
-  </app-consentement>
-
-  <div *ngIf="currentStep === 6" class="success-box">
-    <div class="success-icon">
-      <svg width="36" height="36" viewBox="0 0 24 24" fill="none"
-           stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-        <polyline points="20 6 9 17 4 12"/>
-      </svg>
-    </div>
-    <h3>Demande créée avec succès</h3>
-    <p>
-      Un lien de consentement valide 2 h a été envoyé au client par email.
-      Le client doit ouvrir ce lien, valider son OTP, puis confirmer le consentement.
-    </p>
-    <button type="button" class="btn primary" (click)="restartFlow()">Nouvelle demande</button>
-  </div>
-
-</div>
+</section>

@@ -1,0 +1,73 @@
+<aside class="admin-sidebar" aria-label="Navigation administration" translate="no">
+  <div class="sidebar-accent" aria-hidden="true"></div>
+
+  <div class="sidebar-inner">
+    <a class="brand" routerLink="/admin/dashboard">
+      @if (!logoFailed) {
+        <img
+          class="brand-logo"
+          [src]="logoSrc"
+          alt="UIB"
+          width="110"
+          height="36"
+          decoding="async"
+          (error)="onLogoError()"
+        />
+      } @else {
+        <span class="brand-logo-fallback">UIB</span>
+      }
+      <span class="brand-tag">Administration BNPL</span>
+    </a>
+
+    <nav class="sidebar-nav">
+      @for (item of nav; track item.id) {
+        @if (item.children?.length) {
+          <div
+            class="nav-group"
+            [class.is-open]="isGroupOpen(item.id)"
+            [class.is-active]="isGroupActive(item)"
+          >
+            <button type="button" class="nav-item nav-item--parent" (click)="toggleGroup(item.id)">
+              <span class="nav-icon" [class]="'nav-icon--' + item.icon" aria-hidden="true"></span>
+              <span class="nav-label">{{ item.label }}</span>
+              <span class="nav-chevron" aria-hidden="true"></span>
+            </button>
+            <div class="nav-children">
+              @for (child of item.children; track child.route) {
+                <a
+                  [routerLink]="child.route"
+                  routerLinkActive="active"
+                  [routerLinkActiveOptions]="{ exact: child.exact ?? false }"
+                  class="nav-item nav-item--child"
+                >
+                  <span class="nav-child-dot" aria-hidden="true"></span>
+                  <span>{{ child.label }}</span>
+                </a>
+              }
+            </div>
+          </div>
+        } @else if (item.route) {
+          <a
+            [routerLink]="item.route"
+            [class.active]="isNavActive(item)"
+            class="nav-item"
+          >
+            <span class="nav-icon" [class]="'nav-icon--' + item.icon" aria-hidden="true"></span>
+            <span class="nav-label">{{ item.label }}</span>
+          </a>
+        }
+      }
+    </nav>
+
+    <div class="sidebar-footer">
+      <div class="profile-badge">
+        <span class="profile-avatar">{{ userInitial }}</span>
+        <span class="profile-meta">
+          <span class="profile-role">Administrateur</span>
+          <span class="profile-name">{{ userName }}</span>
+        </span>
+      </div>
+      <button type="button" class="logout-btn" (click)="onLogout()">Déconnexion</button>
+    </div>
+  </div>
+</aside>

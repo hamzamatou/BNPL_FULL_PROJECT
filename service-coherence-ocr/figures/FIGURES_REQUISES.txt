@@ -1,0 +1,12 @@
+Placez ici les PNG du rapport Phase 5 (noms exacts) :
+
+  courbes_roc.png
+  comparaison_auc.png
+  matrices_confusion.png
+
+Puis relancez :
+  node genratePhase5.cjs
+
+Sortie : phase5_evaluation_complete.docx
+
+Le script genere le Word meme sans images (legende placeholder a la place).

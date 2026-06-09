@@ -10,5 +10,13 @@ public record AnalyseIAResponse(
         List<String> recommandations,
         Map<String, Object> corrections,
         List<String> alertes,
-        Integer scoreCoherence
-) {}
+        String processInstanceId
+) {
+    public AnalyseIAResponse(
+            List<String> recommandations,
+            Map<String, Object> corrections,
+            List<String> alertes
+    ) {
+        this(recommandations, corrections, alertes, null);
+    }
+}

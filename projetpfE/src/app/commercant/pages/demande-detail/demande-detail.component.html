@@ -4,39 +4,44 @@
   } @else if (errorMessage) {
     <div class="state-card error">{{ errorMessage }}</div>
   } @else if (demande) {
-    <div class="detail-head">
-      <div class="detail-crumb">
-        <button class="crumb-back" (click)="back()">← Retour à mes demandes</button>
-        <div class="crumb-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</div>
+    <header class="page-header">
+      <div class="header-left-side">
+        <button class="back-icon-btn" type="button" (click)="back()" aria-label="Retour à mes demandes">
+          <span class="back-icon" aria-hidden="true">‹</span>
+        </button>
+        <h1 class="page-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</h1>
       </div>
-    </div>
-
-    <div class="detail-title">
-      <h1 class="h1">
-        Demande <span class="h1-ref">{{ demande.referenceDemande || ('DEM-' + demande.id) }}</span>
-      </h1>
-      <div class="title-meta">
-        <span class="status-pill">{{ statusLabel }}</span>
-        <span class="meta-dot">•</span>
-        <span>Créée le {{ formatDateShort(demande.dateCreation) }}</span>
-        <span class="meta-dot">•</span>
-        <span>Dernière mise à jour le {{ formatDateShort(demande.dateDerniereMiseAJour) }}</span>
+      <div class="header-right-meta">
+        <div class="meta-item">
+          <span class="meta-label">Statut</span>
+          <span class="meta-value page-status-value">{{ statusLabel }}</span>
+        </div>
+        <span class="meta-divider"></span>
+        <div class="meta-item">
+          <span class="meta-label">Créée le</span>
+          <span class="meta-value">{{ formatDateShort(demande.dateCreation) }}</span>
+        </div>
+        <span class="meta-divider"></span>
+        <div class="meta-item">
+          <span class="meta-label">Mise à jour</span>
+          <span class="meta-value">{{ formatDateShort(demande.dateDerniereMiseAJour) }}</span>
+        </div>
       </div>
-    </div>
+    </header>
 
     <div class="timeline-card">
       <div class="timeline">
-        <div class="t-step">
+        <div class="t-step" [class.active]="activeStepIndex === 0" [class.done]="isStepDone(0)">
           <div class="t-circle" [class.done]="isStepDone(0)" [class.active]="activeStepIndex === 0">
             {{ isStepDone(0) && activeStepIndex !== 0 ? '✓' : '1' }}
           </div>
-          <div class="t-name">En attente consentement</div>
+          <div class="t-name">Consentement client</div>
           <div class="t-sub">{{ stepDates[0] }}</div>
         </div>
 
         <div class="t-line" [class.done]="isStepDone(1)"></div>
 
-        <div class="t-step">
+        <div class="t-step" [class.active]="activeStepIndex === 1" [class.done]="isStepDone(1)">
           <div class="t-circle" [class.done]="isStepDone(1)" [class.active]="activeStepIndex === 1">
             {{ isStepDone(1) && activeStepIndex !== 1 ? '✓' : '2' }}
           </div>
@@ -46,7 +51,7 @@
 
         <div class="t-line" [class.done]="isStepDone(2)"></div>
 
-        <div class="t-step">
+        <div class="t-step" [class.active]="activeStepIndex === 2" [class.done]="isStepDone(2)">
           <div class="t-circle" [class.done]="isStepDone(2)" [class.active]="activeStepIndex === 2">
             {{ isStepDone(2) && activeStepIndex !== 2 ? '✓' : '3' }}
           </div>
@@ -56,7 +61,7 @@
 
         <div class="t-line" [class.done]="isStepDone(3)"></div>
 
-        <div class="t-step">
+        <div class="t-step" [class.active]="activeStepIndex === 3" [class.done]="isStepDone(3)">
           <div class="t-circle" [class.done]="isStepDone(3)" [class.active]="activeStepIndex === 3">
             {{ isStepDone(3) && activeStepIndex !== 3 ? '✓' : '4' }}
           </div>
@@ -66,7 +71,7 @@
 
         <div class="t-line" [class.done]="isStepDone(4)"></div>
 
-        <div class="t-step">
+        <div class="t-step" [class.active]="activeStepIndex === 4" [class.done]="isStepDone(4)">
           <div class="t-circle" [class.done]="isStepDone(4)" [class.active]="activeStepIndex === 4">
             {{ isStepDone(4) && activeStepIndex !== 4 ? '✓' : '5' }}
           </div>
@@ -92,6 +97,10 @@
             <div class="mini-field span2">
               <div class="mini-label">EMAIL</div>
               <div class="mini-value">{{ demande.client?.email || '-' }}</div>
+            </div>
+            <div class="mini-field span2">
+              <div class="mini-label">CIN</div>
+              <div class="mini-value">{{ demande.client?.cin || '-' }}</div>
             </div>
             <div class="mini-field span2">
               <div class="mini-label">TÉLÉPHONE</div>
@@ -189,19 +198,45 @@
 
         <div class="card section-card">
           <div class="section-title">HISTORIQUE</div>
-          <div class="history">
-            @for (item of historyItems; track $index) {
-              <div class="history-item">
-                <div class="history-dot"></div>
-                <div class="history-body">
-                  <div class="history-title">{{ item.title }}</div>
-                  <div class="history-sub">{{ item.detail }}</div>
-                  <div class="history-date">{{ item.date }}</div>
+          @if (!historyItems.length) {
+            <div class="empty-state">Aucun événement enregistré pour cette demande.</div>
+          } @else {
+            <div class="history">
+              @for (item of historyItems; track item.title + item.date) {
+                <div class="history-item">
+                  <div class="history-dot"></div>
+                  <div class="history-body">
+                    <div class="history-title">{{ item.title }}</div>
+                    @if (item.detail) {
+                      <div class="history-sub">{{ item.detail }}</div>
+                    }
+                    <div class="history-date">{{ item.date }}</div>
+                  </div>
                 </div>
-              </div>
-            }
-          </div>
+              }
+            </div>
+          }
         </div>
+
+        @if (canResendConsent || canCancel) {
+          <div class="card section-card actions-card">
+            <div class="section-title">ACTIONS</div>
+            <div class="detail-actions">
+              @if (canResendConsent) {
+                <button class="btn-soft" type="button" [disabled]="actionLoading" (click)="resendConsent()">
+                  <span class="btn-ico">↻</span>
+                  @if (actionLoading) { Envoi... } @else { Renvoyer le consentement }
+                </button>
+              }
+              @if (canCancel) {
+                <button class="btn-danger" type="button" [disabled]="actionLoading" (click)="cancelDemande()">
+                  <span class="btn-ico">✕</span>
+                  @if (actionLoading) { Traitement... } @else { Annuler }
+                </button>
+              }
+            </div>
+          </div>
+        }
       </div>
     </div>
 
@@ -233,6 +268,25 @@
             <div class="dock-meta">
               {{ dockDoc.typeDocument }} • {{ formatFileSize(dockDoc.tailleOctets) }}
             </div>
+          </div>
+        </div>
+      </div>
+    }
+
+    @if (showCancelConfirm && demande) {
+      <div class="confirm-overlay" (click)="closeCancelConfirm()">
+        <div class="confirm-modal" (click)="$event.stopPropagation()">
+          <h3>Confirmer l’annulation</h3>
+          <p>
+            Annuler la demande <strong>{{ demande.referenceDemande || ('DEM-' + demande.id) }}</strong> ?
+          </p>
+          <div class="confirm-actions">
+            <button class="modal-btn" type="button" [disabled]="actionLoading" (click)="closeCancelConfirm()">
+              Retour
+            </button>
+            <button class="modal-btn danger" type="button" [disabled]="actionLoading" (click)="confirmCancelDemande()">
+              Confirmer
+            </button>
           </div>
         </div>
       </div>

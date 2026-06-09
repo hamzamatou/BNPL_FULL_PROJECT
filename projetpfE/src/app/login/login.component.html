@@ -1,8 +1,24 @@
 <div class="login-container">
   <div class="brand-section">
+    <div class="brand-bg-circles" aria-hidden="true">
+      <span class="brand-circle brand-circle--top"></span>
+      <span class="brand-circle brand-circle--bottom"></span>
+    </div>
     <div class="brand-content">
       <div class="logo-area">
-        <h1 class="logo-main">UIB</h1>
+        <div class="logo-top-row">
+          <img
+            *ngIf="loginLogoVisible"
+            class="login-logo-img"
+            [src]="loginLogoSrc"
+            alt="UIB — Union Internationale de Banques"
+            width="200"
+            height="72"
+            decoding="async"
+            (error)="onLoginLogoError()"
+          />
+          <h1 class="logo-main">UIB</h1>
+        </div>
         <p class="logo-sub">UNION INTERNATIONALE DE BANQUES</p>
       </div>
       
@@ -46,13 +62,34 @@
 
         <div class="input-group">
           <label for="password">MOT DE PASSE</label>
-          <input 
-            id="password" 
-            type="password" 
-            [(ngModel)]="password" 
-            name="password" 
-            placeholder="••••••••" 
-          />
+          <div class="password-input-wrap">
+            <input
+              id="password"
+              [type]="showPassword ? 'text' : 'password'"
+              [(ngModel)]="password"
+              name="password"
+              placeholder="••••••••"
+              autocomplete="current-password"
+            />
+            <button
+              type="button"
+              class="password-toggle"
+              (click)="togglePasswordVisibility()"
+              [attr.aria-label]="showPassword ? 'Masquer le mot de passe' : 'Afficher le mot de passe'"
+              [attr.aria-pressed]="showPassword"
+            >
+              <i
+                *ngIf="!showPassword"
+                class="bi bi-eye-slash password-toggle-icon"
+                aria-hidden="true"
+              ></i>
+              <i
+                *ngIf="showPassword"
+                class="bi bi-eye password-toggle-icon"
+                aria-hidden="true"
+              ></i>
+            </button>
+          </div>
         </div>
 
         <div *ngIf="errorMessage" class="error-msg">{{ errorMessage }}</div>

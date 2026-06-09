@@ -1,82 +1,259 @@
-<section class="page">
-  <h2 class="title">Demandes banque à traiter</h2>
+<section class="list-page">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Demandes à traiter</h1>
+      <p class="page-sub">Dossiers routés vers votre compte analyste</p>
+    </div>
+  </header>
 
-  @if (loading) {
-    <div class="state-card">Chargement...</div>
-  } @else if (errorMessage) {
-    <div class="state-card error">{{ errorMessage }}</div>
-  } @else if (demandes.length === 0) {
-    <div class="state-card">Aucune demande disponible.</div>
-  } @else {
-    <div class="table">
-      <div class="thead">
-        <div>Reference</div>
-        <div>Client</div>
-        <div>Montant</div>
-        <div>Statut</div>
-        <div>Date</div>
-        <div>Action</div>
+  @if (!loading && !errorMessage) {
+    <div class="stats-row">
+      <div class="stat-card active">
+        <div class="stat-val">{{ demandes.length }}</div>
+        <div class="stat-lbl">Demandes disponibles</div>
       </div>
-
-      @for (d of demandes; track d.id) {
-        <div class="tr">
-          <div><strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong></div>
-          <div>{{ clientLabel(d) }}</div>
-          <div>{{ montantLabel(d.montant) }}</div>
-          <div>
-            <span
-              class="badge"
-              [class.wait]="statusBadgeClass(d.statut) === 'wait'"
-              [class.analysis]="statusBadgeClass(d.statut) === 'analysis'"
-              [class.sent]="statusBadgeClass(d.statut) === 'sent'"
-            >
-              {{ d.statut }}
-            </span>
-          </div>
-          <div>{{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date: 'dd/MM/yyyy') : '-' }}</div>
-          <div>
-            <button
-              class="recap-btn"
-              type="button"
-              (click)="openRecap(d)"
-            >
-              Récap
-            </button>
-          </div>
-        </div>
-      }
     </div>
   }
 
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="search-box">
+        <span class="search-ico" aria-hidden="true">⌕</span>
+        <input
+          type="text"
+          placeholder="Rechercher (client, référence, CIN)…"
+          [(ngModel)]="searchTerm"
+        />
+      </div>
+      <select class="filter-select" [(ngModel)]="sortBy">
+        <option value="date_desc">Date (récentes)</option>
+        <option value="date_asc">Date (anciennes)</option>
+        <option value="montant_desc">Montant (décroissant)</option>
+        <option value="montant_asc">Montant (croissant)</option>
+        <option value="client_asc">Client (A-Z)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="section-title">Liste des demandes</div>
+
+    <div class="table-wrap">
+      <div class="table">
+        <div class="thead">
+          <div>Référence</div>
+          <div>Client</div>
+          <div>Montant</div>
+          <div>Statut</div>
+          <div>Date</div>
+          <div class="col-action">Action</div>
+        </div>
+
+        @if (loading) {
+          <div class="table-state">
+            <span class="spinner" aria-hidden="true"></span>
+            Chargement des demandes…
+          </div>
+        } @else if (errorMessage) {
+          <div class="table-state table-state--error">{{ errorMessage }}</div>
+        } @else if (displayedDemandes.length === 0) {
+          <div class="table-state">Aucune demande ne correspond à vos critères.</div>
+        } @else {
+          @for (d of displayedDemandes; track d.id) {
+            <div class="tr">
+              <div class="ref-cell">
+                <strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong>
+              </div>
+              <div class="client-cell">{{ clientLabel(d) }}</div>
+              <div class="amount-cell">{{ montantLabel(d.montant) }}</div>
+              <div>
+                <span class="status-badge" [ngClass]="statusBadgeClass(d.statut)">
+                  {{ statutLabel(d.statut) }}
+                </span>
+              </div>
+              <div class="date-cell">
+                {{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date: 'dd/MM/yyyy') : '-' }}
+              </div>
+              <div class="row-actions">
+                <button class="detail-btn" type="button" (click)="openRecap(d)">
+                  Récap
+                  <span class="detail-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+
   @if (recapOpen && recapDemande) {
-    <div class="modal-overlay" (click)="closeRecap()">
-      <div class="modal" (click)="$event.stopPropagation()">
-        <div class="modal-head">
-          <div class="modal-title">Récapitulatif</div>
-          <button class="modal-close" type="button" (click)="closeRecap()">✕</button>
+    <div class="recap-overlay" (click)="closeRecap()" role="presentation">
+      <div
+        class="recap-modal"
+        role="dialog"
+        aria-labelledby="recap-modal-title"
+        aria-modal="true"
+        (click)="$event.stopPropagation()"
+      >
+        <button class="recap-modal__close" type="button" (click)="closeRecap()" aria-label="Fermer">×</button>
+
+        <header class="recap-modal__head">
+          <div class="recap-modal__badge">Aperçu dossier</div>
+          <h2 id="recap-modal-title" class="recap-modal__title">
+            {{ recapDetail?.referenceDemande || recapDemande.referenceDemande || ('DEM-' + recapDemande.id) }}
+          </h2>
+          <p class="recap-modal__sub">
+            Vérifiez les informations avant de prendre le dossier en charge.
+          </p>
+        </header>
+
+        <div class="recap-modal__body">
+          @if (recapLoading) {
+            <div class="recap-loading">
+              <span class="spinner" aria-hidden="true"></span>
+              Chargement du récapitulatif…
+            </div>
+          } @else if (recapError) {
+            <div class="recap-error">{{ recapError }}</div>
+          } @else if (recapDetail) {
+            <div class="recap-hero">
+              <div class="recap-hero__main">
+                <span class="recap-hero__label">Montant demandé</span>
+                <span class="recap-hero__amount">{{ montantLabel(recapDetail.montant) }}</span>
+              </div>
+              <div class="recap-hero__side">
+                <span class="status-badge" [ngClass]="statusBadgeClass(recapDetail.statut)">
+                  {{ statutLabel(recapDetail.statut) }}
+                </span>
+                @if (recapDetail.prescoringScore) {
+                  <span class="recap-zone" [ngClass]="prescoringZoneClass(recapDetail.prescoringScore.zoneCode)">
+                    {{ prescoringZoneLabel(recapDetail.prescoringScore.zoneCode) }}
+                  </span>
+                }
+              </div>
+            </div>
+
+            <div class="recap-section">
+              <h3 class="recap-section__title">Client</h3>
+              <dl class="recap-grid">
+                <div class="recap-item">
+                  <dt>Nom complet</dt>
+                  <dd>{{ clientLabel(recapDemande) }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>CIN</dt>
+                  <dd>{{ recapDetail.client?.cin || recapDemande.clientCin || '-' }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Téléphone</dt>
+                  <dd>{{ recapDetail.client?.telephone || '-' }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Email</dt>
+                  <dd>{{ recapDetail.client?.email || '-' }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Situation familiale</dt>
+                  <dd>{{ situationLabel(recapDetail.dossierClient?.situationFamiliale) }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Enfants à charge</dt>
+                  <dd>{{ recapDetail.dossierClient?.nombreEnfants ?? '-' }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="recap-section">
+              <h3 class="recap-section__title">Financement</h3>
+              <dl class="recap-grid">
+                <div class="recap-item">
+                  <dt>Produit / objet</dt>
+                  <dd>{{ recapDetail.typeProduit || '-' }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Durée</dt>
+                  <dd>{{ recapDetail.dureeMois ? recapDetail.dureeMois + ' mois' : '-' }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Date création</dt>
+                  <dd>{{ formatDate(recapDetail.dateCreation) }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Dernière mise à jour</dt>
+                  <dd>{{ formatDate(recapDetail.dateDerniereMiseAJour) }}</dd>
+                </div>
+              </dl>
+            </div>
+
+            <div class="recap-section">
+              <h3 class="recap-section__title">Capacité financière</h3>
+              <dl class="recap-grid">
+                <div class="recap-item">
+                  <dt>Revenu mensuel net</dt>
+                  <dd>{{ montantLabel(recapDetail.dossierClient?.revenuMensuelNet) }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Charges mensuelles</dt>
+                  <dd>{{ montantLabel(recapDetail.dossierClient?.chargesMensuelles) }}</dd>
+                </div>
+                <div class="recap-item">
+                  <dt>Encours crédits</dt>
+                  <dd>{{ montantLabel(recapDetail.dossierClient?.encoursCredits) }}</dd>
+                </div>
+                <div class="recap-item recap-item--highlight">
+                  <dt>Taux d'endettement</dt>
+                  <dd>{{ tauxEndettementPercent(recapDetail).toFixed(1) }} %</dd>
+                </div>
+              </dl>
+            </div>
+
+            @if (recapDetail.prescoringScore) {
+              <div class="recap-section recap-section--score">
+                <h3 class="recap-section__title">Prescoring</h3>
+                <dl class="recap-grid recap-grid--3">
+                  <div class="recap-item">
+                    <dt>Score</dt>
+                    <dd class="recap-score-val">{{ recapDetail.prescoringScore.score }}</dd>
+                  </div>
+                  <div class="recap-item">
+                    <dt>Probabilité de défaut (PD)</dt>
+                    <dd>{{ formatProbabiliteDefaut(recapDetail.prescoringScore.probabiliteDefaut) }}</dd>
+                  </div>
+                  <div class="recap-item">
+                    <dt>Zone de risque</dt>
+                    <dd>
+                      <span class="recap-zone" [ngClass]="prescoringZoneClass(recapDetail.prescoringScore.zoneCode)">
+                        {{ prescoringZoneLabel(recapDetail.prescoringScore.zoneCode) }}
+                      </span>
+                    </dd>
+                  </div>
+                </dl>
+              </div>
+            }
+
+            <div class="recap-docs-banner">
+              <span class="recap-docs-banner__ico" aria-hidden="true">📄</span>
+              <div>
+                <strong>{{ documentsCount(recapDetail) }} pièce(s) justificative(s)</strong>
+                <p>Après prise en charge, vous devrez consulter chaque document avant de valider votre décision.</p>
+              </div>
+            </div>
+          }
         </div>
 
-        <div class="modal-body">
-          <div class="recap-line">
-            Référence : <strong>{{ recapDemande.referenceDemande || ('DEM-' + recapDemande.id) }}</strong>
-          </div>
-          <div class="recap-line">Client : <strong>{{ clientLabel(recapDemande) }}</strong></div>
-          <div class="recap-line">Montant : <strong>{{ montantLabel(recapDemande.montant) }}</strong></div>
-          <div class="recap-line">Statut : <strong>{{ recapDemande.statut }}</strong></div>
-
-          <div class="modal-actions">
-            <button
-              type="button"
-              class="validate-btn"
-              [disabled]="actionLoadingId === recapDemande.id"
-              (click)="seSaisirDepuisRecap()"
-            >
-              {{ actionLoadingId === recapDemande.id ? '...' : 'Se saisir' }}
-            </button>
-          </div>
-        </div>
+        <footer class="recap-modal__foot">
+          <button type="button" class="recap-btn-secondary" (click)="closeRecap()">Fermer</button>
+          <button
+            type="button"
+            class="recap-btn-primary"
+            [disabled]="recapLoading || !!recapError || actionLoadingId === recapDemande.id"
+            (click)="seSaisirDepuisRecap()"
+          >
+            {{ actionLoadingId === recapDemande.id ? 'Prise en charge…' : 'Se saisir de la demande' }}
+          </button>
+        </footer>
       </div>
     </div>
   }
 </section>
-

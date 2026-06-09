@@ -9,6 +9,7 @@ export interface User {
   prenom?: string;
   email: string;
   role: string;
+  nomMagasin?: string;
   status?: 'CREATED' | 'ACTIVE' | 'BLOCKED';
   password?: string;
 }

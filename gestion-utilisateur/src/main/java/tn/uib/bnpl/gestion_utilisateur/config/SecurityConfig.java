@@ -62,13 +62,14 @@ public class SecurityConfig {
                 // 🔥 PRE-FLIGHT CORS MUST BE ALLOWED
                 .requestMatchers(HttpMethod.OPTIONS, "/**").permitAll()
 
-                .requestMatchers(
+                .requestMatchers(HttpMethod.POST,
                     "/api/users/login",
                     "/api/users/register",
                     "/api/users/activate",
                     "/api/users/verify-otp",
-                    "/error"
+                    "/api/users/resend-otp"
                 ).permitAll()
+                .requestMatchers("/error").permitAll()
 
                 // internal APIs
                 .requestMatchers("/api/internal/**").authenticated()

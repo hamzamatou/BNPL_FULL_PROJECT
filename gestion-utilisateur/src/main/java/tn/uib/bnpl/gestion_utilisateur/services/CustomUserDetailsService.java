@@ -1,6 +1,7 @@
 package tn.uib.bnpl.gestion_utilisateur.services;
 
 import java.util.List;
+import java.util.Locale;
 
 import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -38,7 +39,7 @@ public class CustomUserDetailsService implements UserDetailsService {
     public UserDetails loadUserByUsername(String email)
             throws UsernameNotFoundException {
 
-        User user = userRepository.findByEmail(email)
+        User user = userRepository.findByEmailIgnoreCase(normalizeEmail(email))
                 .orElseThrow(() ->
                         new UsernameNotFoundException(
                                 "Utilisateur non trouvé avec email: " + email));
@@ -61,5 +62,12 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .accountLocked(isBlocked)
 
                 .build();
+    }
+
+    private static String normalizeEmail(String email) {
+        if (email == null) {
+            return null;
+        }
+        return email.trim().toLowerCase(Locale.ROOT);
     }
 }

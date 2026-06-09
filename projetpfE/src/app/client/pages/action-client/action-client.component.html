@@ -1,412 +1,431 @@
-<div class="container">
+<div class="ac-page">
+  <div class="ac-page-bg" aria-hidden="true">
+    <span class="ac-bg-circle ac-bg-circle--one"></span>
+    <span class="ac-bg-circle ac-bg-circle--two"></span>
+  </div>
 
-  @if (errorMessage) {
-    <div class="alert error">{{ errorMessage }}</div>
-  }
-  @if (successMessage) {
-    <div class="alert success">{{ successMessage }}</div>
-  }
+  <div class="container">
+    @if (errorMessage) {
+      <div class="alert error" role="alert">
+        <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+        <span>{{ errorMessage }}</span>
+      </div>
+    }
+    @if (successMessage) {
+      <div class="alert success" role="status">
+        <i class="bi bi-check-circle" aria-hidden="true"></i>
+        <span>{{ successMessage }}</span>
+      </div>
+    }
 
-  @if (!token) {
-
-    <!-- ── Token absent ── -->
     <div class="ac-card">
-      <div class="ac-header">
-        <div class="ac-logo-row">
-          <div class="ac-logo-sq">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ac-brand-name">UIB BNPL</div>
-            <div class="ac-brand-sub">VÉRIFICATION SÉCURISÉE</div>
-          </div>
-        </div>
-      </div>
-      <div class="ac-body">
-        <div class="ac-title">Lien invalide</div>
-        <div class="ac-hint">Token absent dans l'URL. Veuillez utiliser le lien reçu par e-mail.</div>
-      </div>
-    </div>
+      <header class="ac-header">
+        <div class="ac-header-accent" aria-hidden="true"></div>
 
-  } @else if (step === 'identity') {
-
-    <!-- ── Étape 1 : Identité ── -->
-    <div class="ac-card">
-      <div class="ac-header">
-        <div class="ac-logo-row">
-          <div class="ac-logo-sq">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ac-brand-name">UIB BNPL</div>
-            <div class="ac-brand-sub">VÉRIFICATION SÉCURISÉE</div>
-          </div>
-        </div>
-        <div class="ac-steps">
-          <div class="ac-step">
-            <div class="ac-step-num active">1</div>
-            <div class="ac-step-lbl active">Identité</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">2</div>
-            <div class="ac-step-lbl pending">OTP</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">3</div>
-            <div class="ac-step-lbl pending">Consentement</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">4</div>
-            <div class="ac-step-lbl pending">Confirmation</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="ac-body">
-        <div class="ac-eyebrow">Étape 1 / 4</div>
-        <div class="ac-title">Vérification d'identité</div>
-        <div class="ac-hint">Lien sécurisé valide 2h. Renseignez vos informations pour recevoir un OTP.</div>
-
-        @if (referenceDemande) {
-          <div class="ref-box">
-            <div class="ref-icon">📋</div>
-            <div>
-              <div class="ref-label">Référence de la demande</div>
-              <div class="ref-val">{{ referenceDemande }}</div>
-              <div class="ref-hint">Ce code figure dans l'e-mail reçu, pour lier l'OTP à la bonne demande.</div>
+        <div class="ac-header-inner">
+          <div class="ac-brand">
+            <div class="ac-brand-mark" aria-hidden="true">
+              <span class="ac-brand-mark-text">UIB</span>
+            </div>
+            <div class="ac-brand-text">
+              <div class="ac-brand-name">BNPL</div>
+              <div class="ac-brand-sub">Parcours client sécurisé</div>
+            </div>
+            <div class="ac-brand-badge" aria-hidden="true">
+              <i class="bi bi-lock-fill"></i>
             </div>
           </div>
-        }
 
-        <div class="field-group">
-          <label>Nom</label>
-          <input [(ngModel)]="nom" type="text" placeholder="Ex : Ben Ali" />
-        </div>
-        <div class="field-group">
-          <label>Prénom</label>
-          <input [(ngModel)]="prenom" type="text" placeholder="Ex : Mohamed" />
-        </div>
-        <div class="field-group">
-          <label>CIN</label>
-          <input [(ngModel)]="cin" type="text" placeholder="Ex : 12345678" />
-        </div>
-
-        <button class="btn-primary" [disabled]="loading" (click)="sendOtp(false)">
-          {{ loading ? 'Envoi…' : 'Envoyer OTP →' }}
-        </button>
-      </div>
-    </div>
-
-  } @else if (step === 'otp') {
-
-    <!-- ── Étape 2 : OTP ── -->
-    <div class="ac-card">
-      <div class="ac-header">
-        <div class="ac-logo-row">
-          <div class="ac-logo-sq">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ac-brand-name">UIB BNPL</div>
-            <div class="ac-brand-sub">VÉRIFICATION SÉCURISÉE</div>
-          </div>
-        </div>
-        <div class="ac-steps">
-          <div class="ac-step">
-            <div class="ac-step-num done">1</div>
-            <div class="ac-step-lbl">Identité</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num active">2</div>
-            <div class="ac-step-lbl active">OTP</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">3</div>
-            <div class="ac-step-lbl pending">Consentement</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">4</div>
-            <div class="ac-step-lbl pending">Confirmation</div>
-          </div>
-        </div>
-      </div>
-
-      <div class="ac-body">
-        <div class="otp-shield">🔐</div>
-        <div class="otp-title">Vérification en deux étapes</div>
-
-        @if (referenceDemande) {
-          <div style="text-align:center; margin-bottom:10px;">
-            <span class="ref-chip">Demande <span>{{ referenceDemande }}</span></span>
-          </div>
-        }
-
-        <div class="otp-sub">
-          Un code à 6 chiffres a été envoyé par <strong>e-mail</strong>
-          @if (maskedEmailLabel) {
-            à l'adresse <span class="otp-email">{{ maskedEmailLabel }}</span>
-          } @else {
-            (l'adresse associée à votre dossier).
+          @if (token) {
+            <div class="ac-progress-wrap" [class.ac-progress-wrap--complete]="step === 'done'">
+              <div class="ac-progress-meta">
+                <span>
+                  @if (step === 'done') {
+                    Parcours terminé
+                  } @else {
+                    Étape {{ currentStepNumber() }} sur {{ flowSteps.length }}
+                  }
+                </span>
+                <span class="ac-progress-pct">{{ progressPercent() | number:'1.0-0' }} %</span>
+              </div>
+              <div class="ac-progress-track">
+                <div class="ac-progress-fill" [style.width.%]="progressPercent()"></div>
+              </div>
+              <div class="ac-steps">
+                @for (stepDef of flowSteps; track stepDef.label; let i = $index) {
+                  <div
+                    class="ac-step"
+                    [class.done]="stepState(i) === 'done'"
+                    [class.active]="stepState(i) === 'active'"
+                    [class.pending]="stepState(i) === 'pending'"
+                  >
+                    @if (i > 0) {
+                      <span class="ac-step-line" aria-hidden="true"></span>
+                    }
+                    <div class="ac-step-num">
+                      @if (stepState(i) === 'done') {
+                        <i class="bi bi-check-lg" aria-hidden="true"></i>
+                      } @else {
+                        {{ i + 1 }}
+                      }
+                    </div>
+                    <div class="ac-step-lbl">{{ stepDef.label }}</div>
+                  </div>
+                }
+              </div>
+            </div>
           }
         </div>
+      </header>
 
-        <div
-          class="otp-fields"
-          (paste)="onOtpPaste($event)"
-          role="group"
-          aria-label="Code à 6 chiffres"
-        >
-          @for (i of otpIndices; track i) {
-            @if (i === 3) {
-              <div class="otp-sep" aria-hidden="true">—</div>
-            }
-            <input
-              #otpCell
-              class="otp-input"
-              [class.filled]="otpDigits[i]"
-              type="text"
-              maxlength="1"
-              inputmode="numeric"
-              autocomplete="one-time-code"
-              [attr.pattern]="'[0-9]'"
-              [value]="otpDigits[i]"
-              (input)="onOtpDigitInput(i, $any($event.target).value)"
-              (keydown)="onOtpKeydown(i, $event)"
-            />
+      <div class="ac-body" [class.ac-body--center]="step === 'done'">
+        @if (!token) {
+          <div class="ac-step-head">
+            <div class="ac-step-icon ac-step-icon--warn" aria-hidden="true">
+              <i class="bi bi-exclamation-lg"></i>
+            </div>
+            <div>
+              <div class="ac-eyebrow">Accès refusé</div>
+              <h1 class="ac-title">Lien invalide</h1>
+            </div>
+          </div>
+          <p class="ac-hint">Token absent dans l'URL. Veuillez utiliser le lien reçu par e-mail.</p>
+        } @else if (step === 'identity') {
+          <div class="ac-step-head">
+            <div class="ac-step-icon" aria-hidden="true">
+              <i class="bi bi-person-badge"></i>
+            </div>
+            <div>
+              <div class="ac-eyebrow">Étape {{ currentStepNumber() }} / {{ flowSteps.length }}</div>
+              <h1 class="ac-title">Vérification d'identité</h1>
+            </div>
+          </div>
+
+          <div class="ac-trust">
+            <i class="bi bi-shield-check" aria-hidden="true"></i>
+            <span>Session chiffrée · Lien valide 2 h</span>
+          </div>
+
+          <p class="ac-hint">
+            Renseignez vos informations telles qu'elles figurent sur votre dossier pour recevoir un code OTP.
+          </p>
+
+          @if (referenceDemande) {
+            <div class="ref-box">
+              <div class="ref-icon" aria-hidden="true">
+                <i class="bi bi-hash"></i>
+              </div>
+              <div>
+                <div class="ref-label">Référence de la demande</div>
+                <div class="ref-val">{{ referenceDemande }}</div>
+                <div class="ref-hint">Ce code figure dans l'e-mail reçu pour lier l'OTP à la bonne demande.</div>
+              </div>
+            </div>
           }
-        </div>
 
-        <div class="otp-timer-row">
-          <span class="otp-timer">
-            @if (otpSecondsLeft > 0) {
-              Code valide pendant <strong>{{ otpTimerLabel }}</strong>
-            } @else {
-              Délai écoulé — veuillez <strong>renvoyer</strong> le code.
-            }
-          </span>
-          <div class="resend-row" style="margin:0">
-            Pas reçu ?&nbsp;
-            <button
-              type="button"
-              class="resend-link"
-              [disabled]="!canResendOtp"
-              (click)="resendOtp()"
-            >
-              {{ resendCooldown ? 'Code renvoyé ✓' : 'Renvoyer' }}
+          <div class="ac-form-panel">
+            <div class="ac-form-grid">
+              <div class="field-group">
+                <label for="ac-nom">Nom</label>
+                <div class="field-wrap">
+                  <i class="bi bi-person field-icon" aria-hidden="true"></i>
+                  <input id="ac-nom" [(ngModel)]="nom" type="text" placeholder="Ex. Ben Ali" autocomplete="family-name" />
+                </div>
+              </div>
+              <div class="field-group">
+                <label for="ac-prenom">Prénom</label>
+                <div class="field-wrap">
+                  <i class="bi bi-person field-icon" aria-hidden="true"></i>
+                  <input id="ac-prenom" [(ngModel)]="prenom" type="text" placeholder="Ex. Mohamed" autocomplete="given-name" />
+                </div>
+              </div>
+              <div class="field-group field-group--full">
+                <label for="ac-cin">CIN</label>
+                <div class="field-wrap">
+                  <i class="bi bi-credit-card-2-front field-icon" aria-hidden="true"></i>
+                  <input id="ac-cin" [(ngModel)]="cin" type="text" placeholder="Ex. 12345678" inputmode="numeric" />
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div class="ac-actions">
+            <p class="ac-actions-note">
+              <i class="bi bi-info-circle" aria-hidden="true"></i>
+              Un code à usage unique vous sera envoyé par e-mail.
+            </p>
+            <button type="button" class="btn-primary btn-next" [disabled]="loading" (click)="sendOtp(false)">
+              {{ loading ? 'Envoi en cours…' : 'Envoyer le code OTP' }}
+              <span class="btn-next-arrow" aria-hidden="true">›</span>
             </button>
           </div>
-        </div>
-
-        <div class="error-msg" [class.visible]="!!otpInlineError">{{ otpInlineError }}</div>
-
-        <button
-          type="button"
-          class="btn-primary"
-          [disabled]="loading || !otpAllFilled"
-          (click)="verifyOtp()"
-        >
-          {{ loading ? 'Vérification…' : 'Vérifier le code' }}
-        </button>
-
-        <button type="button" class="back-link" (click)="backToIdentity()">
-          ← Retour à la saisie d'identité
-        </button>
-      </div>
-    </div>
-
-  } @else if (step === 'confirm') {
-
-    <!-- ── Étape 3 : Consentement ── -->
-    <div class="ac-card">
-      <div class="ac-header">
-        <div class="ac-logo-row">
-          <div class="ac-logo-sq">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="#fff" stroke-width="1.5"/>
-            </svg>
+        } @else if (step === 'otp') {
+          <div class="ac-step-head">
+            <div class="ac-step-icon" aria-hidden="true">
+              <i class="bi bi-shield-lock"></i>
+            </div>
+            <div>
+              <div class="ac-eyebrow">Étape {{ currentStepNumber() }} / {{ flowSteps.length }}</div>
+              <h1 class="ac-title">Vérification en deux étapes</h1>
+            </div>
           </div>
-          <div>
-            <div class="ac-brand-name">UIB BNPL</div>
-            <div class="ac-brand-sub">VÉRIFICATION SÉCURISÉE</div>
-          </div>
-        </div>
-        <div class="ac-steps">
-          <div class="ac-step">
-            <div class="ac-step-num done">1</div>
-            <div class="ac-step-lbl">Identité</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num done">2</div>
-            <div class="ac-step-lbl">OTP</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num active">3</div>
-            <div class="ac-step-lbl active">Consentement</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num pending">4</div>
-            <div class="ac-step-lbl pending">Confirmation</div>
-          </div>
-        </div>
-      </div>
 
-      <div class="ac-body">
-        <div class="ac-eyebrow">Étape 3 / 4</div>
-        <div class="ac-title">Confirmation du consentement</div>
-        <div class="ac-hint">OTP validé. Merci de lire et accepter les conditions ci-dessous.</div>
+          <div class="ac-trust">
+            <i class="bi bi-envelope-check" aria-hidden="true"></i>
+            <span>Code à 6 chiffres · Validité 5 minutes</span>
+          </div>
 
-        @if (consentError) {
-          <div class="alert error">{{ consentError }}</div>
+          @if (referenceDemande) {
+            <div class="ref-box ref-box--compact">
+              <div class="ref-icon" aria-hidden="true">
+                <i class="bi bi-hash"></i>
+              </div>
+              <div>
+                <div class="ref-label">Référence dossier</div>
+                <div class="ref-val">{{ referenceDemande }}</div>
+              </div>
+            </div>
+          }
+
+          <p class="ac-hint">
+            Un code à 6 chiffres a été envoyé par <strong>e-mail</strong>
+            @if (maskedEmailLabel) {
+              à l'adresse <span class="otp-email">{{ maskedEmailLabel }}</span>
+            } @else {
+              (l'adresse associée à votre dossier).
+            }
+          </p>
+
+          <div class="ac-form-panel ac-form-panel--otp">
+            <div
+              class="otp-fields"
+              (paste)="onOtpPaste($event)"
+              role="group"
+              aria-label="Code à 6 chiffres"
+            >
+            @for (i of otpIndices; track i) {
+              @if (i === 3) {
+                <div class="otp-sep" aria-hidden="true"></div>
+              }
+              <input
+                #otpCell
+                class="otp-input"
+                [class.filled]="otpDigits[i]"
+                [class.expired]="otpExpired"
+                type="text"
+                maxlength="1"
+                inputmode="numeric"
+                autocomplete="one-time-code"
+                [attr.pattern]="'[0-9]'"
+                [disabled]="otpExpired"
+                [value]="otpDigits[i]"
+                (input)="onOtpDigitInput(i, $any($event.target).value)"
+                (keydown)="onOtpKeydown(i, $event)"
+              />
+            }
+          </div>
+
+            <div class="otp-timer-row">
+            <span class="otp-timer">
+              @if (otpSecondsLeft > 0) {
+                Code valide pendant <strong>{{ otpTimerLabel }}</strong>
+              } @else {
+                Délai écoulé — veuillez <strong>renvoyer</strong> le code.
+              }
+            </span>
+            <div class="resend-row">
+              Pas reçu ?
+              <button
+                type="button"
+                class="resend-link"
+                [disabled]="!canResendOtp"
+                (click)="resendOtp()"
+              >
+                @if (resendCooldown) {
+                  <i class="bi bi-check2" aria-hidden="true"></i> Code renvoyé
+                } @else {
+                  Renvoyer
+                }
+              </button>
+            </div>
+          </div>
+          </div>
+
+          <div
+            class="error-msg"
+            [class.visible]="!!otpInlineError"
+            [class.error-msg--expired]="otpErrorKind === 'expired'"
+            [class.error-msg--incorrect]="otpErrorKind === 'incorrect'"
+          >{{ otpInlineError }}</div>
+
+          <div class="ac-actions">
+            <button
+              type="button"
+              class="btn-primary btn-next"
+              [disabled]="loading || !otpAllFilled || otpExpired"
+              (click)="verifyOtp()"
+            >
+              {{ loading ? 'Vérification…' : 'Vérifier le code' }}
+              <span class="btn-next-arrow" aria-hidden="true">›</span>
+            </button>
+            <button type="button" class="back-link" (click)="backToIdentity()">
+              <i class="bi bi-arrow-left" aria-hidden="true"></i>
+              Retour à la saisie d'identité
+            </button>
+          </div>
+        } @else if (step === 'confirm') {
+          <div class="ac-step-head">
+            <div class="ac-step-icon" aria-hidden="true">
+              <i class="bi bi-file-earmark-text"></i>
+            </div>
+            <div>
+              <div class="ac-eyebrow">Étape {{ currentStepNumber() }} / {{ flowSteps.length }}</div>
+              <h1 class="ac-title">Confirmation du consentement</h1>
+            </div>
+          </div>
+
+          <div class="ac-trust">
+            <i class="bi bi-file-earmark-lock" aria-hidden="true"></i>
+            <span>Document contractuel · Signature électronique</span>
+          </div>
+
+          <p class="ac-hint">OTP validé. Merci de lire attentivement les conditions ci-dessous avant validation.</p>
+
+          @if (consentError) {
+            <div class="alert error alert--inline" role="alert">
+              <i class="bi bi-exclamation-circle" aria-hidden="true"></i>
+              <span>{{ consentError }}</span>
+            </div>
+          }
+
+          <div class="ac-section-label">Conditions générales</div>
+
+          <div class="conditions">
+            <div class="conditions-title">Conditions générales de financement</div>
+            <div class="conditions-scroll">
+              <div class="conditions-text">
+              Conformément à la loi n° 2004-63 sur la protection des données personnelles, les informations
+              collectées sont traitées avec le plus grand soin et utilisées uniquement dans le cadre du
+              présent financement. L'emprunteur dispose notamment de ses droits de rectification, d'accès
+              et de suppression.
+              <br /><br />
+              Ces données peuvent également être communiquées aux banques partenaires participant au
+              traitement de la demande, afin de permettre l'évaluation, la décision et la mise en œuvre
+              du financement.
+            </div>
+            <div class="conditions-article">
+              <div class="article-h">Article 5 – Conditions de résiliation</div>
+              <div class="article-body">
+                En cas de défaut de paiement de deux mensualités consécutives, l'UIB se réserve le droit
+                de déclencher la résiliation du contrat et d'exiger le remboursement immédiat du capital
+                restant dû, sans préjudice du paiement des pénalités prévues au contrat.
+              </div>
+            </div>
+            </div>
+          </div>
+
+          <div class="doc-link">
+            <i class="bi bi-check-circle-fill" aria-hidden="true"></i>
+            <span>Document lu entièrement</span>
+          </div>
+
+          <div class="ac-section-label">Déclarations d'acceptation</div>
+
+          <div class="checks">
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="acceptCGF" />
+              <div>
+                <span>J'ai lu et j'accepte les conditions générales de financement UIB BNPL dans leur intégralité.</span>
+                <span class="required">Obligatoire</span>
+              </div>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="acceptCentraleRisques" />
+              <div>
+                <span>J'autorise UIB à consulter ma situation bancaire auprès de la Centrale des Risques de la BCT afin d'évaluer ma solvabilité.</span>
+                <span class="required">Obligatoire</span>
+              </div>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="acceptDataProcessing" />
+              <div>
+                <span>J'accepte que mes données personnelles soient traitées conformément à la politique de confidentialité de l'UIB.</span>
+                <span class="required">Obligatoire</span>
+              </div>
+            </label>
+
+            <label class="check">
+              <input type="checkbox" [(ngModel)]="acceptMarketingOptional" />
+              <div>
+                <span>J'accepte de recevoir des communications commerciales de l'UIB.</span>
+                <span class="required">Obligatoire</span>
+              </div>
+            </label>
+          </div>
+
+          <div class="ac-actions">
+            <button
+              type="button"
+              class="btn-confirm btn-next"
+              [disabled]="loading || !acceptCGF || !acceptCentraleRisques || !acceptDataProcessing || !acceptMarketingOptional"
+              (click)="confirmConsent()"
+            >
+              {{ loading ? 'Confirmation…' : 'Confirmer le consentement' }}
+              <span class="btn-next-arrow" aria-hidden="true">›</span>
+            </button>
+          </div>
+        } @else {
+          <div class="ac-success-panel">
+            <div class="done-icon" aria-hidden="true">
+              <svg width="34" height="34" viewBox="0 0 24 24" fill="none"
+                   stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </div>
+            <h1 class="ac-title ac-title--center">Consentement confirmé</h1>
+            <p class="ac-hint ac-hint--center ac-hint--last">
+              Votre dossier de financement UIB BNPL est désormais complet.
+              Vous recevrez une confirmation par e-mail sous peu.
+            </p>
+            @if (referenceDemande) {
+              <div class="ref-box ref-box--inline">
+                <div class="ref-icon" aria-hidden="true">
+                  <i class="bi bi-hash"></i>
+                </div>
+                <div>
+                  <div class="ref-label">Référence confirmée</div>
+                  <div class="ref-val">{{ referenceDemande }}</div>
+                </div>
+              </div>
+            }
+            <div class="ac-next-steps">
+              <div class="ac-next-steps-title">Prochaines étapes</div>
+              <ul>
+                <li>
+                  <i class="bi bi-bank" aria-hidden="true"></i>
+                  <span>Analyse de votre dossier par les banques partenaires</span>
+                </li>
+                <li>
+                  <i class="bi bi-envelope-check" aria-hidden="true"></i>
+                  <span>Réception de la décision de financement par e-mail</span>
+                </li>
+              </ul>
+            </div>
+          </div>
         }
-
-        <div class="conditions">
-          <div class="conditions-title">Conditions générales de financement</div>
-          <div class="conditions-text">
-            Conformément à la loi n° 2004-63 sur la protection des données personnelles, les informations
-            collectées sont traitées avec le plus grand soin et utilisées uniquement dans le cadre du
-            présent financement. L'emprunteur dispose notamment de ses droits de rectification, d'accès
-            et de suppression.
-            <br />
-            Ces données peuvent également être communiquées aux banques partenaires participant au
-            traitement de la demande, afin de permettre l'évaluation, la décision et la mise en œuvre
-            du financement.
-          </div>
-          <div class="conditions-article">
-            <div class="article-h">Article 5 – Conditions de résiliation</div>
-            <div class="article-body">
-              En cas de défaut de paiement de deux mensualités consécutives, l'UIB se réserve le droit
-              de déclencher la résiliation du contrat et d'exiger le remboursement immédiat du capital
-              restant dû, sans préjudice du paiement des pénalités prévues au contrat.
-            </div>
-          </div>
-        </div>
-
-        <div class="doc-link">
-          <input type="checkbox" [checked]="true" disabled />
-          <span>Document lu entièrement</span>
-        </div>
-
-        <div class="checks">
-          <label class="check">
-            <input type="checkbox" [(ngModel)]="acceptCGF" />
-            <div>
-              <span>J'ai lu et j'accepte les conditions générales de financement UIB BNPL dans leur intégralité.</span>
-              <span class="required">OBLIGATOIRE</span>
-            </div>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" [(ngModel)]="acceptCentraleRisques" />
-            <div>
-              <span>J'autorise UIB à consulter ma situation bancaire auprès de la Centrale des Risques de la BCT afin d'évaluer ma solvabilité.</span>
-              <span class="required">OBLIGATOIRE</span>
-            </div>
-          </label>
-
-          <label class="check">
-            <input type="checkbox" [(ngModel)]="acceptDataProcessing" />
-            <div>
-              <span>J'accepte que mes données personnelles soient traitées conformément à la politique de confidentialité de l'UIB.</span>
-              <span class="required">OBLIGATOIRE</span>
-            </div>
-          </label>
-
-          <label class="check optional">
-            <input type="checkbox" [(ngModel)]="acceptMarketingOptional" />
-            <div>
-              <span>J'accepte de recevoir des communications commerciales de l'UIB.</span>
-              <span class="opt">(Optionnel)</span>
-            </div>
-          </label>
-        </div>
-
-        <button
-          class="btn-confirm"
-          [disabled]="loading || !acceptCGF || !acceptCentraleRisques || !acceptDataProcessing"
-          (click)="confirmConsent()"
-        >
-          {{ loading ? 'Confirmation…' : 'Confirmer le consentement' }}
-        </button>
       </div>
     </div>
 
-  } @else {
-
-    <!-- ── Étape 4 : Terminé ── -->
-    <div class="ac-card">
-      <div class="ac-header">
-        <div class="ac-logo-row">
-          <div class="ac-logo-sq">
-            <svg viewBox="0 0 24 24" aria-hidden="true">
-              <path d="M12 2L2 7l10 5 10-5-10-5z"/>
-              <path d="M2 17l10 5 10-5M2 12l10 5 10-5" fill="none" stroke="#fff" stroke-width="1.5"/>
-            </svg>
-          </div>
-          <div>
-            <div class="ac-brand-name">UIB BNPL</div>
-            <div class="ac-brand-sub">VÉRIFICATION SÉCURISÉE</div>
-          </div>
-        </div>
-        <div class="ac-steps">
-          <div class="ac-step">
-            <div class="ac-step-num done">1</div>
-            <div class="ac-step-lbl">Identité</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num done">2</div>
-            <div class="ac-step-lbl">OTP</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num done">3</div>
-            <div class="ac-step-lbl">Consentement</div>
-          </div>
-          <div class="ac-step-bar"></div>
-          <div class="ac-step">
-            <div class="ac-step-num active">4</div>
-            <div class="ac-step-lbl active">Confirmation</div>
-          </div>
-        </div>
+    <footer class="ac-footer">
+      <div class="ac-footer-inner">
+        <span class="ac-footer-lock"><i class="bi bi-shield-lock" aria-hidden="true"></i> Connexion sécurisée TLS</span>
+        <span class="ac-footer-dot" aria-hidden="true">·</span>
+        <span>Union Internationale de Banques</span>
+        <span class="ac-footer-dot" aria-hidden="true">·</span>
+        <span>Plateforme BNPL</span>
       </div>
-
-      <div class="ac-body" style="text-align:center; padding-top:32px; padding-bottom:32px;">
-        <div class="done-icon">✅</div>
-        <div class="ac-title" style="text-align:center; margin-bottom:8px;">Consentement confirmé</div>
-        <div class="ac-hint" style="text-align:center;">
-          Votre dossier de financement UIB BNPL est désormais complet.
-          Vous recevrez une confirmation par e-mail sous peu.
-        </div>
-        @if (referenceDemande) {
-          <div class="ref-box" style="margin-top:20px;">
-            <div class="ref-icon">📋</div>
-            <div>
-              <div class="ref-label">Référence confirmée</div>
-              <div class="ref-val">{{ referenceDemande }}</div>
-            </div>
-          </div>
-        }
-      </div>
-    </div>
-
-  }
+    </footer>
+  </div>
 </div>

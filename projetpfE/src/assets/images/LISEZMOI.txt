@@ -1,0 +1,18 @@
+Logos UIB
+=========
+
+Page de connexion
+-----------------
+Placez votre fichier ici :
+
+  src/assets/images/login-logo.png
+
+Extensions acceptées : .png, .jpg, .webp, .svg
+URL servie : /assets/images/login-logo.png
+
+Autres emplacements (navbar, admin, etc.)
+----------------------------------------
+  src/assets/uib-logo.png
+  src/assets/images/uib-logo.png
+
+Relancez ng serve après avoir ajouté le fichier.

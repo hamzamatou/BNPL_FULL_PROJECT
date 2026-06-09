@@ -1,0 +1,100 @@
+<section class="list-page banque-pilotage">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Tableau de bord</h1>
+      <p class="page-sub">Vos indicateurs d'activité analyste</p>
+    </div>
+  </header>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  @if (loading) {
+    <div class="table-state">
+      <span class="spinner" aria-hidden="true"></span>
+      Chargement…
+    </div>
+  } @else if (dashboard) {
+    <div class="stats-row">
+      <div class="stat-card active">
+        <div class="stat-val">{{ demandesEnCharge }}</div>
+        <div class="stat-lbl">En prise en charge</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">{{ dashboard.decisions24h }}</div>
+        <div class="stat-lbl">Décisions (24 h)</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">{{ dashboard.acceptees }}</div>
+        <div class="stat-lbl">Acceptées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">{{ dashboard.refusees }}</div>
+        <div class="stat-lbl">Refusées</div>
+      </div>
+      <div class="stat-card">
+        <div class="stat-val">{{ dashboard.complements }}</div>
+        <div class="stat-lbl">Compléments demandés</div>
+      </div>
+    </div>
+
+    <div class="charts-row">
+      <div class="card chart-card">
+        <div class="chart-wrap">
+          <canvas #decisionsBarCanvas aria-label="Graphique synthèse activité"></canvas>
+        </div>
+      </div>
+      <div class="card chart-card">
+        <div class="chart-wrap chart-wrap--doughnut">
+          @if (hasRepartitionData()) {
+            <canvas #repartitionDoughnutCanvas aria-label="Répartition des décisions par type"></canvas>
+          } @else {
+            <p class="chart-empty">
+              Aucune décision enregistrée pour votre compte.
+              Consultez <a routerLink="/banque/mes-demandes">Historique demandes</a> après avoir traité des dossiers
+              sur <a routerLink="/banque/affectees">Prise en charge</a>.
+            </p>
+          }
+        </div>
+      </div>
+    </div>
+
+    @if (dashboard.dernieresDecisions.length > 0) {
+      <div class="card table-card">
+        <div class="section-title">Dernières demandes traitées</div>
+        <div class="table-wrap">
+          <div class="table">
+            <div class="thead">
+              <div>Référence</div>
+              <div>Décision</div>
+              <div>Libellé</div>
+              <div>Date</div>
+              <div class="col-action">Action</div>
+            </div>
+            @for (d of dashboard.dernieresDecisions; track d.id) {
+              <div class="tr">
+                <div class="ref-cell">
+                  <strong>{{ d.referenceDemande || ('DEM-' + d.demandeId) }}</strong>
+                </div>
+                <div>
+                  <span class="status-badge" [ngClass]="decisionBadgeClass(d.typeDecision)">
+                    {{ libelleDecision(d.typeDecision) }}
+                  </span>
+                </div>
+                <div class="client-cell">{{ d.libelle }}</div>
+                <div class="date-cell">{{ d.dateDecision | date: 'dd/MM/yyyy HH:mm' }}</div>
+                <div class="row-actions">
+                  <a class="detail-btn" [routerLink]="['/banque/affectees', d.demandeId]">
+                    Voir
+                    <span class="detail-arrow" aria-hidden="true">›</span>
+                  </a>
+                </div>
+              </div>
+            }
+          </div>
+        </div>
+      </div>
+    }
+  }
+</section>

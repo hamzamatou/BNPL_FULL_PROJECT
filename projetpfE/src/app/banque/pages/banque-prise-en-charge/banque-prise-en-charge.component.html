@@ -1,36 +1,89 @@
-<section class="page">
-  <h2 class="title">Demandes banque prises en charge</h2>
+<section class="list-page">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">Demandes en prise en charge</h1>
+      <p class="page-sub">Dossiers que vous analysez actuellement</p>
+    </div>
+  </header>
 
-  @if (loading) {
-    <div class="state-card">Chargement...</div>
-  } @else if (errorMessage) {
-    <div class="state-card error">{{ errorMessage }}</div>
-  } @else if (demandes.length === 0) {
-    <div class="state-card">Aucune demande en prise en charge.</div>
-  } @else {
-    <div class="table">
-      <div class="thead">
-        <div>Reference</div>
-        <div>Client</div>
-        <div>Montant</div>
-        <div>Statut</div>
-        <div>Date</div>
-        <div>Action</div>
+  @if (!loading && !errorMessage) {
+    <div class="stats-row">
+      <div class="stat-card active">
+        <div class="stat-val">{{ demandes.length }}</div>
+        <div class="stat-lbl">Dossiers affectés</div>
       </div>
-
-      @for (d of demandes; track d.id) {
-        <div class="tr">
-          <div><strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong></div>
-          <div>{{ clientLabel(d) }}</div>
-          <div>{{ montantLabel(d.montant) }}</div>
-          <div><span class="badge">{{ d.statut }}</span></div>
-          <div>{{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date:'dd/MM/yyyy') : '-' }}</div>
-          <div>
-            <button type="button" class="detail-btn" (click)="goToDetail(d.id)">Détail</button>
-          </div>
-        </div>
-      }
     </div>
   }
-</section>
 
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="search-box">
+        <span class="search-ico" aria-hidden="true">⌕</span>
+        <input
+          type="text"
+          placeholder="Rechercher (client, référence)…"
+          [(ngModel)]="searchTerm"
+        />
+      </div>
+      <select class="filter-select" [(ngModel)]="sortBy">
+        <option value="date_desc">Date (récentes)</option>
+        <option value="date_asc">Date (anciennes)</option>
+        <option value="montant_desc">Montant (décroissant)</option>
+        <option value="montant_asc">Montant (croissant)</option>
+        <option value="client_asc">Client (A-Z)</option>
+      </select>
+    </div>
+  </div>
+
+  <div class="card table-card">
+    <div class="section-title">Liste des demandes</div>
+
+    <div class="table-wrap">
+      <div class="table">
+        <div class="thead">
+          <div>Référence</div>
+          <div>Client</div>
+          <div>Montant</div>
+          <div>Statut</div>
+          <div>Date</div>
+          <div class="col-action">Action</div>
+        </div>
+
+        @if (loading) {
+          <div class="table-state">
+            <span class="spinner" aria-hidden="true"></span>
+            Chargement des demandes…
+          </div>
+        } @else if (errorMessage) {
+          <div class="table-state table-state--error">{{ errorMessage }}</div>
+        } @else if (displayedDemandes.length === 0) {
+          <div class="table-state">Aucune demande en prise en charge.</div>
+        } @else {
+          @for (d of displayedDemandes; track d.id) {
+            <div class="tr">
+              <div class="ref-cell">
+                <strong>{{ d.referenceDemande || ('DEM-' + d.id) }}</strong>
+              </div>
+              <div class="client-cell">{{ clientLabel(d) }}</div>
+              <div class="amount-cell">{{ montantLabel(d.montant) }}</div>
+              <div>
+                <span class="status-badge" [ngClass]="statusBadgeClass(d.statut)">
+                  {{ statutLabel(d.statut) }}
+                </span>
+              </div>
+              <div class="date-cell">
+                {{ d.dateDerniereMiseAJour ? (d.dateDerniereMiseAJour | date: 'dd/MM/yyyy') : '-' }}
+              </div>
+              <div class="row-actions">
+                <button type="button" class="detail-btn" (click)="goToDetail(d.id)">
+                  Détails
+                  <span class="detail-arrow" aria-hidden="true">›</span>
+                </button>
+              </div>
+            </div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</section>

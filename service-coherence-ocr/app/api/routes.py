@@ -129,7 +129,7 @@ def generate_recommendation():
         # ─────────────────────────────
         result = generer_recommandations(dossier)
 
-        return jsonify(result.to_dict()), 200
+        return jsonify({"recommandations": list(result.recommandations or [])}), 200
 
     except Exception as ex:
         return jsonify({

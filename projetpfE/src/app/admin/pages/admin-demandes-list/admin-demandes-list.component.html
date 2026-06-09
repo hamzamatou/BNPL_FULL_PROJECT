@@ -1,0 +1,69 @@
+<section class="list-page admin-demandes-list">
+  <header class="page-header">
+    <div class="header-left-side">
+      <h1 class="page-title">{{ pageTitle }}</h1>
+      <p class="page-sub">{{ pageSub }}</p>
+    </div>
+  </header>
+
+  <div class="card filters-card">
+    <div class="filters-row">
+      <div class="search-box">
+        <span class="search-ico" aria-hidden="true">⌕</span>
+        <input type="text" placeholder="Rechercher référence, client, statut…" [(ngModel)]="searchTerm" />
+      </div>
+    </div>
+  </div>
+
+  @if (errorMessage) {
+    <div class="alert-error">{{ errorMessage }}</div>
+  }
+
+  <div class="card table-card">
+    <div class="table-wrap">
+      <div class="table table--demandes">
+        <div class="thead">
+          <div>Référence</div>
+          <div>Client</div>
+          <div>Commerçant</div>
+          <div>Montant</div>
+          <div>Statut</div>
+          <div>Date</div>
+          <div class="col-action">Traçabilité</div>
+        </div>
+
+        @if (loading) {
+          <div class="table-state"><span class="spinner"></span> Chargement…</div>
+        } @else {
+          @for (r of displayedRows; track r.demandeId) {
+            <div class="tr">
+              <div><strong>{{ r.reference }}</strong></div>
+              <div>{{ r.clientLabel }}</div>
+              <div>{{ r.commercantLabel }}</div>
+              <div>{{ r.montant != null ? (r.montant | number:'1.0-0') + ' TND' : '—' }}</div>
+              <div>
+                <span class="badge" [ngClass]="statutBadgeClass(r.statut)">{{ r.statut }}</span>
+              </div>
+              <div>{{ asApiDate(r.date) | date:'short' }}</div>
+              <div class="col-action">
+                <button
+                  type="button"
+                  class="btn-trace"
+                  title="Toutes les actions sur cette demande"
+                  (click)="openTraceabilite(r.demandeId)"
+                >
+                  <span class="btn-trace-icon" aria-hidden="true">
+                    <admin-icon name="trace" />
+                  </span>
+                  Traçabilité
+                </button>
+              </div>
+            </div>
+          } @empty {
+            <div class="table-empty">Aucune demande dans cette liste.</div>
+          }
+        }
+      </div>
+    </div>
+  </div>
+</section>

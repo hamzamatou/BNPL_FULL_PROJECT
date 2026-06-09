@@ -1,14 +1,24 @@
 @import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600;700&family=Syne:wght@600;700;800&display=swap');
+@import 'bootstrap-icons/font/bootstrap-icons.css';
+@import './app/shared/styles/uib-admin.css';
+@import './app/shared/styles/uib-portal.css';
 
 :root {
   --uib-red:      #d3121f;
   --uib-red-dark: #ab0f19;
+  --uib-ink:      #0f1824;
+  --uib-subtle:   #718096;
+  --uib-border:   #eef2f6;
+  --uib-border-strong: #e2e8f0;
+  --uib-red-soft: #fef2f2;
+  --uib-red-border: #fecaca;
   --bg:           #f3f5f8;
   --text:         #1f2937;
   --muted:        #6b7280;
   --line:         #e5e7eb;
   --card:         #ffffff;
   --radius:       14px;
+  --shadow-card:  0 8px 24px rgba(16, 24, 40, 0.06);
 }
 
 * {
@@ -40,9 +50,56 @@ body {
   flex-direction: column;
 }
 
-router-outlet + * {
-  flex: 1;
+/* Zone principale sous navbar horizontale */
+.app-shell .main-content > router-outlet + *,
+.app-shell .main-content > app-banque-demandes,
+.app-shell .main-content > app-banque-prise-en-charge,
+.app-shell .main-content > app-banque-prise-en-charge-detail,
+.app-shell .main-content > app-banque-pilotage,
+.app-shell .main-content > app-banque-mes-demandes,
+.app-shell .main-content > app-mes-demandes,
+.app-shell .main-content > app-demande-detail,
+.app-shell .main-content > app-nouvelle-demande,
+.app-shell .main-content > app-admin-portal,
+.app-shell .main-content > app-admin-dashboard,
+.app-shell .main-content > app-admin-demandes,
+.app-shell .main-content > app-admin-demandes-list,
+.app-shell .main-content > app-admin-utilisateurs-creer,
+.app-shell .main-content > app-admin-utilisateurs-acces,
+.app-shell .main-content > app-admin-traceabilite-demande,
+.app-shell .main-content > app-reporting-pilotage,
+.app-shell .main-content > app-user-detail {
   display: block;
+  width: 100%;
+  min-height: 100%;
+}
+
+/* Hôtes des pages routées */
+app-banque-demandes,
+app-banque-prise-en-charge,
+app-banque-prise-en-charge-detail,
+app-banque-pilotage,
+app-banque-mes-demandes,
+app-mes-demandes,
+app-demande-detail,
+app-nouvelle-demande,
+app-admin-portal,
+app-admin-dashboard,
+app-admin-demandes,
+app-admin-demandes-list,
+app-admin-utilisateurs-creer,
+app-admin-utilisateurs-acces,
+app-admin-traceabilite-demande,
+app-reporting-pilotage,
+app-user-detail,
+app-login,
+app-otp-verify,
+app-activate-account,
+app-action-client,
+.page-host {
+  display: block;
+  width: 100%;
+  min-height: 100%;
 }
 
 .page {
@@ -153,6 +210,27 @@ router-outlet + * {
 
 .btn-red:hover {
   background: var(--uib-red-dark);
+}
+
+/* Suivant / actions primaires — flèche au survol (comme Détails sur mes-demandes) */
+.btn-next {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.btn-next-arrow {
+  font-size: 18px;
+  line-height: 1;
+  font-weight: 700;
+  opacity: 0;
+  transform: translateX(-4px);
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+
+.btn-red.btn-next:hover .btn-next-arrow {
+  opacity: 1;
+  transform: translateX(0);
 }
 
 .btn-outline {

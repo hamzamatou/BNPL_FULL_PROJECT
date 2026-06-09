@@ -1,15 +1,14 @@
 import { Injectable } from '@angular/core';
 import { HttpClient, HttpHeaders, HttpParams } from '@angular/common/http';
 import { Observable } from 'rxjs';
+import type { CoherenceAnomalie } from '../models/coherence-anomalie.model';
 
 export interface DocumentMultipart {
   typeDocument: string;
   file: File;
 }
 
-export type SituationFamilialeCode =
-  | 'CELIBATAIRE' | 'MARIE' | 'PACSE'
-  | 'DIVORCE'     | 'VEUF'  | 'CONCUBINAGE';
+export type SituationFamilialeCode = 'CELIBATAIRE' | 'MARIE' | 'DIVORCE';
 
 export function libelleSituationFamiliale(code: string | undefined | null): string {
   if (!code) return '-';
@@ -48,18 +47,35 @@ export interface CreationDemandeCompleteRequest {
   documents: DocumentMultipart[];
 }
 
-/** Réponse de /analyse-ia (HTTP 200) */
+/** Réponse de /coherence (HTTP 200) */
+export interface CoherenceSuccessResponse {
+  coherent: boolean;
+  processInstanceId?: string;
+  analysisSessionId?: string;
+  corrections?: Record<string, unknown>;
+  alertes?: string[];
+  /** Présent dès la cohérence OK (génération serveur). */
+  recommandations?: string[];
+}
+
+/** Réponse de /recommandations (HTTP 200) */
+export interface RecommandationsSuccessResponse {
+  recommandations: string[];
+  processInstanceId?: string;
+}
+
+/** Réponse de /analyse-ia (HTTP 200) — rétrocompat */
 export interface AnalyseIASuccessResponse {
   recommandations: string[];
   corrections?: Record<string, unknown>;
   alertes?: string[];
-  scoreCoherence?: number;
+  processInstanceId?: string;
 }
 
 /** Réponse de /analyse-ia (HTTP 422) */
 export interface CoherenceErreurReponse {
   message: string;
-  anomalies: string[];
+  anomalies: CoherenceAnomalie[] | string[];
   corrections?: Record<string, unknown>;
 }
 
@@ -121,6 +137,7 @@ export interface DemandeFinancementDto {
   id: number;
   referenceDemande: string;
   montant: number;
+  dureeMois?: number;
   statut: string;
   dateCreation: string;
   dateDerniereMiseAJour: string;
@@ -128,6 +145,17 @@ export interface DemandeFinancementDto {
   clientId?: number;
   clientNom?: string;
   clientPrenom?: string;
+  clientCin?: string;
+  commercantUserId?: number;
+}
+
+export interface HistoriqueEvenementDto {
+  type: string;
+  libelle: string;
+  detail?: string;
+  statutAvant?: string;
+  statutApres?: string;
+  dateEvenement: string;
 }
 
 export interface DemandeCompleteDto {
@@ -143,6 +171,7 @@ export interface DemandeCompleteDto {
   dossierClient?: DossierClientDto;
   recommandation?: RecommandationDto;
   prescoringScore?: PrescoringScoreDto;
+  historique?: HistoriqueEvenementDto[];
 }
 
 export interface DernierDossierFinancierDto {
@@ -163,11 +192,10 @@ export class DemandeService {
 
   constructor(private http: HttpClient) {}
 
-  /** Analyse IA avant création — ne persiste rien en base. */
-  analyseIA(
+  private buildAnalyseFormData(
     request: CreationDemandeCompleteRequest,
     documents: DocumentMultipart[]
-  ): Observable<AnalyseIASuccessResponse> {
+  ): FormData {
     const formData = new FormData();
     const declared: Record<string, unknown> = {};
     (Object.keys(request) as (keyof CreationDemandeCompleteRequest)[]).forEach(key => {
@@ -179,17 +207,72 @@ export class DemandeService {
     documents.forEach(doc => {
       formData.append(doc.typeDocument, doc.file, doc.file.name);
     });
-    return this.http.post<AnalyseIASuccessResponse>(
-      `${this.baseUrl}/analyse-ia`,
+    return formData;
+  }
+
+  /** Étape 1 : cohérence OCR (POST /coherence/check côté micro IA). */
+  verifierCoherence(
+    request: CreationDemandeCompleteRequest,
+    documents: DocumentMultipart[],
+    processInstanceId?: string
+  ): Observable<CoherenceSuccessResponse> {
+    const formData = this.buildAnalyseFormData(request, documents);
+    let params = new HttpParams();
+    if (processInstanceId) {
+      params = params.set('process_instance_id', processInstanceId);
+    }
+    return this.http.post<CoherenceSuccessResponse>(
+      `${this.baseUrl}/coherence`,
       formData,
-      { headers: this.authHeadersNoContentType() }
+      { headers: this.authHeadersNoContentType(), params }
+    );
+  }
+
+  /** Étape 2 : recommandations (après cohérence OK, anomalies[] vide). */
+  obtenirRecommandations(
+    processInstanceId?: string,
+    analysisSessionId?: string
+  ): Observable<RecommandationsSuccessResponse> {
+    let params = new HttpParams();
+    if (processInstanceId?.trim()) {
+      params = params.set('process_instance_id', processInstanceId.trim());
+    }
+    if (analysisSessionId?.trim()) {
+      params = params.set('analysis_session_id', analysisSessionId.trim());
+    }
+    return this.http.post<RecommandationsSuccessResponse>(
+      `${this.baseUrl}/recommandations`,
+      null,
+      { headers: this.authHeaders(), params }
+    );
+  }
+
+  /**
+   * Analyse complète en un appel (backend enchaîne cohérence puis recommandations).
+   * Préférer verifierCoherence puis obtenirRecommandations pour le flux en deux temps.
+   */
+  analyseIA(
+    request: CreationDemandeCompleteRequest,
+    documents: DocumentMultipart[],
+    processInstanceId?: string
+  ): Observable<AnalyseIASuccessResponse> {
+    const formData = this.buildAnalyseFormData(request, documents);
+    let params = new HttpParams();
+    if (processInstanceId) {
+      params = params.set('process_instance_id', processInstanceId);
+    }
+    return this.http.post<AnalyseIASuccessResponse>(
+      `${this.baseUrl}/analyse`,
+      formData,
+      { headers: this.authHeadersNoContentType(), params }
     );
   }
 
   /** Création en base + email consentement (après validation IA côté front). */
   creerDemande(
     request: CreationDemandeCompleteRequest,
-    recommandationsJson: string = '[]'
+    recommandationsJson: string = '[]',
+    processInstanceId?: string
   ): Observable<DemandeFinancementDto> {
     const formData = new FormData();
     const declared: Record<string, unknown> = {};
@@ -205,11 +288,15 @@ export class DemandeService {
       formData.append(doc.typeDocument, doc.file, doc.file.name);
     });
     formData.append('recommandations_json', recommandationsJson);
+    let params = new HttpParams();
+    if (processInstanceId) {
+      params = params.set('process_instance_id', processInstanceId);
+    }
 
     return this.http.post<DemandeFinancementDto>(
       `${this.baseUrl}/creation-complete`,
       formData,
-      { headers: this.authHeadersNoContentType() }
+      { headers: this.authHeadersNoContentType(), params }
     );
   }
 
@@ -217,10 +304,17 @@ export class DemandeService {
 
   getDemandesByCommercantFromToken(): Observable<DemandeFinancementDto[]> {
     const payload = this.decodeToken();
-    const params  = new HttpParams().set('clientId', String(payload.id));
     return this.http.get<DemandeFinancementDto[]>(
-      `${this.baseUrl}/par-client`,
-      { headers: this.authHeaders(), params }
+      `${this.baseUrl}/par-commercant/${payload.id}`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  /** Supervision admin : demandes actives en base gestion-demande. */
+  getDemandesAdminEnCours(): Observable<DemandeFinancementDto[]> {
+    return this.http.get<DemandeFinancementDto[]>(
+      `${this.baseUrl}/admin/en-cours`,
+      { headers: this.authHeaders() }
     );
   }
 
@@ -231,9 +325,32 @@ export class DemandeService {
     );
   }
 
+  annulerDemande(id: number): Observable<DemandeFinancementDto> {
+    return this.http.post<DemandeFinancementDto>(
+      `${this.baseUrl}/${id}/annuler`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
+  renvoyerConsentement(id: number): Observable<DemandeFinancementDto> {
+    return this.http.post<DemandeFinancementDto>(
+      `${this.baseUrl}/${id}/renvoyer-consentement`,
+      {},
+      { headers: this.authHeaders() }
+    );
+  }
+
   getDemandeDetailBanqueById(id: number): Observable<DemandeCompleteDto> {
     return this.http.get<DemandeCompleteDto>(
       `${this.priseEnChargeUrl}/demandes/${id}/detail`,
+      { headers: this.authHeaders() }
+    );
+  }
+
+  getRecapBanqueById(id: number): Observable<DemandeCompleteDto> {
+    return this.http.get<DemandeCompleteDto>(
+      `${this.priseEnChargeUrl}/demandes/${id}/recap`,
       { headers: this.authHeaders() }
     );
   }

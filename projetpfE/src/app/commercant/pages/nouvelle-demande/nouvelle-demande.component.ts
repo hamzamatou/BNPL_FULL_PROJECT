@@ -1,5 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
+import { RouterLink } from '@angular/router';
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { StepperComponent }              from '../../components/stepper/stepper.component';
@@ -10,6 +11,7 @@ import { ConsentementComponent }          from '../../components/consentement/co
 import { AnomaliesPanelComponent }        from '../../components/anomalies-panel/anomalies-panel.component';
 import { AlertesPanelComponent }          from '../../components/alertes-panel/alertes-panel.component';
 import { RecommandationsModalComponent }  from '../../components/recommandations-modal/recommandations-modal.component';
+import { normaliserRecommandationsApresAnalyse } from '../../../shared/utils/recommandations.util';
 
 import {
   DemandeService,
@@ -19,6 +21,10 @@ import {
   SituationFamilialeCode,
 } from '../../../services/demande.service';
 import { applyCoherenceCorrections } from '../../../utils/coherence-corrections.util';
+import {
+  CoherenceAnomalie,
+  normalizeCoherenceAnomalies,
+} from '../../../models/coherence-anomalie.model';
 
 /**
  *  Step 1–3  Formulaire
@@ -31,6 +37,7 @@ import { applyCoherenceCorrections } from '../../../utils/coherence-corrections.
   standalone: true,
   imports: [
     CommonModule,
+    RouterLink,
     StepperComponent,
     InfosClientComponent,
     DonneesFinancieresComponent,
@@ -55,12 +62,15 @@ export class NouvelleDemandeComponent {
 
   isAnalysing = false;
   analyseError = '';
-  anomalies: string[] = [];
+  anomalies: CoherenceAnomalie[] = [];
   alertes: string[] = [];
   recommandations: string[] = [];
   champsCorriges: string[] = [];
   iaValidee = false;
-  recoModalOpen = false;
+  processInstanceId = '';
+  analysisSessionId = '';
+  anomaliesModalOpen = false;
+  recommandationsModalOpen = false;
 
   isSubmitting = false;
   submitSuccess = false;
@@ -85,6 +95,17 @@ export class NouvelleDemandeComponent {
     const v = this.infosClientData['ancienneteEmploiMois'];
     const n = Number(v);
     return Number.isFinite(n) ? Math.trunc(n) : 0;
+  }
+
+  /** Transmis à l'étape documents (loyer / devis conditionnels). */
+  get documentsAUnLoyer(): boolean {
+    const v = this.donneesFinancieresData['aUnLoyer'];
+    return v === true || v === 'true';
+  }
+
+  get documentsMontant(): number {
+    const n = Number(this.donneesFinancieresData['montant'] ?? 0);
+    return Number.isFinite(n) ? n : 0;
   }
 
   get stepperStep(): number {
@@ -141,29 +162,74 @@ export class NouvelleDemandeComponent {
     this.champsCorriges = [];
     this.iaValidee = false;
 
-    this.demandeService.analyseIA(this.buildRequest(), this.documentsData).subscribe({
-      next: res => {
-        this.isAnalysing = false;
-        this.recommandations = res.recommandations ?? [];
-        this.alertes = res.alertes ?? [];
-        this.appliquerCorrections(res.corrections);
-        this.iaValidee = true;
-        this.recoModalOpen = (res.recommandations?.length ?? 0) > 0;
+    const request = this.buildRequest();
+    const docs = this.documentsData;
+    const processId = this.processInstanceId || undefined;
+
+    this.demandeService.verifierCoherence(request, docs, processId).subscribe({
+      next: coherenceRes => {
+        if (coherenceRes.processInstanceId) {
+          this.processInstanceId = coherenceRes.processInstanceId;
+        }
+        if (coherenceRes.analysisSessionId) {
+          this.analysisSessionId = coherenceRes.analysisSessionId;
+        }
+        this.alertes = coherenceRes.alertes ?? [];
+        this.appliquerCorrections(coherenceRes.corrections);
+
+        if (coherenceRes.recommandations != null) {
+          this.finaliserAnalyseOk(coherenceRes.recommandations);
+          return;
+        }
+
+        // Rétrocompat : ancien backend sans recommandations dans /coherence
+        this.demandeService
+          .obtenirRecommandations(
+            this.processInstanceId || undefined,
+            this.analysisSessionId || undefined
+          )
+          .subscribe({
+            next: recoRes => {
+              if (recoRes.processInstanceId) {
+                this.processInstanceId = recoRes.processInstanceId;
+              }
+              this.finaliserAnalyseOk(recoRes.recommandations ?? []);
+            },
+            error: (err: HttpErrorResponse) => {
+              this.isAnalysing = false;
+              this.iaValidee = false;
+              this.analyseError =
+                err.error?.message ?? 'Erreur lors de la génération des recommandations';
+            },
+          });
       },
       error: (err: HttpErrorResponse) => {
         this.isAnalysing = false;
         this.iaValidee = false;
-
         if (err.status === 422) {
           const body = err.error as CoherenceErreurReponse;
-          this.anomalies = body?.anomalies ?? [];
+          this.anomalies = normalizeCoherenceAnomalies(body?.anomalies);
+          this.anomaliesModalOpen = this.anomalies.length > 0;
           this.analyseError = body?.message ?? 'Incohérences détectées';
           this.appliquerCorrections(body?.corrections);
         } else {
-          this.analyseError = err.error?.message ?? 'Erreur lors de l\'analyse IA';
+          this.analyseError = err.error?.message ?? 'Erreur lors de l\'analyse de cohérence';
         }
       },
     });
+  }
+
+  private finaliserAnalyseOk(recommandations: string[]): void {
+    this.isAnalysing = false;
+    this.recommandations = normaliserRecommandationsApresAnalyse(recommandations);
+    this.iaValidee = true;
+    this.anomaliesModalOpen = false;
+    this.recommandationsModalOpen = true;
+  }
+
+  continuerApresRecommandations(): void {
+    this.recommandationsModalOpen = false;
+    this.goToConsent();
   }
 
   private appliquerCorrections(corrections: Record<string, unknown> | undefined): void {
@@ -180,10 +246,6 @@ export class NouvelleDemandeComponent {
 
   get coherenceOK(): boolean {
     return this.iaValidee && !this.isAnalysing && this.anomalies.length === 0 && !this.analyseError;
-  }
-
-  get afficherRecommandations(): boolean {
-    return this.coherenceOK && this.recommandations.length > 0;
   }
 
   goToConsent(): void {
@@ -205,7 +267,11 @@ export class NouvelleDemandeComponent {
 
     const recommandationsJson = JSON.stringify(this.recommandations);
 
-    this.demandeService.creerDemande(this.buildRequest(), recommandationsJson).subscribe({
+    this.demandeService.creerDemande(
+      this.buildRequest(),
+      recommandationsJson,
+      this.processInstanceId || undefined
+    ).subscribe({
       next: () => {
         this.isSubmitting = false;
         this.submitSuccess = true;
@@ -244,7 +310,10 @@ export class NouvelleDemandeComponent {
     this.recommandations = [];
     this.champsCorriges = [];
     this.iaValidee = false;
-    this.recoModalOpen = false;
+    this.processInstanceId = '';
+    this.analysisSessionId = '';
+    this.anomaliesModalOpen = false;
+    this.recommandationsModalOpen = false;
   }
 
   prevStep(): void {
@@ -264,6 +333,8 @@ export class NouvelleDemandeComponent {
     this.donneesFinancieresPrefill = null;
     this.documentsData = [];
     this.typeProduit = '';
+    this.processInstanceId = '';
+    this.analysisSessionId = '';
     this.resetIaState();
     this.isSubmitting = false;
     this.submitSuccess = false;

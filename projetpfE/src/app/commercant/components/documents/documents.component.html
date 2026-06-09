@@ -11,14 +11,22 @@
         </div>
       </div>
     </div>
-    <div class="status-badge" *ngIf="status === 'completed'">
-      <span>✔</span> Complété
-    </div>
+    @if (status === 'completed') {
+      <div class="status-badge">
+        <span>✔</span> Complété
+      </div>
+    }
   </div>
 
   <div class="card-body">
     <div class="doc-hint">
       Pièces obligatoires selon votre dossier. Les champs marqués <span>*</span> doivent être chargés.
+      @if (aUnLoyer) {
+        <span class="doc-hint__tag">Justificatif de loyer requis</span>
+      }
+      @if (requiresDevis) {
+        <span class="doc-hint__tag">Devis requis (montant &gt; 12&nbsp;000 TND)</span>
+      }
     </div>
     <div class="upload-container">
       <div class="upload-section">
@@ -75,38 +83,51 @@
         </div>
       </div>
 
-      <div class="upload-section" *ngIf="aUnLoyer">
-        <label>JUSTIFICATIF LOYER <span class="req">*</span></label>
-        <div class="drop-zone" 
-             [class.disabled]="status === 'completed'"
-             (click)="status !== 'completed' ? loyerInput.click() : null">
-          <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #loyerInput (change)="onFile($event, 'justificatif_loyer')" hidden [disabled]="status === 'completed'">
+      @if (aUnLoyer) {
+        <div class="upload-section">
+          <label>JUSTIFICATIF LOYER <span class="req">*</span></label>
+          <div class="drop-zone" 
+               [class.disabled]="status === 'completed'"
+               (click)="status !== 'completed' ? loyerInput.click() : null">
+            <p>Glisser ou <span>parcourir</span></p>
+            <input type="file" #loyerInput (change)="onFile($event, 'justificatif_loyer')" hidden [disabled]="status === 'completed'">
+          </div>
         </div>
-      </div>
+      }
 
-      <div class="upload-section" *ngIf="requiresDevis">
-        <label>DEVIS (&gt; 10 000 TND) <span class="req">*</span></label>
-        <div class="drop-zone" 
-             [class.disabled]="status === 'completed'"
-             (click)="status !== 'completed' ? devisInput.click() : null">
-          <p>Glisser ou <span>parcourir</span></p>
-          <input type="file" #devisInput (change)="onFile($event, 'devis')" hidden [disabled]="status === 'completed'">
+      @if (requiresDevis) {
+        <div class="upload-section">
+          <label>DEVIS (&gt; 10 000 TND) <span class="req">*</span></label>
+          <div class="drop-zone" 
+               [class.disabled]="status === 'completed'"
+               (click)="status !== 'completed' ? devisInput.click() : null">
+            <p>Glisser ou <span>parcourir</span></p>
+            <input type="file" #devisInput (change)="onFile($event, 'devis')" hidden [disabled]="status === 'completed'">
+          </div>
         </div>
-      </div>
+      }
     </div>
 
-    <div class="file-list" *ngIf="uploadedFiles.length > 0">
-      <div class="file-item" *ngFor="let file of uploadedFiles">
-        <span class="file-icon">📄</span>
-        <span class="file-name">{{ file.file.name }} — {{ (file.file.size / 1024).toFixed(1) }} KB</span>
-        <span class="check-box">✔</span>
+    @if (uploadedFiles.length > 0) {
+      <div class="file-list">
+        @for (file of uploadedFiles; track file.typeDocument) {
+          <div class="file-item">
+            <span class="file-icon">📄</span>
+            <span class="file-name">{{ file.file.name }} — {{ (file.file.size / 1024).toFixed(1) }} KB</span>
+            <span class="check-box">✔</span>
+          </div>
+        }
       </div>
-    </div>
+    }
 
-    <div class="actions" *ngIf="status === 'active'">
-      <button class="btn btn-outline" (click)="prevStep.emit()">← Retour</button>
-      <button class="btn btn-red" (click)="goNext()">Suivant →</button>
-    </div>
+    @if (status === 'active') {
+      <div class="actions">
+        <button type="button" class="btn btn-outline" (click)="prevStep.emit()">← Retour</button>
+        <button type="button" class="btn btn-red btn-next" (click)="goNext()">
+          Suivant
+          <span class="btn-next-arrow" aria-hidden="true">›</span>
+        </button>
+      </div>
+    }
   </div>
 </div>
